@@ -107,6 +107,13 @@ body{
 .btn-sm{padding:0.35rem 0.7rem;font-size:0.75rem}
 .btn-bar{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:space-between;margin-top:1rem}
 .btn-bar .left-gap{margin-left:auto}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.55rem;margin:0.65rem 0 0.75rem}
+.mode-card{display:flex;gap:0.45rem;align-items:flex-start;padding:0.62rem 0.72rem;border-radius:12px;background:rgba(255,215,150,0.035);border:1px solid rgba(255,215,150,0.10);cursor:pointer;color:rgba(212,212,232,0.68);font-size:0.74rem;line-height:1.45}
+.mode-card input{margin-top:0.18rem;accent-color:#e8a860}
+.mode-card strong{display:block;color:#e8a860;margin-bottom:0.12rem}
+.preset-row{display:flex;gap:0.45rem;flex-wrap:wrap;margin-top:0.45rem}
+.mini-help{font-size:0.68rem;color:rgba(212,212,232,0.38);line-height:1.65;margin-top:0.35rem}
+.notice-line{font-size:0.68rem;color:rgba(232,168,96,0.58);line-height:1.55;margin-top:0.35rem}
 
 /* === REVIEW === */
 .review-block{
@@ -366,43 +373,71 @@ select{cursor:pointer}
 
     <div class="review-block" id="manualPromptBlock">
       <h4>📝 外部 Prompt 粘贴区（从 d栖栖 / 文档 / 其他网页复制后粘到这里）</h4>
-      <p style="font-size:0.72rem;color:rgba(212,212,232,0.42);line-height:1.7;margin:0.2rem 0 0.7rem">
-        勾选后，发送到 ComfyUI 会优先使用这里粘贴的内容；不勾选则继续使用前面星门自动生成的标签。
+      <p style="font-size:0.72rem;color:rgba(212,212,232,0.42);line-height:1.7;margin:0.2rem 0 0.55rem">
+        可以从别处复制完整 Prompt，也可以只粘“镜头/构图/补充词”。下面选择使用方式，避免误把前面星门标签覆盖掉。
       </p>
-      <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.78rem;color:#e8a860;margin-bottom:0.7rem;cursor:pointer">
-        <input type="checkbox" id="manualPromptEnabled" onchange="updateReview()" style="width:auto;accent-color:#e8a860">
-        优先使用外部 Prompt
-      </label>
+      <div class="mode-grid" role="radiogroup" aria-label="外部 Prompt 使用方式">
+        <label class="mode-card">
+          <input type="radio" name="manualPromptMode" value="off" checked onchange="updateReview()">
+          <span><strong>不使用</strong>只使用前面星门自动生成的标签。</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="manualPromptMode" value="append" onchange="updateReview()">
+          <span><strong>追加到自动 Prompt 后面</strong>适合只粘镜头词、构图词、补充负面词。</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="manualPromptMode" value="override" onchange="updateReview()">
+          <span><strong>覆盖自动 Prompt</strong>适合粘贴 d栖栖给你的完整正向/负向 Prompt。</span>
+        </label>
+      </div>
+      <div class="notice-line" id="manualModeHint">当前：不使用外部 Prompt。</div>
       <div class="param-row" style="grid-template-columns:1fr 1fr;gap:0.8rem">
         <div>
           <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">正向 Prompt</label>
-          <textarea id="manualPosPrompt" oninput="updateReview()" placeholder="把从别处复制的正向 prompt 粘贴到这里..." style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
+          <textarea id="manualPosPrompt" oninput="updateReview()" placeholder="可以粘完整正向 prompt；如果选择追加模式，也可以只粘镜头/构图/补充词。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
           <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualPosPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴正向</button>
         </div>
         <div>
           <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">负向 Prompt</label>
-          <textarea id="manualNegPrompt" oninput="updateReview()" placeholder="可选：把负向 prompt 粘贴到这里；留空则使用上面的负向词。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
+          <textarea id="manualNegPrompt" oninput="updateReview()" placeholder="可选：粘完整负向 prompt；追加模式下会接在默认负向词后面。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
           <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualNegPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴负向</button>
         </div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem">
-        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt()">✅ 使用粘贴 Prompt</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt('append')">➕ 追加粘贴词</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt('override')">✅ 覆盖使用粘贴 Prompt</button>
         <button class="btn btn-ghost btn-sm" type="button" onclick="clearManualPrompt()">🧹 清空粘贴区</button>
       </div>
     </div>
 
     <div class="review-block" style="cursor:pointer" onclick="toggleAdvanced()">
       <h4>⚙ 高级参数（点击展开/收起 · 调好了画面质量会更好）</h4>
-      <div id="advancedPanel" style="display:none;margin-top:0.6rem">
+      <div id="advancedPanel" style="display:none;margin-top:0.6rem" onclick="event.stopPropagation()">
 
-        <!-- 尺寸 -->
+        <!-- 参数预设 -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎚 一键参数预设</label>
+          <p class="mini-help">不知道怎么调时先点预设。高清精修会打开二次潜空间放大，慢一点但细节更稳。</p>
+          <div class="preset-row">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('portrait')">人物竖图</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('bedroomWide')">卧室横图</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('stablePose')">高稳定姿势</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('hires')">高清精修</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('preview')">快速预览</button>
+          </div>
+          <div class="notice-line" id="presetHint">当前使用默认参数。想把满意构图继续修，先固定 Seed。</div>
+        </div>
+
         <div style="margin-bottom:1rem">
           <label style="font-size:0.85rem;font-weight:700;color:#e8a860">📐 图片尺寸</label>
           <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">决定了画面是横是竖、出图快慢。尺寸越大显存占用越大，RTX 4060 8GB 上限约 1600×2048。</p>
           <select id="imgSize" style="max-width:320px">
             <option value="832×1216" selected>竖版 832×1216 · 单人立绘</option>
             <option value="896×1152">竖版 896×1152 · 标准人像</option>
+            <option value="896×1344">竖版 896×1344 · 细节人像</option>
+            <option value="960×1680">竖版 960×1680 · 高质量竖图</option>
             <option value="1216×832">横版 1216×832 · 双人或场景</option>
+            <option value="1344×896">横版 1344×896 · 细节横图</option>
             <option value="1152×896">横版 1152×896 · 标准横版</option>
             <option value="1024×1024">方形 1024×1024 · 头像/正方形</option>
           </select>
@@ -417,7 +452,7 @@ select{cursor:pointer}
               <label>采样器 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">▼ 怎么选</span></label>
               <select id="sampler">
                 <option value="dpmpp_2m" selected>dpmpp_2m · 稳定干净</option>
-                <option value="euler_ancestral">Euler Ancestral · 随机纹理感</option>
+                <option value="euler_ancestral">Euler A / Ancestral · 随机纹理感</option>
                 <option value="dpmpp_sde">dpmpp_sde · 细节多/可能噪</option>
               </select>
             </div>
@@ -450,34 +485,72 @@ select{cursor:pointer}
         <!-- 种子 + LoRA -->
         <div style="margin-bottom:1rem">
           <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎲 种子 + LoRA 强度</label>
-          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">种子控制随机性，LoRA 是附加细节模型。这两个先不动，出图不满意再调。</p>
+          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">Seed 是构图编号：-1 表示每次随机；填入固定数字后，同样参数会尽量复现同一构图。</p>
           <div class="param-row">
             <div>
-              <label>种子 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">-1=每次不同 / 固定数=可复现</span></label>
+              <label>种子 Seed <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">-1=随机 / 数字=固定</span></label>
               <input type="text" id="seed" value="-1">
+              <div class="preset-row" style="margin-top:0.45rem">
+                <button class="btn btn-ghost btn-sm" type="button" onclick="randomizeSeed()">🎲 随机新 Seed</button>
+                <button class="btn btn-ghost btn-sm" type="button" onclick="fixCurrentSeed()">📌 固定当前 Seed</button>
+              </div>
+              <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.45rem;color:rgba(212,212,232,0.5);font-size:0.68rem">
+                <input type="checkbox" id="autoFixSeed" checked style="width:auto;accent-color:#e8a860"> 出图时若为 -1，自动写回本次 Seed，方便继续微调
+              </label>
+              <div class="notice-line" id="seedHint">当前 Seed：随机。想固定构图就点“固定当前 Seed”，或出图后保留自动写回的数字。</div>
             </div>
             <div>
-              <label>LoRA 强度 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">高=更细节 / 太高=崩</span></label>
+              <label>LoRA 文件名（可选） <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">留空=不加载 LoRA</span></label>
+              <input type="text" id="loraName" placeholder="例如 xxx.safetensors">
+              <label style="margin-top:0.55rem">LoRA 强度 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">0.35-0.55 常用 / 太高易崩</span></label>
               <div class="slider-group" style="padding-top:0.3rem">
                 <input type="range" id="loraWeight" min="0" max="1" step="0.05" value="0.4">
                 <span class="slider-val" id="loraVal">0.40</span>
               </div>
+              <div class="mini-help">以前这里只有强度但没接 LoRA；现在填文件名才会在 ComfyUI 工作流里启用 LoraLoader。</div>
             </div>
           </div>
         </div>
 
-        <!-- 调参速查表 -->
+        <!-- 高清精修 -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🪄 高清精修 / 二次放大</label>
+          <p class="mini-help">找不到“高清精修”是因为之前没做成开关。打开后会先出基础图，再在潜空间放大并二次采样；更慢、更吃显存，但细节更稳。</p>
+          <label style="display:flex;align-items:center;gap:0.45rem;color:#e8a860;font-size:0.76rem;margin:0.45rem 0;cursor:pointer">
+            <input type="checkbox" id="hiresEnabled" onchange="updateHiresHint()" style="width:auto;accent-color:#e8a860"> 启用高清精修
+          </label>
+          <div class="param-row triple">
+            <div>
+              <label>放大倍率 <span class="hint">4060 8GB 建议 1.25-1.4</span></label>
+              <select id="hiresScale" onchange="updateHiresHint()">
+                <option value="1.25">1.25x · 稳</option>
+                <option value="1.4" selected>1.4x · 推荐精修</option>
+                <option value="1.6">1.6x · 更吃显存</option>
+              </select>
+            </div>
+            <div>
+              <label>精修步数 <span class="hint">12-18 常用</span></label>
+              <input type="number" id="hiresSteps" value="15" min="8" max="30" step="1">
+            </div>
+            <div>
+              <label>Denoise <span class="hint">低=保构图 / 高=重画</span></label>
+              <input type="number" id="hiresDenoise" value="0.32" min="0.15" max="0.55" step="0.01">
+            </div>
+          </div>
+          <div class="notice-line" id="hiresHint">高清精修未启用。</div>
+        </div>
+
         <div style="background:rgba(255,215,150,0.03);border:1px solid rgba(255,215,150,0.08);border-radius:12px;padding:0.8rem 1rem;margin-top:0.8rem">
           <div style="font-size:0.78rem;color:#e8a860;font-weight:700;margin-bottom:0.6rem">🔧 出图不满意？对着调（调参速查表）</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1rem;font-size:0.68rem;line-height:1.6">
             <div><span style="color:#cc8080">画面发灰/模糊</span> → CFG 太低，调到 5-6</div>
             <div><span style="color:#cc8080">颜色过艳/塑料假人</span> → CFG 太高，降到 4-5</div>
             <div><span style="color:#cc8080">细节不够/糊</span> → 步数加到 35，LoRA 加到 0.5</div>
-            <div><span style="color:#cc8080">手脚画崩/变形</span> → 这是 AI 通病，换个种子重试</div>
+            <div><span style="color:#cc8080">手脚画崩/变形</span> → 开“高稳定姿势”预设，必要时用 OpenPose</div>
             <div><span style="color:#cc8080">画面噪点多</span> → 采样器换成 dpmpp_2m，步数加到 30</div>
             <div><span style="color:#cc8080">风格不对/太动漫</span> → 回到第6步加风格标签</div>
             <div><span style="color:#cc8080">人体比例崩</span> → 加 "natural proportions" 标签，换种子</div>
-            <div><span style="color:#cc8080">想把某张图调更好</span> → 记下种子，只改 prompt 不变种子</div>
+            <div><span style="color:#cc8080">想把某张图调更好</span> → 固定 Seed，只改 prompt / CFG / 步数</div>
           </div>
         </div>
       </div>
@@ -615,7 +688,7 @@ const TAG_DB = {
   ],
   // Step 3a: Clothing
   step3a: [
-    {en:'school_uniform',zh:'校服',desc:'学生制服，经典JK'},
+    {en:'adult_cosplay_uniform',zh:'成人制服Cosplay',desc:'成熟角色的学院风制服'},
     {en:'kimono',zh:'和服',desc:'日式传统服装'},
     {en:'yukata',zh:'浴衣',desc:'夏日和服，轻薄款'},
     {en:'dress',zh:'连衣裙',desc:'各类裙子'},
@@ -676,7 +749,7 @@ const TAG_DB = {
     {en:'leg_grab',zh:'抓着大腿',desc:'用力掐出的红印'},
     {en:'thighs',zh:'大腿',desc:'肉感的美腿'},
     {en:'calves',zh:'小腿',desc:'纤细的弧线'},
-    {en:'jk',zh:'女高中生',desc:'搭配制服和乐福鞋的终极杀器'}
+    {en:'adult_cosplay',zh:'成人学院风Cosplay',desc:'成熟角色的制服扮演风格'}
   ],
   // Step 3c: Underwear
   step3c: [
@@ -904,6 +977,13 @@ const NEG_DB = [
   {en:'harsh_lighting',zh:'刺眼光线',desc:'光线不自然'},
   {en:'bad_anatomy',zh:'身体结构崩坏',desc:'手多手指/身体歪'},
   {en:'bad_hands',zh:'手画坏了',desc:'AI最容易崩的部位'},
+  {en:'bad_feet',zh:'脚画坏了',desc:'脚趾/脚底崩坏'},
+  {en:'extra_arms',zh:'多余手臂',desc:'多长一只手'},
+  {en:'extra_legs',zh:'多余腿',desc:'腿数量错误'},
+  {en:'fused_legs',zh:'腿粘连',desc:'双腿融合在一起'},
+  {en:'malformed_legs',zh:'腿变形',desc:'腿部结构不自然'},
+  {en:'out_of_frame',zh:'出框裁切',desc:'身体被裁掉'},
+  {en:'duplicate_body',zh:'重复身体',desc:'多身体/重影'},
   {en:'extra_fingers',zh:'多手指',desc:'六指琴魔'},
   {en:'deformed',zh:'变形',desc:'任何奇怪的变形'},
   {en:'blurry',zh:'模糊',desc:'画面不清楚'},
@@ -951,18 +1031,54 @@ let comfyConnected = false;
   document.getElementById('loraWeight').addEventListener('input',function(){
     document.getElementById('loraVal').textContent = parseFloat(this.value).toFixed(2);
   });
+  const seedInput = document.getElementById('seed');
+  if(seedInput) seedInput.addEventListener('input', updateSeedHint);
+  updateSeedHint();
+  updateHiresHint();
   // Auto-detect bridge + ComfyUI
   setTimeout(()=>checkAll(),1000);
 })();
 
 // === TAG TOGGLE ===
 function toggleTag(el,key,tag){
-  el.classList.toggle('selected');
   const arr = selectedTags[key];
   const idx = arr.indexOf(tag);
-  if(idx>-1) arr.splice(idx,1);
-  else arr.push(tag);
+  const willSelect = idx === -1;
+  if(willSelect){
+    arr.push(tag);
+    el.classList.add('selected');
+    applyTagExclusions(key, tag);
+  }else{
+    arr.splice(idx,1);
+    el.classList.remove('selected');
+  }
   if(currentStep===7) updateReview();
+}
+
+function applyTagExclusions(key, tag){
+  const groups = [
+    {key:'step1', tags:['1girl','1boy','2girls','multiple_girls','solo','no_humans','animal']},
+    {key:'step2a', tags:['large_breasts','huge_breasts','medium_breasts','small_breasts','flat_chest']},
+    {key:'step2c', tags:['black_hair','brown_hair','blonde_hair','silver_hair','white_hair','blue_hair','pink_hair','purple_hair','red_hair','green_hair','gradient_hair','multicolored_hair']},
+    {key:'step5a', tags:['blush','heavy_blush']},
+    {key:'step6c', tags:['detailed_background','simple_background','white_background']},
+    {key:'step3c', tags:['nude','lingerie']}
+  ];
+  groups.forEach(g=>{
+    if(g.key!==key || !g.tags.includes(tag)) return;
+    g.tags.forEach(other=>{
+      if(other!==tag) removeSelectedTag(key, other);
+    });
+  });
+}
+
+function removeSelectedTag(key, tag){
+  const arr = selectedTags[key];
+  if(!arr) return;
+  const idx = arr.indexOf(tag);
+  if(idx>-1) arr.splice(idx,1);
+  const el = document.querySelector(`.tag-option[data-key="${key}"][data-tag="${tag}"]`);
+  if(el) el.classList.remove('selected');
 }
 
 function toggleNeg(el,tag){
@@ -998,14 +1114,57 @@ function updateWizardDots(){
 }
 
 // === GET / PASTE PROMPT ===
+const TAG_ORDER = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
+const QUALITY_PREFIX = ['masterpiece','best_quality','high_quality','high_resolution'];
+const EXPLICITISH_TAGS = ['nsfw','nude','uncensored','partially_nude','pussy','nipples','clitoris','labia','love_nectar','squirt'];
+const OUTFIT_TAGS_WHEN_NUDE = ['adult_cosplay_uniform','school_uniform','maid_uniform','office_lady','dress','kimono','yukata','suit','pajamas','hoodie','sweater','t-shirt','sportswear','lingerie','no_bra','no_panties'];
+const DEFAULT_NEGATIVE = [
+  'worst quality','low quality','normal quality','lowres','blurry','jpeg artifacts',
+  'bad anatomy','bad hands','bad feet','missing fingers','extra fingers','extra digits','fewer digits',
+  'extra arms','extra legs','fused legs','malformed legs','missing toes','extra toes',
+  'cropped','out of frame','duplicate body','deformed','ugly','poorly drawn face','cross-eyed',
+  'text','watermark','signature','username','plastic skin','doll-like','airbrushed',
+  'overexposure','harsh lighting','photorealistic','3d render','cgi','monochrome'
+];
+
 function promptText(id){
   const el = document.getElementById(id);
   return el ? el.value.trim() : '';
 }
 
+function orderedUnique(items){
+  const seen = new Set();
+  const out = [];
+  items.forEach(item=>{
+    const v = String(item || '').trim();
+    if(!v || seen.has(v)) return;
+    seen.add(v);
+    out.push(v);
+  });
+  return out;
+}
+
+function joinPromptParts(){
+  return orderedUnique(Array.from(arguments).flatMap(part=>{
+    if(!part) return [];
+    if(Array.isArray(part)) return part;
+    return String(part).split(',').map(x=>x.trim()).filter(Boolean);
+  })).join(', ');
+}
+
+function getManualPromptMode(){
+  const checked = document.querySelector('input[name="manualPromptMode"]:checked');
+  return checked ? checked.value : 'off';
+}
+
+function setManualPromptMode(mode){
+  const el = document.querySelector(`input[name="manualPromptMode"][value="${mode}"]`);
+  if(el) el.checked = true;
+  updateReview();
+}
+
 function isManualPromptEnabled(){
-  const el = document.getElementById('manualPromptEnabled');
-  return !!(el && el.checked);
+  return getManualPromptMode() !== 'off';
 }
 
 function getManualPositivePrompt(){
@@ -1016,6 +1175,48 @@ function getManualNegativePrompt(){
   return isManualPromptEnabled() ? promptText('manualNegPrompt') : '';
 }
 
+function collectSelectedPositiveTags(){
+  const all=[];
+  TAG_ORDER.forEach(k=>{
+    (selectedTags[k] || []).forEach(t=>all.push(t));
+  });
+  return all;
+}
+
+function hasExplicitish(tags){
+  return tags.some(t=>EXPLICITISH_TAGS.includes(t));
+}
+
+function buildBasePositiveTags(){
+  let tags = collectSelectedPositiveTags().map(t=>{
+    if(t === 'school_uniform') return 'adult_cosplay_uniform';
+    if(t === 'jk') return 'adult_cosplay';
+    return t;
+  });
+  const explicitish = hasExplicitish(tags);
+  if(explicitish){
+    tags = tags.filter(t=>!['petite','flat_chest','school_uniform','jk'].includes(t));
+    if(tags.includes('1girl') && !tags.includes('adult_woman')) tags.splice(tags.indexOf('1girl') + 1, 0, 'adult_woman', 'mature_body');
+  }
+  if(tags.includes('nude')){
+    tags = tags.filter(t=>!OUTFIT_TAGS_WHEN_NUDE.includes(t));
+  }
+  if(tags.includes('simple_background') && tags.includes('bedroom') && !tags.includes('simple_bedroom_background')){
+    tags.push('simple_bedroom_background');
+  }
+  const rest = tags.filter(t=>!QUALITY_PREFIX.includes(t));
+  return orderedUnique([...QUALITY_PREFIX, ...rest]);
+}
+
+function getBasePositivePrompt(){
+  return buildBasePositiveTags().join(', ');
+}
+
+function getBaseNegativePrompt(){
+  const selected = Object.keys(selectedNegs || {});
+  return joinPromptParts(DEFAULT_NEGATIVE, selected);
+}
+
 async function pasteManualPrompt(id){
   const el = document.getElementById(id);
   if(!el){return}
@@ -1023,22 +1224,20 @@ async function pasteManualPrompt(id){
     const text = await navigator.clipboard.readText();
     if(!text){toast('剪贴板里没有文字');return}
     el.value = text.trim();
-    document.getElementById('manualPromptEnabled').checked = true;
-    updateReview();
-    toast('✓ 已粘贴，并启用外部 Prompt');
+    setManualPromptMode('append');
+    toast('✓ 已粘贴，默认设为“追加模式”；如果是完整 Prompt 可点“覆盖使用”');
   }catch(e){
     el.focus();
     toast('浏览器不允许自动读取剪贴板，请按 Ctrl+V 粘贴');
   }
 }
 
-function enableManualPrompt(){
+function enableManualPrompt(mode='append'){
   const pos = promptText('manualPosPrompt');
   const neg = promptText('manualNegPrompt');
   if(!pos && !neg){toast('先粘贴一段 Prompt 再启用');return}
-  document.getElementById('manualPromptEnabled').checked = true;
-  updateReview();
-  toast('✓ 已切换为外部 Prompt');
+  setManualPromptMode(mode);
+  toast(mode === 'override' ? '✓ 已切换为覆盖模式' : '✓ 已切换为追加模式');
 }
 
 function clearManualPrompt(){
@@ -1046,50 +1245,47 @@ function clearManualPrompt(){
   const neg = document.getElementById('manualNegPrompt');
   if(pos) pos.value = '';
   if(neg) neg.value = '';
-  const enabled = document.getElementById('manualPromptEnabled');
-  if(enabled) enabled.checked = false;
-  updateReview();
+  setManualPromptMode('off');
   toast('已清空粘贴区，恢复星门标签');
 }
 
 // === GET POSITIVE PROMPT ===
 function getPositivePrompt(){
+  const base = getBasePositivePrompt();
   const manual = getManualPositivePrompt();
-  if(manual){return manual}
-  const order = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
-  const all=[];
-  order.forEach(k=>{
-    selectedTags[k].forEach(t=>all.push(t));
-  });
-  // Auto-add quality tags
-  const qualityAuto = ['masterpiece','best_quality','high_quality'];
-  qualityAuto.forEach(q=>{if(!all.includes(q)) all.push(q)});
-  return all.join(', ');
+  const mode = getManualPromptMode();
+  if(mode === 'override') return manual || base;
+  if(mode === 'append') return joinPromptParts(base, manual);
+  return base;
 }
 
 function getNegativePrompt(){
+  const base = getBaseNegativePrompt();
   const manual = getManualNegativePrompt();
-  if(manual){return manual}
-  const negs = Object.keys(selectedNegs);
-  if(negs.length===0){
-    // Default negative
-    return 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry';
-  }
-  return negs.join(', ');
+  const mode = getManualPromptMode();
+  if(mode === 'override') return manual || base;
+  if(mode === 'append') return joinPromptParts(base, manual);
+  return base;
 }
 
 // === UPDATE REVIEW ===
 function updateReview(){
   const posPrompt = getPositivePrompt();
   const negPrompt = getNegativePrompt();
+  const allTags = collectSelectedPositiveTags();
+  const mode = getManualPromptMode();
+  const hint = document.getElementById('manualModeHint');
+  if(hint){
+    hint.textContent = mode === 'override'
+      ? '当前：覆盖模式。发送时优先使用粘贴区完整 Prompt；粘贴区为空才回退自动 Prompt。'
+      : mode === 'append'
+        ? '当前：追加模式。发送时会把粘贴区内容接在自动 Prompt 后面。'
+        : '当前：不使用外部 Prompt。';
+  }
 
-  // Positive tags display
-  const order = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
-  const allTags = [];
-  order.forEach(k=>{selectedTags[k].forEach(t=>allTags.push(t))});
-
-  if(getManualPositivePrompt()){
-    document.getElementById('reviewPosTags').innerHTML = '<span class="review-tag">外部 Prompt 已启用</span>';
+  if(mode !== 'off' && (promptText('manualPosPrompt') || promptText('manualNegPrompt'))){
+    const label = mode === 'override' ? '外部 Prompt：覆盖模式' : '外部 Prompt：追加模式';
+    document.getElementById('reviewPosTags').innerHTML = '<span class="review-tag">'+label+'</span>';
   }else{
     document.getElementById('reviewPosTags').innerHTML = allTags.length>0
       ? allTags.map(t=>`<span class="review-tag">${t}</span>`).join('')
@@ -1100,10 +1296,138 @@ function updateReview(){
   document.getElementById('reviewNegPrompt').textContent = negPrompt;
 }
 
-// === ADVANCED TOGGLE ===
-function toggleAdvanced(){
-  const p = document.getElementById('advancedPanel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+// === ADVANCED PARAM HELPERS ===
+function setValue(id, value){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(el.type === 'checkbox') el.checked = !!value;
+  else el.value = value;
+  if(id === 'loraWeight') document.getElementById('loraVal').textContent = parseFloat(value).toFixed(2);
+}
+
+function applyParamPreset(kind){
+  const presets = {
+    portrait: {size:'832×1216', sampler:'dpmpp_2m', scheduler:'karras', steps:30, cfg:5, lora:0.40, hires:false, hint:'人物竖图：稳定、速度快，适合先找构图。'},
+    bedroomWide: {size:'1344×896', sampler:'dpmpp_2m', scheduler:'karras', steps:30, cfg:5, lora:0.40, hires:false, hint:'卧室横图：更适合场景和床铺构图。'},
+    stablePose: {size:'832×1216', sampler:'dpmpp_2m', scheduler:'karras', steps:32, cfg:4.5, lora:0.35, hires:false, hint:'高稳定姿势：降低硬拉提示词，减少手脚和肢体崩坏。'},
+    hires: {size:'896×1344', sampler:'dpmpp_2m', scheduler:'karras', steps:30, cfg:4.5, lora:0.40, hires:true, scale:'1.4', hiresSteps:15, denoise:0.32, hint:'高清精修：开启二次放大，建议先固定 Seed 再用。'},
+    preview: {size:'832×1216', sampler:'dpmpp_2m', scheduler:'karras', steps:18, cfg:5, lora:0.35, hires:false, hint:'快速预览：先快速跑几张，满意后固定 Seed 再高清精修。'}
+  };
+  const p = presets[kind];
+  if(!p) return;
+  setValue('imgSize', p.size);
+  setValue('sampler', p.sampler);
+  setValue('scheduler', p.scheduler);
+  setValue('steps', p.steps);
+  setValue('cfg', p.cfg);
+  setValue('loraWeight', p.lora);
+  setValue('hiresEnabled', p.hires);
+  if(p.scale) setValue('hiresScale', p.scale);
+  if(p.hiresSteps) setValue('hiresSteps', p.hiresSteps);
+  if(p.denoise) setValue('hiresDenoise', p.denoise);
+  const hint = document.getElementById('presetHint');
+  if(hint) hint.textContent = p.hint;
+  updateHiresHint();
+  updateSeedHint();
+  toast('✓ 已应用预设：'+p.hint.split('：')[0]);
+}
+
+function makeRandomSeed(){
+  return Math.floor(Math.random()*2147483647);
+}
+
+function randomizeSeed(){
+  setValue('seed','-1');
+  updateSeedHint();
+  toast('下一张会使用随机 Seed');
+}
+
+function fixCurrentSeed(){
+  const seedEl = document.getElementById('seed');
+  let v = seedEl ? seedEl.value.trim() : '-1';
+  if(v === '-1' || !/^\d+$/.test(v)) v = String(makeRandomSeed());
+  setValue('seed', v);
+  updateSeedHint();
+  toast('已固定 Seed：'+v);
+}
+
+function updateSeedHint(){
+  const hint = document.getElementById('seedHint');
+  const v = promptText('seed') || '-1';
+  if(!hint) return;
+  if(v === '-1') hint.textContent = '当前 Seed：随机。出图时会生成一个数字；勾选自动写回后，可继续用同一构图微调。';
+  else if(/^\d+$/.test(v)) hint.textContent = '当前 Seed 已固定：'+v+'。同样尺寸/参数下可复现相近构图。';
+  else hint.textContent = 'Seed 需要填 -1 或纯数字；发送时会自动修正。';
+}
+
+function roundToMultiple(n, m){
+  return Math.max(m, Math.round(n / m) * m);
+}
+
+function getHiresTargetSize(w,h){
+  const scale = parseFloat(document.getElementById('hiresScale')?.value || '1.4');
+  return [roundToMultiple(w*scale, 16), roundToMultiple(h*scale, 16)];
+}
+
+function updateHiresHint(){
+  const hint = document.getElementById('hiresHint');
+  if(!hint) return;
+  const size = document.getElementById('imgSize')?.value || '832×1216';
+  const [w,h] = size.split('×').map(Number);
+  const enabled = !!document.getElementById('hiresEnabled')?.checked;
+  if(!enabled){ hint.textContent = '高清精修未启用。'; return; }
+  const [tw,th] = getHiresTargetSize(w,h);
+  const denoise = document.getElementById('hiresDenoise')?.value || '0.32';
+  hint.textContent = `高清精修已启用：基础 ${w}×${h} → 精修 ${tw}×${th}，Denoise ${denoise}。如果爆显存，把倍率降到 1.25 或尺寸降一档。`;
+}
+
+function getSeedForRun(){
+  const seedEl = document.getElementById('seed');
+  let seedVal = seedEl ? seedEl.value.trim() : '-1';
+  let seed = (seedVal === '-1' || !/^\d+$/.test(seedVal)) ? makeRandomSeed() : parseInt(seedVal,10);
+  const autoFix = document.getElementById('autoFixSeed');
+  if(seedEl && autoFix && autoFix.checked && (seedVal === '-1' || !/^\d+$/.test(seedVal))){
+    seedEl.value = String(seed);
+    updateSeedHint();
+  }
+  return seed;
+}
+
+function buildComfyWorkflow(pos, neg, w, h, seed){
+  const steps = parseInt(document.getElementById('steps').value);
+  const cfg = parseFloat(document.getElementById('cfg').value);
+  const sampler = document.getElementById('sampler').value;
+  const scheduler = document.getElementById('scheduler').value;
+  const workflow = {
+    "4":{inputs:{ckpt_name:"novaAnimeXL_ilV190.safetensors"},class_type:"CheckpointLoaderSimple"},
+    "5":{inputs:{width:w,height:h,batch_size:1},class_type:"EmptyLatentImage"}
+  };
+  let modelRef = ["4",0];
+  let clipRef = ["4",1];
+  const loraName = promptText('loraName');
+  if(loraName){
+    const strength = parseFloat(document.getElementById('loraWeight').value || '0.4');
+    workflow["10"] = {inputs:{model:modelRef,clip:clipRef,lora_name:loraName,strength_model:strength,strength_clip:strength},class_type:"LoraLoader"};
+    modelRef = ["10",0];
+    clipRef = ["10",1];
+  }
+  workflow["6"] = {inputs:{text:pos,clip:clipRef},class_type:"CLIPTextEncode"};
+  workflow["7"] = {inputs:{text:neg,clip:clipRef},class_type:"CLIPTextEncode"};
+  workflow["3"] = {inputs:{seed,steps,cfg,sampler_name:sampler,scheduler,denoise:1,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["5",0]},class_type:"KSampler"};
+
+  const hiresEnabled = !!document.getElementById('hiresEnabled')?.checked;
+  if(hiresEnabled){
+    const [tw,th] = getHiresTargetSize(w,h);
+    const hiresSteps = parseInt(document.getElementById('hiresSteps').value || '15');
+    const hiresDenoise = parseFloat(document.getElementById('hiresDenoise').value || '0.32');
+    workflow["20"] = {inputs:{samples:["3",0],upscale_method:"nearest-exact",width:tw,height:th,crop:"disabled"},class_type:"LatentUpscale"};
+    workflow["21"] = {inputs:{seed,steps:hiresSteps,cfg,sampler_name:sampler,scheduler,denoise:hiresDenoise,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["20",0]},class_type:"KSampler"};
+    workflow["8"] = {inputs:{samples:["21",0],vae:["4",2]},class_type:"VAEDecode"};
+  }else{
+    workflow["8"] = {inputs:{samples:["3",0],vae:["4",2]},class_type:"VAEDecode"};
+  }
+  workflow["9"] = {inputs:{filename_prefix:"star-lab",images:["8",0]},class_type:"SaveImage"};
+  return workflow;
 }
 
 // === COPY ===
@@ -1330,22 +1654,12 @@ async function checkAndSend(){
   const neg = getNegativePrompt();
   const size = document.getElementById('imgSize').value;
   const [w,h] = size.split('×').map(Number);
-  const seedVal = document.getElementById('seed').value;
-  const seed = seedVal==='-1'?Math.floor(Math.random()*9999999999):parseInt(seedVal);
-
-  const workflow = {
-    "3":{inputs:{seed,steps:parseInt(document.getElementById('steps').value),cfg:parseFloat(document.getElementById('cfg').value),sampler_name:document.getElementById('sampler').value,scheduler:document.getElementById('scheduler').value,denoise:1,model:["4",0],positive:["6",0],negative:["7",0],latent_image:["5",0]},class_type:"KSampler"},
-    "4":{inputs:{ckpt_name:"novaAnimeXL_ilV190.safetensors"},class_type:"CheckpointLoaderSimple"},
-    "5":{inputs:{width:w,height:h,batch_size:1},class_type:"EmptyLatentImage"},
-    "6":{inputs:{text:pos,clip:["4",1]},class_type:"CLIPTextEncode"},
-    "7":{inputs:{text:neg,clip:["4",1]},class_type:"CLIPTextEncode"},
-    "8":{inputs:{samples:["3",0],vae:["4",2]},class_type:"VAEDecode"},
-    "9":{inputs:{filename_prefix:"star-lab",images:["8",0]},class_type:"SaveImage"}
-  };
+  const seed = getSeedForRun();
+  const workflow = buildComfyWorkflow(pos, neg, w, h, seed);
 
   // 显示加载状态
   const out = document.getElementById('outputContent');
-  out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">正在提交任务...</div></div>';
+  out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">正在提交任务... Seed: '+seed+'</div></div>';
 
   try{
     const targetUrl = bridgeAvailable ? BRIDGE_URL+'/prompt' : document.getElementById('comfyUrl').value.trim()+'/prompt';
@@ -1354,7 +1668,7 @@ async function checkAndSend(){
       const data = await resp.json();
       if(data.prompt_id){
         currentPromptId = data.prompt_id;
-        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... (ID: '+data.prompt_id.slice(0,8)+')</div><div style="font-size:0.68rem;color:rgba(212,212,232,0.25);margin-top:0.3rem">一般需要 20-40 秒</div></div>';
+        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... (ID: '+data.prompt_id.slice(0,8)+')</div><div style="font-size:0.68rem;color:rgba(212,212,232,0.25);margin-top:0.3rem">一般需要 20-40 秒；高清精修会更慢</div></div>';
         pollResult(data.prompt_id);
       }else if(data.error){
         out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ '+data.error+'</div>';
@@ -1438,3 +1752,4 @@ function toast(msg){
 <script src="../assets/gate-guide.js"></script>
 </body>
 </html>
+
