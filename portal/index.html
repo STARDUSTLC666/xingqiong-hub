@@ -364,6 +364,33 @@ select{cursor:pointer}
       <pre class="review-prompt" id="reviewNegPrompt" style="margin-top:0.6rem;"></pre>
     </div>
 
+    <div class="review-block" id="manualPromptBlock">
+      <h4>📝 外部 Prompt 粘贴区（从 d栖栖 / 文档 / 其他网页复制后粘到这里）</h4>
+      <p style="font-size:0.72rem;color:rgba(212,212,232,0.42);line-height:1.7;margin:0.2rem 0 0.7rem">
+        勾选后，发送到 ComfyUI 会优先使用这里粘贴的内容；不勾选则继续使用前面星门自动生成的标签。
+      </p>
+      <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.78rem;color:#e8a860;margin-bottom:0.7rem;cursor:pointer">
+        <input type="checkbox" id="manualPromptEnabled" onchange="updateReview()" style="width:auto;accent-color:#e8a860">
+        优先使用外部 Prompt
+      </label>
+      <div class="param-row" style="grid-template-columns:1fr 1fr;gap:0.8rem">
+        <div>
+          <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">正向 Prompt</label>
+          <textarea id="manualPosPrompt" oninput="updateReview()" placeholder="把从别处复制的正向 prompt 粘贴到这里..." style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualPosPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴正向</button>
+        </div>
+        <div>
+          <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">负向 Prompt</label>
+          <textarea id="manualNegPrompt" oninput="updateReview()" placeholder="可选：把负向 prompt 粘贴到这里；留空则使用上面的负向词。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualNegPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴负向</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt()">✅ 使用粘贴 Prompt</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="clearManualPrompt()">🧹 清空粘贴区</button>
+      </div>
+    </div>
+
     <div class="review-block" style="cursor:pointer" onclick="toggleAdvanced()">
       <h4>⚙ 高级参数（点击展开/收起 · 调好了画面质量会更好）</h4>
       <div id="advancedPanel" style="display:none;margin-top:0.6rem">
@@ -970,8 +997,65 @@ function updateWizardDots(){
   });
 }
 
+// === GET / PASTE PROMPT ===
+function promptText(id){
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function isManualPromptEnabled(){
+  const el = document.getElementById('manualPromptEnabled');
+  return !!(el && el.checked);
+}
+
+function getManualPositivePrompt(){
+  return isManualPromptEnabled() ? promptText('manualPosPrompt') : '';
+}
+
+function getManualNegativePrompt(){
+  return isManualPromptEnabled() ? promptText('manualNegPrompt') : '';
+}
+
+async function pasteManualPrompt(id){
+  const el = document.getElementById(id);
+  if(!el){return}
+  try{
+    const text = await navigator.clipboard.readText();
+    if(!text){toast('剪贴板里没有文字');return}
+    el.value = text.trim();
+    document.getElementById('manualPromptEnabled').checked = true;
+    updateReview();
+    toast('✓ 已粘贴，并启用外部 Prompt');
+  }catch(e){
+    el.focus();
+    toast('浏览器不允许自动读取剪贴板，请按 Ctrl+V 粘贴');
+  }
+}
+
+function enableManualPrompt(){
+  const pos = promptText('manualPosPrompt');
+  const neg = promptText('manualNegPrompt');
+  if(!pos && !neg){toast('先粘贴一段 Prompt 再启用');return}
+  document.getElementById('manualPromptEnabled').checked = true;
+  updateReview();
+  toast('✓ 已切换为外部 Prompt');
+}
+
+function clearManualPrompt(){
+  const pos = document.getElementById('manualPosPrompt');
+  const neg = document.getElementById('manualNegPrompt');
+  if(pos) pos.value = '';
+  if(neg) neg.value = '';
+  const enabled = document.getElementById('manualPromptEnabled');
+  if(enabled) enabled.checked = false;
+  updateReview();
+  toast('已清空粘贴区，恢复星门标签');
+}
+
 // === GET POSITIVE PROMPT ===
 function getPositivePrompt(){
+  const manual = getManualPositivePrompt();
+  if(manual){return manual}
   const order = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
   const all=[];
   order.forEach(k=>{
@@ -984,6 +1068,8 @@ function getPositivePrompt(){
 }
 
 function getNegativePrompt(){
+  const manual = getManualNegativePrompt();
+  if(manual){return manual}
   const negs = Object.keys(selectedNegs);
   if(negs.length===0){
     // Default negative
@@ -1002,9 +1088,13 @@ function updateReview(){
   const allTags = [];
   order.forEach(k=>{selectedTags[k].forEach(t=>allTags.push(t))});
 
-  document.getElementById('reviewPosTags').innerHTML = allTags.length>0
-    ? allTags.map(t=>`<span class="review-tag">${t}</span>`).join('')
-    : '<span class="review-empty">还没选任何标签，回到前面步骤选几个吧～</span>';
+  if(getManualPositivePrompt()){
+    document.getElementById('reviewPosTags').innerHTML = '<span class="review-tag">外部 Prompt 已启用</span>';
+  }else{
+    document.getElementById('reviewPosTags').innerHTML = allTags.length>0
+      ? allTags.map(t=>`<span class="review-tag">${t}</span>`).join('')
+      : '<span class="review-empty">还没选任何标签，回到前面步骤选几个吧～</span>';
+  }
 
   document.getElementById('reviewPosPrompt').textContent = posPrompt || '（空）';
   document.getElementById('reviewNegPrompt').textContent = negPrompt;
@@ -1017,11 +1107,38 @@ function toggleAdvanced(){
 }
 
 // === COPY ===
-function copyPrompt(){
+function fallbackCopyText(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly','');
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  ta.style.top = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try{ok = document.execCommand('copy')}catch(e){ok = false}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+async function copyPrompt(){
   const pos = getPositivePrompt();
   const neg = getNegativePrompt();
   const text = pos + '\nNegative prompt: ' + neg;
-  navigator.clipboard.writeText(text).then(()=>toast('✓ 已复制到剪贴板，可直接贴入 ComfyUI / SD / NovelAI'));
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('✓ 已复制到剪贴板，可直接贴入 ComfyUI / SD / NovelAI');
+  }catch(e){
+    if(fallbackCopyText(text)){
+      toast('✓ 已复制到剪贴板');
+    }else{
+      const box = document.getElementById('manualPosPrompt');
+      if(box){box.value = text; box.focus(); box.select();}
+      toast('浏览器拒绝复制，已放到粘贴区，请手动 Ctrl+C');
+    }
+  }
 }
 
 // === COMFYUI (via Bridge) ===
