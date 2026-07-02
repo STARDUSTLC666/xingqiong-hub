@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anima3 灵感魔盒 · Prompt Engine</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+.search-bar { margin-bottom: 1rem; }
+.tag-section { margin-bottom: 1.2rem; }
+.tag-section h3 {
+  font-size: 0.82rem; color: rgba(232,168,96,0.7);
+  margin-bottom: 0.5rem; letter-spacing: 0.04em;
+}
+.tag-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.tag-card {
+  padding: 0.22rem 0.6rem; border-radius: 12px;
+  font-size: 0.7rem; cursor: pointer;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: rgba(200,200,224,0.55);
+  transition: all 0.2s; user-select: none;
+}
+.tag-card:hover { border-color: rgba(232,168,96,0.3); color: #d0c0a0; }
+.tag-card.selected {
+  background: rgba(232,168,96,0.15);
+  border-color: #e8a860; color: #e8a860;
+}
+.tag-card.nsfw {
+  border-color: rgba(255,120,160,0.12); color: #cc88a0;
+}
+.tag-card.nsfw:hover { border-color: rgba(255,120,160,0.3); }
+.tag-card.nsfw.selected { background: rgba(255,120,160,0.18); border-color: #e880a8; color: #f0a8c8; }
+
+.matrix-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.matrix-row .tag-a { font-size: 0.78rem; color: #e88080; min-width: 100px; }
+.matrix-row .conflict { font-size: 0.7rem; color: rgba(200,200,224,0.4); }
+.matrix-row .why { font-size: 0.68rem; color: rgba(200,200,224,0.3); margin-left: 0.5rem; }
+
+.result-box {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.12);
+  border-radius: 10px; padding: 1rem; min-height: 60px;
+  font-size: 0.8rem; line-height: 1.8; color: #e0c090;
+  word-break: break-all;
+}
+
+.themes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
+.theme-btn {
+  padding: 0.5rem 0.8rem; border-radius: 10px; font-size: 0.75rem; cursor: pointer;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(200,200,224,0.5); text-align: center; transition: all 0.2s;
+}
+.theme-btn:hover { border-color: rgba(232,168,96,0.3); color: #e8a860; }
+.theme-btn.active { background: rgba(232,168,96,0.12); border-color: #e8a860; color: #e8a860; }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <header class="page-header">
+    <h1>Anima3 灵感魔盒</h1>
+    <p class="subtitle">Prompt Engine · 四大防雷矩阵 + 12 大主题标签字典</p>
+  </header>
+
+  <!-- Search -->
+  <div class="panel">
+    <div class="panel-title">🔍 标签检索</div>
+    <input type="search" class="search-bar" id="tagSearch" placeholder="搜索标签... 如: blush, maid, wet, nsfw" oninput="filterTags()">
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem;" id="searchResults"></div>
+  </div>
+
+  <!-- 防雷矩阵 -->
+  <div class="panel">
+    <div class="panel-title">⚠️ 四大防雷互斥矩阵</div>
+    <p class="text-muted mb-1">以下标签组合会互相矛盾或导致画面崩坏，注意避开</p>
+    <div id="matrixContent"></div>
+  </div>
+
+  <!-- 主体标签区 -->
+  <div class="panel">
+    <div class="panel-title">📋 标签字典</div>
+    <div id="tagSections"></div>
+  </div>
+
+  <!-- 12 大主题 -->
+  <div class="panel">
+    <div class="panel-title">🌟 12 大特殊主题</div>
+    <div class="themes-grid" id="themeGrid"></div>
+  </div>
+
+  <!-- 组合区 -->
+  <div class="panel">
+    <div class="panel-title">📦 已选标签组合</div>
+    <div class="result-box" id="selectedTags">点击标签开始构建 prompt...</div>
+    <div class="flex-row mt-1">
+      <button class="btn btn-primary" onclick="copySelected()">📋 复制 Prompt</button>
+      <button class="btn btn-ghost" onclick="clearSelected()">✕ 清空</button>
+      <span class="text-muted" id="tagCount">0 个标签</span>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === TAG DATABASE ===
+const tagDB = [
+  // Character
+  { cat:'人物特征', tags:['1girl','1boy','multiple girls','loli','mature','tall','short','petite','curvy','muscular','chubby','slim','busty','flat chest'] },
+  { cat:'发型', tags:['twin tails','long hair','short hair','ponytail','braid','bangs','ahoge','hair bun','wavy hair','straight hair','drill hair','hime cut'] },
+  { cat:'发色', tags:['blonde hair','black hair','brown hair','silver hair','white hair','pink hair','blue hair','purple hair','red hair','green hair','gradient hair','multicolored hair'] },
+  { cat:'眼睛', tags:['blue eyes','red eyes','green eyes','purple eyes','brown eyes','yellow eyes','heterochromia','glowing eyes','half-closed eyes','teary eyes'] },
+  { cat:'表情', tags:['smile','blush','open mouth','tongue out',':3','ahegao','embarrassed','angry','sad','surprised','seductive smile','tears','drooling','nosebleed','wincing'] },
+  { cat:'服装-上衣', tags:['school uniform','serafuku','sailor collar','blazer','hoodie','sweater','shirt','crop top','camisole','off shoulder','bare shoulders'] },
+  { cat:'服装-下身', tags:['skirt','pleated skirt','miniskirt','shorts','jeans','leggings','thighhighs','pantyhose','garter belt','garter straps'] },
+  { cat:'服装-鞋袜', tags:['thighhighs','kneehighs','socks','barefoot','high heels','mary janes','boots','school shoes','sandals'] },
+  { cat:'服装-内衣', tags:['lace underwear','bra','panties','lingerie','see-through','negligee','teddy','corset','g-string','bikini'] },
+  { cat:'配饰', tags:['glasses','sunglasses','ribbon','hair ribbon','hair ornament','choker','collar','bracelet','earrings','necktie','bow','headband'] },
+  { cat:'兽耳/异种', tags:['cat ears','cat tail','fox ears','fox tail','bunny ears','horns','wings','elf ears','demon horns','dog ears','animal ears'] },
+  { cat:'姿势', tags:['sitting','standing','lying','spread legs','kneeling','on back','arms up','legs up','grabbing','hands on hips','looking back','crossed legs'] },
+  { cat:'视角', tags:['from above','from below','close-up','full body','cowboy shot','dutch angle','first-person view','looking at viewer','looking away','over shoulder'] },
+  { cat:'场景', tags:['bedroom','classroom','bathroom','outdoor','beach','pool','garden','rooftop','cityscape','forest','gym','office','onsen'] },
+  { cat:'光影', tags:['soft lighting','backlighting','rim light','dim lighting','sunset','night','moonlight','candlelight','neon lights','god rays','dappled light'] },
+  { cat:'氛围', tags:['romantic','intimate','playful','sweet','sensual','erotic','mysterious','melancholy','peaceful','energetic'] },
+  { cat:'状态', tags:['wet','sweating','wet clothes','see-through wet','messy hair','disheveled','messy clothes','dirty','bruised','bitten'] },
+  { cat:'交互', tags:['holding hands','hug','kiss','embrace','cuddling','from behind','pinned','carrying','bridal carry','piggyback'] },
+  { cat:'NSFW-衣着', tags:['nude','nipples','nsfw','topless','bottomless','cleavage','underboob','sideboob','navel','cameltoe','pussy','ass visible'] },
+  { cat:'NSFW-动作', tags:['spread legs','masturbation','fingering','toy','dildo','vibrator','handjob','fellatio','cunnilingus','paizuri','sex','creampie'] },
+  { cat:'NSFW-液体', tags:['sweat','drool','tears','cum','cum on body','cum on face','cum in pussy','wet','body fluids','precum'] },
+  { cat:'NSFW-BDSM', tags:['bound','handcuffs','rope','shibari','blindfold','gag','collar','leash','dominated','submissive','master','slave'] },
+  { cat:'NSFW-设定', tags:['maid','nurse','police','teacher','student','office lady','bunny girl','cat girl','succubus','angel','demon girl'] },
+  { cat:'画风', tags:['hand-drawn','anime coloring','cel shading','detailed','masterpiece','high quality','absurdres'] },
+];
+
+// === MUTEX MATRIX ===
+const matrix = [
+  ['泳装 swimsuit','冬装 winter clothes','一冷一热温度矛盾'],
+  ['室外 beach','室内 fireplace','场景冲突'],
+  ['白天 daylight','夜晚 night','光照矛盾'],
+  ['幼女 loli','巨乳 huge breasts','年龄特征矛盾'],
+  ['tall','short','比例冲突'],
+  ['smile','angry','表情冲突'],
+  ['cute','horror','氛围冲突'],
+  ['anime coloring','photorealistic','风格崩溃'],
+  ['nude','clothed','衣着矛盾'],
+];
+
+// === 12 THEMES ===
+const themes = [
+  { name:'🏫 校园日常', add:['1girl','school uniform','serafuku','classroom','smile','soft lighting','hand-drawn','anime coloring'] },
+  { name:'🛁 浴室湿身', add:['1girl','bathroom','wet','wet clothes','see-through wet','steam','sweating','blush'] },
+  { name:'🌙 深夜闺房', add:['1girl','bedroom','night','dim lighting','moonlight','lying','intimate','sensual'] },
+  { name:'🏖️ 热带海滩', add:['1girl','bikini','beach','sunset','wet','sweating','summer','outdoor'] },
+  { name:'🔗 绳缚美学', add:['1girl','bound','rope','shibari','blindfold','collar','dominated','sensual'] },
+  { name:'👘 和风浴衣', add:['1girl','kimono','yukata','onsen','garden','ribbon','soft lighting'] },
+  { name:'💼 OL 办公室', add:['1girl','office lady','shirt','tight skirt','glasses','office','cleavage'] },
+  { name:'🐱 猫娘女仆', add:['1girl','maid','cat ears','cat tail','collar','apron','thighhighs','blush'] },
+  { name:'👿 魅魔降世', add:['1girl','succubus','horns','wings','demon tail','nude','breasts','seductive smile'] },
+  { name:'💕 双人亲密', add:['2girls','hug','kiss','embrace','cuddling','blush','intimate','romantic'] },
+  { name:'🎀 萝莉纯爱', add:['1girl','loli','petite','flat chest','cute','blush','smile','ribbon'] },
+  { name:'🔞 极限涩涩', add:['1girl','nude','spread legs','masturbation','ahegao','cum','nsfw','erotic'] },
+];
+
+let selected = [];
+
+// === RENDER ===
+function renderAll(){
+  renderMatrix();
+  renderTags();
+  renderThemes();
+}
+
+function renderMatrix(){
+  const el = document.getElementById('matrixContent');
+  el.innerHTML = matrix.map(m=>`
+    <div class="matrix-row">
+      <span class="tag-a">${m[0]}</span>
+      <span style="font-size:0.7rem;color:#a88;">✕</span>
+      <span class="tag-a">${m[1]}</span>
+      <span class="why">— ${m[2]}</span>
+    </div>
+  `).join('');
+}
+
+function renderTags(){
+  const sections = document.getElementById('tagSections');
+  sections.innerHTML = tagDB.map(cat=>`
+    <div class="tag-section" data-cat="${cat.cat}">
+      <h3>${cat.cat} (${cat.tags.length})</h3>
+      <div class="tag-grid">${cat.tags.map(t=>{
+        const isNSFW = cat.cat.startsWith('NSFW');
+        const sel = selected.includes(t);
+        return `<span class="tag-card${isNSFW?' nsfw':''}${sel?' selected':''}" onclick="toggleTag('${t.replace(/'/g,"&#39;")}')" data-tag="${t.replace(/'/g,"&#39;")}">${t}</span>`;
+      }).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function renderThemes(){
+  document.getElementById('themeGrid').innerHTML = themes.map((th,i)=>
+    `<div class="theme-btn" onclick="applyTheme(${i})">${th.name}</div>`
+  ).join('');
+}
+
+function toggleTag(tag){
+  const idx = selected.indexOf(tag);
+  if(idx>=0) selected.splice(idx,1);
+  else selected.push(tag);
+  updateDisplay();
+}
+
+function applyTheme(idx){
+  selected = [...themes[idx].add];
+  updateDisplay();
+  gsToast(themes[idx].name+' 已应用');
+}
+
+function clearSelected(){
+  selected = [];
+  updateDisplay();
+}
+
+function copySelected(){
+  if(!selected.length){gsToast('请先选择标签');return;}
+  gsCopy(selected.join(', '));
+}
+
+function filterTags(){
+  const q = document.getElementById('tagSearch').value.toLowerCase();
+  const results = document.getElementById('searchResults');
+  if(!q){results.innerHTML='';return;}
+  const found = [];
+  tagDB.forEach(cat=>cat.tags.forEach(t=>{if(t.toLowerCase().includes(q))found.push({cat:cat.cat,tag:t});}));
+  results.innerHTML = found.slice(0,30).map(f=>
+    `<span class="tag-card${selected.includes(f.tag)?' selected':''}" onclick="toggleTag('${f.tag.replace(/'/g,"&#39;")}')">${f.tag}</span>`
+  ).join('');
+}
+
+function updateDisplay(){
+  document.getElementById('selectedTags').textContent = selected.length ? selected.join(', ') : '点击标签开始构建 prompt...';
+  document.getElementById('tagCount').textContent = selected.length+' 个标签';
+  renderTags();
+  filterTags();
+}
+
+renderAll();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

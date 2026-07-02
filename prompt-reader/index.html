@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Reader · 提示词与元数据管理</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* === PAGE SPECIFIC === */
+.drop-zone {
+  border: 2px dashed rgba(232,168,96,0.18);
+  border-radius: 16px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.35s;
+  background: rgba(10,10,24,0.3);
+  position: relative;
+}
+.drop-zone.drag-over {
+  border-color: #e8a860;
+  background: rgba(232,168,96,0.06);
+  box-shadow: 0 0 40px rgba(232,168,96,0.12);
+}
+.drop-icon { font-size: 2.5rem; margin-bottom: 0.6rem; }
+.drop-text { font-size: 0.9rem; color: rgba(200,200,224,0.4); letter-spacing: 0.04em; }
+.drop-text strong { color: #e8a860; }
+
+.results { margin-top: 1.5rem; }
+.result-card {
+  background: rgba(16,16,36,0.5);
+  border: 1px solid rgba(255,215,150,0.06);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.4s ease both;
+}
+.result-card .filename {
+  font-size: 0.85rem;
+  color: #e8a860;
+  margin-bottom: 0.8rem;
+  font-family: 'Noto Serif SC', serif;
+  letter-spacing: 0.03em;
+}
+.meta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: rgba(200,200,224,0.5);
+  margin-bottom: 0.8rem;
+}
+.meta-row span { background: rgba(232,168,96,0.06); padding: 0.2rem 0.6rem; border-radius: 6px; }
+
+.prompt-block { margin-bottom: 0.8rem; }
+.prompt-block .label {
+  font-size: 0.72rem;
+  color: rgba(200,200,224,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+}
+.prompt-block.pos .label { color: rgba(180,220,180,0.4); }
+.prompt-block.neg .label { color: rgba(220,140,140,0.4); }
+.prompt-block .text {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #c0c0d8;
+  background: rgba(10,10,24,0.4);
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border-left: 2px solid rgba(232,168,96,0.15);
+  word-break: break-all;
+}
+.prompt-block.neg .text { border-left-color: rgba(220,100,100,0.15); }
+
+.collapsible { margin-top: 0.6rem; }
+.collapse-trigger {
+  font-size: 0.78rem;
+  color: rgba(200,200,224,0.4);
+  cursor: pointer;
+  user-select: none;
+  padding: 0.4rem 0;
+  transition: color 0.2s;
+}
+.collapse-trigger:hover { color: #e8a860; }
+.collapse-trigger::before { content: '▸ '; display: inline-block; transition: transform 0.25s; font-size: 0.65rem; }
+.collapse-trigger.open::before { transform: rotate(90deg); }
+.collapse-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+.collapse-content.open { max-height: 600px; }
+
+.translation-banner {
+  font-size: 0.75rem;
+  color: rgba(180,180,200,0.5);
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(232,168,96,0.04);
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(200,200,224,0.2);
+  font-size: 0.85rem;
+}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+
+  <header class="page-header">
+    <h1>📖 Prompt Reader</h1>
+    <p class="subtitle">提示词与元数据管理 · ComfyUI PNG Chunk 解析</p>
+  </header>
+
+  <!-- Drop Zone -->
+  <div class="panel" id="dropZone">
+    <div class="drop-zone" id="dropArea">
+      <div class="drop-icon">🖼️</div>
+      <div class="drop-text">拖入 <strong>PNG / JPEG</strong> 图片文件<br>或 <strong>点击选择</strong>文件</div>
+      <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/webp" style="display:none;">
+    </div>
+    <div class="flex-row mt-1" style="justify-content:space-between;align-items:center;">
+      <span class="text-muted" id="fileCount">尚未选择文件</span>
+      <button class="btn btn-ghost btn-sm" id="clearBtn">清除全部</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="results"></div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // === SMART TAG DICTIONARY ===
+  const TAG_DICT = {
+    'masterpiece':'杰作级画质',
+    'best quality':'最高质量',
+    'high quality':'高质量',
+    'ultra detailed':'超细节',
+    'intricate details':'精细细节',
+    'sharp focus':'锐利对焦',
+    'high resolution':'高分辨率',
+    '8k':'8K分辨率',
+    '4k':'4K分辨率',
+    'photorealistic':'照片级真实',
+    'hyperrealistic':'超写实',
+    'detailed background':'精细背景',
+    'detailed face':'精细面部',
+    'beautiful detailed eyes':'精致眼瞳',
+    'cinematic lighting':'电影级光影',
+    'volumetric lighting':'体积光',
+    'rim lighting':'轮廓光',
+    'soft lighting':'柔光',
+    'dramatic lighting':'戏剧光影',
+    'golden hour':'黄金时刻',
+    'bloom':'辉光',
+    'depth of field':'景深',
+    'bokeh':'散景',
+    'vignette':'暗角',
+    'HDR':'高动态范围',
+    'anime coloring':'动漫上色',
+    'cel shading':'赛璐珞着色',
+    'flat color':'平涂',
+    'watercolor':'水彩',
+    'oil painting':'油画',
+    'sketch':'素描',
+    'lineart':'线稿',
+    'monochrome':'单色',
+    'greyscale':'灰度',
+    'solo':'单人',
+    'full body':'全身',
+    'cowboy shot':'牛仔镜头',
+    'upper body':'上半身',
+    'close-up':'特写',
+    'portrait':'肖像',
+    'looking at viewer':'注视观众',
+    'from behind':'从背后',
+    'from above':'俯视',
+    'from below':'仰视',
+    'dynamic angle':'动态角度',
+    'dutch angle':'荷兰角',
+    'outdoors':'室外',
+    'indoors':'室内',
+    'night':'夜晚',
+    'sunset':'黄昏',
+    'rain':'雨天',
+    'snow':'雪景',
+    'cityscape':'城市风景',
+    'landscape':'自然风光',
+    'breasts':'胸部',
+    'large breasts':'巨乳',
+    'cleavage':'乳沟',
+    'thighs':'大腿',
+    'navel':'肚脐',
+    'midriff':'露腰',
+    'bare shoulders':'露肩',
+    'barefoot':'赤脚',
+    'blush':'脸红',
+    'sweat':'汗水',
+    'tears':'眼泪',
+    'angry':'生气',
+    'happy':'开心',
+    'sad':'悲伤',
+    'embarrassed':'害羞',
+    'seductive smile':'魅惑微笑',
+    'school uniform':'校服',
+    'sailor uniform':'水手服',
+    'kimono':'和服',
+    'yukata':'浴衣',
+    'maid':'女仆装',
+    'bikini':'比基尼',
+    'swimsuit':'泳装',
+    'lingerie':'内衣',
+    'dress':'连衣裙',
+    'hoodie':'连帽衫',
+    'jeans':'牛仔裤',
+    'cat ears':'猫耳',
+    'animal ears':'兽耳',
+    'tail':'尾巴',
+    'wings':'翅膀',
+    'halo':'光环',
+    'horns':'角',
+    'ahoge':'呆毛',
+    'twintails':'双马尾',
+    'ponytail':'单马尾',
+    'long hair':'长发',
+    'short hair':'短发',
+    'bangs':'刘海',
+    'braid':'辫子',
+    'sidelocks':'鬓发',
+    'gradient hair':'渐变色头发',
+    'multicolored hair':'多色头发',
+    'silver hair':'银发',
+    'white hair':'白发',
+    'blonde hair':'金发',
+    'pink hair':'粉发',
+    'blue hair':'蓝发',
+    'purple hair':'紫发',
+    'red hair':'红发',
+    'black hair':'黑发',
+    'brown hair':'棕发',
+    'green hair':'绿发',
+    'blue eyes':'蓝瞳',
+    'red eyes':'红瞳',
+    'purple eyes':'紫瞳',
+    'green eyes':'绿瞳',
+    'heterochromia':'异色瞳',
+    'aqua eyes':'水色瞳',
+    'yellow eyes':'黄瞳',
+    'glowing eyes':'发光眼瞳',
+    'eyebrows visible through hair':'眉上刘海',
+    'hair between eyes':'眼间发丝',
+    'hair over one eye':'单眼遮发',
+    'floating hair':'飘动发丝',
+    'wind lift':'风扬',
+    'hair flower':'发间花饰',
+    'hair ribbon':'发带',
+    'hair ornament':'发饰',
+    'hair bow':'蝴蝶结发饰',
+  };
+
+  function translateTags(text) {
+    if (!text) return '';
+    const tags = text.split(/,\s*/);
+    const translated = tags.map(t => {
+      const trimmed = t.trim().toLowerCase().replace(/^\(+|\)+$/g,'').replace(/:\d+(\.\d+)?/g,'');
+      return TAG_DICT[trimmed] || null;
+    }).filter(Boolean);
+    return translated.length ? '🌐 ' + translated.join(' · ') : '';
+  }
+
+  // === DOM ===
+  const dropZone = document.getElementById('dropZone');
+  const dropArea = document.getElementById('dropArea');
+  const fileInput = document.getElementById('fileInput');
+  const resultsDiv = document.getElementById('results');
+  const fileCount = document.getElementById('fileCount');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let allResults = [];
+
+  // === DROP / CLICK ===
+  dropArea.addEventListener('click', () => fileInput.click());
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
+  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
+  dropArea.addEventListener('drop', e => {
+    e.preventDefault();
+    dropArea.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+  clearBtn.addEventListener('click', () => { allResults = []; renderAll(); fileCount.textContent = '尚未选择文件'; });
+
+  // === PARSE PNG CHUNKS ===
+  function parsePNGChunks(buffer) {
+    const view = new DataView(buffer);
+    // Check PNG signature
+    const sig = [137,80,78,71,13,10,26,10];
+    for (let i=0;i<8;i++) if (view.getUint8(i) !== sig[i]) return null;
+    let offset = 8;
+    const chunks = {};
+    while (offset < buffer.byteLength) {
+      const len = view.getUint32(offset);
+      const type = String.fromCharCode(
+        view.getUint8(offset+4), view.getUint8(offset+5),
+        view.getUint8(offset+6), view.getUint8(offset+7)
+      );
+      const data = new Uint8Array(buffer, offset+8, len);
+      offset += 12 + len;
+      if (type === 'IEND') break;
+      if (type === 'tEXt' || type === 'iTXt' || type === 'zTXt') {
+        const decoder = new TextDecoder();
+        let raw = decoder.decode(data);
+        // tEXt: keyword\0text
+        // iTXt: keyword\0flag\0method\0lang\0translated\0text
+        const nullIdx = raw.indexOf('\0');
+        if (nullIdx >= 0) {
+          const keyword = raw.substring(0, nullIdx);
+          const value = raw.substring(nullIdx + 1);
+          if (!chunks[keyword]) chunks[keyword] = [];
+          // For tEXt, value is just the text. For iTXt, skip metadata fields.
+          const cleanVal = (type === 'iTXt')
+            ? value.split('\0').pop() || value
+            : value;
+          chunks[keyword].push(cleanVal);
+        }
+      }
+    }
+    return chunks;
+  }
+
+  // === PARSE JPEG EXIF ===
+  function parseJPEGComments(buffer) {
+    const arr = new Uint8Array(buffer);
+    const chunks = {};
+    for (let i=0; i<arr.length-1; i++) {
+      if (arr[i]===0xFF && arr[i+1]===0xFE) {
+        // COM marker
+        const len = (arr[i+2]<<8) | arr[i+3];
+        const decoder = new TextDecoder();
+        const text = decoder.decode(arr.slice(i+4, i+2+len));
+        if (!chunks['Comment']) chunks['Comment'] = [];
+        chunks['Comment'].push(text);
+        i += 1+len;
+      }
+    }
+    return chunks;
+  }
+
+  // === HANDLE FILES ===
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList).filter(f => /\.(png|jpe?g|webp)$/i.test(f.name));
+    if (!files.length) { gsToast('请选择 PNG / JPEG 文件'); return; }
+    for (const file of files) {
+      const buffer = await file.arrayBuffer();
+      const ext = file.name.split('.').pop().toLowerCase();
+      let chunks = (ext === 'png') ? parsePNGChunks(buffer) : parseJPEGComments(buffer);
+      if (!chunks) chunks = {};
+
+      // Extract metadata
+      let positive = '', negative = '', workflow = '', params = '';
+      for (const [k, vals] of Object.entries(chunks)) {
+        const v = vals.join('\n');
+        const kl = k.toLowerCase();
+        if (kl.includes('positive') || kl.includes('prompt') && !kl.includes('negative')) {
+          positive = v;
+        } else if (kl.includes('negative')) {
+          negative = v;
+        } else if (kl.includes('workflow') || kl.includes('json')) {
+          workflow = v;
+        } else {
+          params += (params ? '\n' : '') + k + ': ' + v;
+        }
+      }
+
+      // Image dimensions
+      let imgInfo = '';
+      if (ext === 'png' || ext === 'webp') {
+        const blob = new Blob([buffer]);
+        const url = URL.createObjectURL(blob);
+        try {
+          const dims = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
+            img.onerror = () => resolve('');
+            img.src = url;
+          });
+          imgInfo = dims;
+          URL.revokeObjectURL(url);
+        } catch(e) { imgInfo = ''; }
+      }
+
+      allResults.push({
+        name: file.name,
+        size: (file.size/1024).toFixed(1) + ' KB',
+        type: ext.toUpperCase(),
+        dims: imgInfo,
+        positive, negative, workflow, params,
+        chunks
+      });
+    }
+
+    renderAll();
+    fileCount.textContent = `已加载 ${allResults.length} 个文件`;
+  }
+
+  // === RENDER ===
+  function renderAll() {
+    if (!allResults.length) {
+      resultsDiv.innerHTML = '<div class="empty-state">✨ 拖入图片开始解析</div>';
+      return;
+    }
+    resultsDiv.innerHTML = allResults.map((r,i) => `
+      <div class="result-card" style="animation-delay:${i*0.08}s">
+        <div class="filename">📄 ${esc(r.name)}</div>
+        <div class="meta-row">
+          <span>📐 ${r.dims||'未知'}</span>
+          <span>💾 ${r.size}</span>
+          <span>🏷️ ${r.type}</span>
+        </div>
+        ${r.positive ? `
+        <div class="prompt-block pos">
+          <div class="label">✨ Positive Prompt</div>
+          <div class="text">${esc(r.positive)}</div>
+          ${translateTags(r.positive) ? `<div class="translation-banner">${translateTags(r.positive)}</div>` : ''}
+        </div>` : ''}
+        ${r.negative ? `
+        <div class="prompt-block neg">
+          <div class="label">🚫 Negative Prompt</div>
+          <div class="text">${esc(r.negative)}</div>
+        </div>` : ''}
+        ${r.params ? `
+        <div class="prompt-block">
+          <div class="label">⚙️ Parameters</div>
+          <div class="text" style="white-space:pre-wrap;">${esc(r.params)}</div>
+        </div>` : ''}
+        ${r.workflow ? `
+        <div class="collapsible">
+          <div class="collapse-trigger" data-idx="${i}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+            Workflow JSON (${(r.workflow.length/1024).toFixed(1)} KB)
+          </div>
+          <div class="collapse-content">
+            <pre style="max-height:400px;overflow-y:auto;">${esc(r.workflow)}</pre>
+          </div>
+        </div>` : ''}
+        ${Object.keys(r.chunks).length > 0 && !r.positive && !r.negative && !r.workflow ? `
+        <div class="prompt-block">
+          <div class="label">📋 Raw Metadata Chunks</div>
+          <div class="text" style="white-space:pre-wrap;">${esc(Object.entries(r.chunks).map(([k,v])=>k+': '+v).join('\n'))}</div>
+        </div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function esc(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+})();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

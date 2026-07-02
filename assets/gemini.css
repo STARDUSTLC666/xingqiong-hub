@@ -1,0 +1,146 @@
+/* === Gemini Sanctuary · Shared Design System === */
+/* 所有子站引用此文件：<link rel="stylesheet" href="../assets/gemini.css"> */
+
+/* === RESET === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #050510;
+  color: #c8c8e0;
+  min-height: 100vh;
+}
+
+/* === STARFIELD === */
+#starfield { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* === PAGE LAYOUT === */
+.page { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* === BACK LINK === */
+.back-link {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  color: rgba(200,200,224,0.35); text-decoration: none;
+  font-size: 0.8rem; letter-spacing: 0.04em;
+  margin-bottom: 2rem; transition: color 0.3s;
+}
+.back-link:hover { color: #e8a860; }
+
+/* === PAGE HEADER === */
+.page-header { margin-bottom: 2.5rem; }
+.page-header h1 {
+  font-family: 'Noto Serif SC', 'SimSun', serif;
+  font-size: 2rem; font-weight: 700;
+  background: linear-gradient(135deg, #f0d080, #e8a860, #ffb8d0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 0.05em; margin-bottom: 0.4rem;
+}
+.page-header .subtitle {
+  font-size: 0.85rem; color: rgba(200,200,224,0.35);
+  letter-spacing: 0.08em;
+}
+
+/* === PANEL === */
+.panel {
+  background: rgba(16,16,36,0.6); backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,215,150,0.08); border-radius: 14px;
+  padding: 1.5rem; margin-bottom: 1.2rem;
+}
+.panel-title {
+  font-family: 'Noto Serif SC', serif; font-size: 1rem;
+  color: #e8a860; margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,215,150,0.08);
+  letter-spacing: 0.03em;
+}
+
+/* === GRID === */
+.gs-grid { display: grid; gap: 1rem; }
+.gs-grid-2 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.gs-grid-3 { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.gs-grid-4 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+/* === CHIPS / TAGS === */
+.chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.25rem 0.7rem; border-radius: 16px;
+  font-size: 0.75rem; cursor: pointer;
+  background: rgba(232,168,96,0.06); border: 1px solid rgba(232,168,96,0.12);
+  color: #d0b880; transition: all 0.2s;
+  user-select: none;
+}
+.chip:hover { background: rgba(232,168,96,0.14); border-color: rgba(232,168,96,0.3); }
+.chip.active { background: rgba(232,168,96,0.2); border-color: #e8a860; color: #e8a860; }
+.chip.neg { border-color: rgba(255,100,100,0.12); color: #cc8080; background: rgba(255,100,100,0.04); }
+.chip.neg:hover { background: rgba(255,100,100,0.12); }
+.chip.neg.active { background: rgba(255,100,100,0.2); border-color: #cc6060; color: #e08080; }
+
+/* === BUTTONS === */
+.btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 1.4rem; border-radius: 10px;
+  font-family: inherit; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.25s; border: none;
+  letter-spacing: 0.03em; text-decoration: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #e8a860, #d48540);
+  color: #0a0a14;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,168,96,0.3); }
+.btn-ghost {
+  background: transparent; border: 1px solid rgba(255,215,150,0.15);
+  color: #e8a860;
+}
+.btn-ghost:hover { border-color: rgba(255,215,150,0.4); background: rgba(232,168,96,0.05); }
+.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
+
+/* === INPUTS === */
+input[type="text"], input[type="number"], input[type="search"], textarea, select {
+  width: 100%; background: rgba(10,10,24,0.6);
+  border: 1px solid rgba(255,215,150,0.12); border-radius: 10px;
+  padding: 0.65rem 0.9rem; color: #d4d4e8;
+  font-family: inherit; font-size: 0.85rem; outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(232,168,96,0.4);
+  box-shadow: 0 0 0 3px rgba(232,168,96,0.06);
+}
+textarea { min-height: 80px; resize: vertical; }
+
+/* === TOAST === */
+.toast {
+  position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+  background: rgba(16,16,36,0.95); border: 1px solid rgba(232,168,96,0.3);
+  padding: 0.7rem 1.4rem; border-radius: 12px;
+  font-size: 0.82rem; color: #e8a860; z-index: 100;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+  pointer-events: none;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+
+/* === UTILITIES === */
+.text-muted { color: rgba(200,200,224,0.35); font-size: 0.8rem; }
+.text-gold { color: #e8a860; }
+.text-center { text-align: center; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.mb-1 { margin-bottom: 1rem; }
+.flex-row { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* === CODE / PRE === */
+code { background: rgba(232,168,96,0.08); color: #e0c090; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.82rem; }
+pre {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(255,215,150,0.06);
+  border-radius: 10px; padding: 1rem; overflow-x: auto;
+  font-size: 0.8rem; line-height: 1.7; color: rgba(200,200,224,0.55);
+  white-space: pre-wrap; word-break: break-all;
+}
+
+/* === ANIMATIONS === */
+.fade-in { animation: fadeIn 0.6s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } }
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}.d5{animation-delay:.5s}

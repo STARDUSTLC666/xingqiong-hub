@@ -1,0 +1,133 @@
+﻿{
+  "schema_version": 1,
+  "generated_for": "dQiqi text-only ComfyUI bridge",
+  "comfyui_node_path": "E:/Codex/ComfyUI/custom_nodes/qiqi_prompt_assistant",
+  "profiles_available": [
+    "none",
+    "krea2_artisan",
+    "nova_anima",
+    "lighting_codex",
+    "prompt_engine",
+    "lust_codex",
+    "wd_tagger",
+    "star_lab",
+    "anima_guide",
+    "nsfw_tags",
+    "negative_showcase",
+    "cyber_summon"
+  ],
+  "routes": {
+    "krea2/index.html": {
+      "title": "Krea2 Artisan",
+      "type": "image_prompt_knowledge",
+      "profile": "krea2_artisan",
+      "use_for": ["prompt expansion", "subject hierarchy", "material detail", "foreground/midground/background separation"],
+      "d_qiqi_note": "需要把抽象需求扩成稳定画面结构时使用。"
+    },
+    "prompt-reader/index.html": {
+      "title": "Prompt Reader",
+      "type": "tool_knowledge",
+      "profile": "prompt_engine",
+      "use_for": ["metadata reading concept", "existing prompt cleanup", "workflow prompt organization"],
+      "d_qiqi_note": "d栖栖不能直接读图；只能让用户或工具先提供图片元数据文本，再整理成 prompt。"
+    },
+    "drag-resolver/index.html": {
+      "title": "Drag Resolver",
+      "type": "tool_only",
+      "profile": "none",
+      "use_for": ["ComfyUI drag-and-drop troubleshooting"],
+      "d_qiqi_note": "这是 ComfyUI 排障知识，不直接参与出图 prompt。"
+    },
+    "wd-tagger/index.html": {
+      "title": "WD Tagger",
+      "type": "image_tagging_knowledge",
+      "profile": "wd_tagger",
+      "use_for": ["WD14 tags", "Danbooru vocabulary", "text tags from image tagger", "reference image converted to tags"],
+      "d_qiqi_note": "如果要复刻参考图，先让 WD14/用户给出文字标签，再用此 profile 整理。"
+    },
+    "nova-anima/index.html": {
+      "title": "Nova Anima",
+      "type": "image_prompt_knowledge",
+      "profile": "nova_anima",
+      "use_for": ["anime character", "Nova Anima style", "golden prompt structure", "key visual"],
+      "d_qiqi_note": "二次元角色、立绘、插画、壁纸优先用它。"
+    },
+    "lighting-codex/index.html": {
+      "title": "Lighting Codex",
+      "type": "image_prompt_knowledge",
+      "profile": "lighting_codex",
+      "use_for": ["lighting", "atmosphere", "rim light", "environment light", "shadow direction"],
+      "d_qiqi_note": "用户强调光影、氛围、电影感、环境光时使用。"
+    },
+    "prompt-engine/index.html": {
+      "title": "Prompt Engine",
+      "type": "image_prompt_knowledge",
+      "profile": "prompt_engine",
+      "use_for": ["tag order", "conflict reduction", "prompt structure", "mutual-exclusion cleanup"],
+      "d_qiqi_note": "需求混乱、标签互相打架、需要整理成稳定提示词时使用。"
+    },
+    "cyber-summon/index.html": {
+      "title": "Cyber Summon",
+      "type": "image_prompt_knowledge",
+      "profile": "cyber_summon",
+      "use_for": ["cyber style", "weighted Danbooru tags", "neon atmosphere", "high-impact tag matrix"],
+      "d_qiqi_note": "赛博、霓虹、强标签堆叠、特殊风格权重时使用。"
+    },
+    "secret-scroll/index.html": {
+      "title": "Secret Scroll",
+      "type": "not_for_image_generation",
+      "profile": "none",
+      "use_for": [],
+      "d_qiqi_note": "不接入出图工具；不要把它作为 prompt 生成依据。"
+    },
+    "lust-codex/index.html": {
+      "title": "Lust Codex",
+      "type": "image_prompt_knowledge",
+      "profile": "lust_codex",
+      "use_for": ["Danbooru tags", "pose tags", "clothing tags", "camera tags", "booru syntax"],
+      "d_qiqi_note": "用于 Danbooru 风格标签检索和语法整理；如涉及成人向，必须由用户给出明确成年设定。"
+    },
+    "portal/index.html": {
+      "title": "星穹绘所 / Star Lab",
+      "type": "workflow_knowledge",
+      "profile": "star_lab",
+      "use_for": ["ComfyUI workflow", "novaAnimeXL", "local text2image", "style presets"],
+      "d_qiqi_note": "用户要直接在 ComfyUI 出图或调工作流参数时使用。"
+    },
+    "anima-guide/index.html": {
+      "title": "Anima 提示词指南",
+      "type": "image_prompt_knowledge",
+      "profile": "anima_guide",
+      "use_for": ["Anima slot order", "character prompt", "scene prompt", "composition", "lighting", "negative prompt"],
+      "d_qiqi_note": "通用 Anima/Nova Anima 提示词总纲，拿不准时可选它。"
+    },
+    "nsfw-tags/index.html": {
+      "title": "NSFW 标签大全",
+      "type": "restricted_image_prompt_knowledge",
+      "profile": "nsfw_tags",
+      "use_for": ["rating-aware tags", "adult-only tag taxonomy", "pose/clothing/camera categories"],
+      "d_qiqi_note": "只在明确成年角色、且用户给出文字需求时用于标签分类；避免年龄不明或幼态设定。"
+    },
+    "reverse-showcase/index.html": {
+      "title": "反向提示词展示",
+      "type": "negative_prompt_knowledge",
+      "profile": "negative_showcase",
+      "use_for": ["negative prompt tuning", "artifact suppression", "before/after failure analysis", "quality cleanup"],
+      "d_qiqi_note": "图崩、手崩、画面脏、低清、构图失败时用它强化 negative prompt。"
+    },
+    "moon-scroll/index.html": {
+      "title": "月卷协议",
+      "type": "not_for_image_generation",
+      "profile": "none",
+      "use_for": [],
+      "d_qiqi_note": "跨模型文本约定，不直接参与 ComfyUI 出图。"
+    },
+    "decoder-terminal/index.html": {
+      "title": "解码终端",
+      "type": "tool_only",
+      "profile": "none",
+      "use_for": ["local text decoding utility"],
+      "d_qiqi_note": "工具页，不直接参与出图 prompt。"
+    }
+  }
+}

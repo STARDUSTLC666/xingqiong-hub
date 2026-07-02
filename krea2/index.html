@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krea2 提示词工匠 · Krea2 Artisan</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+.slot-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.slot-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: #e8a860; flex-shrink: 0;
+}
+.slot-label { width: 80px; font-size: 0.75rem; color: rgba(200,200,224,0.5); flex-shrink: 0; }
+.slot-input { flex: 1; }
+.slot-input input { font-size: 0.8rem; padding: 0.4rem 0.7rem; }
+.slot-hint { font-size: 0.65rem; color: rgba(200,200,224,0.25); min-width: 80px; text-align: right; }
+.output-area {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.12);
+  border-radius: 10px; padding: 1rem; font-size: 0.82rem; line-height: 1.9;
+  color: #e0c090; min-height: 80px; white-space: pre-wrap;
+}
+
+.example-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:0.6rem; }
+.example-card {
+  padding: 0.7rem; border-radius: 10px; cursor: pointer;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s;
+}
+.example-card:hover { border-color: rgba(232,168,96,0.3); background: rgba(232,168,96,0.04); }
+.example-card h4 { font-size: 0.78rem; color: #e8a860; margin-bottom: 0.3rem; }
+.example-card p { font-size: 0.68rem; color: rgba(200,200,224,0.35); line-height: 1.5; }
+
+.mapping-row { display: flex; gap: 0.6rem; align-items: center; padding: 0.4rem 0; }
+.mapping-row .from { width: 90px; font-size: 0.75rem; color: rgba(200,200,224,0.4); }
+.mapping-row .arrow { color: rgba(200,200,224,0.2); }
+.mapping-row .to { flex:1; font-size: 0.75rem; color: #d0c0a0; }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <header class="page-header">
+    <h1>Krea2 提示词工匠</h1>
+    <p class="subtitle">Krea2 Artisan · 黄金八卡槽分层构造 + 跨域强映射 + 去糖水套路</p>
+  </header>
+
+  <!-- 八卡槽 -->
+  <div class="panel">
+    <div class="panel-title">🎯 黄金八卡槽 (Slot Constructor)</div>
+    <div id="slotFields"></div>
+    <div class="flex-row mt-1">
+      <button class="btn btn-primary" onclick="expandPrompt()">⚡ 扩写 Prompt</button>
+      <button class="btn btn-ghost" onclick="copyExpanded()">📋 复制</button>
+      <button class="btn btn-ghost" onclick="clearSlots()">✕ 清空</button>
+    </div>
+  </div>
+
+  <!-- 输出 -->
+  <div class="panel">
+    <div class="panel-title">✨ 扩写结果</div>
+    <div class="output-area" id="expandedOutput">在左侧卡槽填入内容后点击「扩写 Prompt」...</div>
+  </div>
+
+  <!-- 示例 -->
+  <div class="panel">
+    <div class="panel-title">📚 快速示例</div>
+    <div class="example-cards" id="examples"></div>
+  </div>
+
+  <!-- 映射表 -->
+  <div class="panel">
+    <div class="panel-title">🔗 跨域强映射字典</div>
+    <p class="text-muted mb-1">文字描述 → 视觉元素的高精度映射。Krea 2 对这些映射词响应极强</p>
+    <div id="mappingTable"></div>
+  </div>
+
+  <!-- 去糖水 -->
+  <div class="panel">
+    <div class="panel-title">🌟 去糖水套路算法</div>
+    <p class="text-muted" style="line-height:1.8;">
+      Krea 2 Turbo 默认风格倾向甜美、光滑、商业感——称为"糖水风格"。去糖水三原则：<br>
+      ① <b>纹理注入</b>：添加 <code>film grain</code>, <code>textured skin</code>, <code>natural imperfections</code> 抵消过平滑<br>
+      ② <b>光影对冲</b>：避免 <code>soft lighting</code> 独用，混入 <code>dramatic lighting</code>, <code>chiaroscuro</code>, <code>Rembrandt lighting</code><br>
+      ③ <b>媒介限定</b>：指定拍摄媒介如 <code>35mm film</code>, <code>Kodak Portra 400</code>, <code>vintage lens</code>
+    </p>
+  </div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === SLOTS ===
+const slots = [
+  { id:'subject', label:'1. 主体', hint:'谁/什么', eg:'young woman, red hair' },
+  { id:'action', label:'2. 动作', hint:'在做什么', eg:'walking through rain' },
+  { id:'clothing', label:'3. 着装', hint:'穿什么', eg:'white linen dress' },
+  { id:'expression', label:'4. 表情', hint:'情绪', eg:'pensive, introspective' },
+  { id:'environment', label:'5. 环境', hint:'在哪', eg:'misty Tokyo alley, neon signs' },
+  { id:'lighting', label:'6. 光影', hint:'光线', eg:'cinematic lighting, wet reflections' },
+  { id:'style', label:'7. 风格', hint:'画风', eg:'35mm film, Kodak Portra 400' },
+  { id:'mood', label:'8. 氛围', hint:'基调', eg:'melancholic, nostalgic, cinematic' },
+];
+
+const examples = [
+  { title:'☕ 秋日咖啡馆', slots:{subject:'young woman, brown hair',action:'holding coffee cup, looking out window',clothing:'chunky knit sweater',expression:'peaceful',environment:'cozy cafe, rainy window',lighting:'soft morning light',style:'35mm film, Fuji Provia',mood:'warm, intimate'} },
+  { title:'🌃 赛博夜行', slots:{subject:'woman, silver hair',action:'walking, glancing back',clothing:'black techwear jacket',expression:'determined',environment:'cyberpunk city, neon signs, wet streets',lighting:'neon reflections, dramatic shadows',style:'cinematic, Blade Runner',mood:'gritty, futuristic'} },
+  { title:'🌸 京都春色', slots:{subject:'young woman, black hair',action:'reaching for cherry blossom',clothing:'kimono, floral pattern',expression:'gentle smile',environment:'Kyoto temple garden, cherry blossoms',lighting:'golden hour backlighting',style:'Kodak Portra 400, medium format',mood:'serene, ethereal'} },
+  { title:'🔥 暗黑女王', slots:{subject:'woman, dark skin',action:'sitting on throne',clothing:'black leather, gold jewelry',expression:'commanding',environment:'gothic cathedral, candles',lighting:'dramatic low-key, rim light',style:'baroque painting style',mood:'powerful, mysterious'} },
+];
+
+const mappings = [
+  ['风','wind, hair movement, flying fabric, dynamic motion'],
+  ['雨','rain drops, wet surfaces, reflections, mist, bokeh'],
+  ['热','heat haze, sweat, summer glare, warm tones'],
+  ['冷','frost, breath visible, snow, cool blues, ice crystals'],
+  ['孤独','empty space, single figure, long shadows, wide shot'],
+  ['亲密','close-up, shallow depth of field, warm bokeh, soft focus'],
+  ['速度','motion blur, dynamic angle, flowing lines, dramatic perspective'],
+  ['梦幻','ethereal, floating particles, lens flare, soft glow, haze'],
+];
+
+// === RENDER ===
+function renderSlots(){
+  document.getElementById('slotFields').innerHTML=slots.map(s=>`
+    <div class="slot-row">
+      <span class="slot-num">${s.id.charAt(0).toUpperCase()}</span>
+      <span class="slot-label">${s.label}</span>
+      <div class="slot-input"><input type="text" id="slot_${s.id}" placeholder="例: ${s.eg}"></div>
+      <span class="slot-hint">${s.hint}</span>
+    </div>
+  `).join('');
+}
+
+function renderExamples(){
+  document.getElementById('examples').innerHTML=examples.map((ex,i)=>`
+    <div class="example-card" onclick="loadExample(${i})">
+      <h4>${ex.title}</h4>
+      <p>${Object.values(ex.slots).join(' · ').slice(0,80)}...</p>
+    </div>
+  `).join('');
+}
+
+function renderMappings(){
+  document.getElementById('mappingTable').innerHTML=mappings.map(m=>`
+    <div class="mapping-row">
+      <span class="from">${m[0]}</span><span class="arrow">→</span><span class="to">${m[1]}</span>
+    </div>
+  `).join('');
+}
+
+function loadExample(i){
+  const ex=examples[i];
+  slots.forEach(s=>{
+    document.getElementById('slot_'+s.id).value=ex.slots[s.id]||'';
+  });
+  gsToast(ex.title+' 已载入');
+}
+
+function clearSlots(){
+  slots.forEach(s=>{document.getElementById('slot_'+s.id).value='';});
+  document.getElementById('expandedOutput').textContent='在左侧卡槽填入内容后点击「扩写 Prompt」...';
+}
+
+function expandPrompt(){
+  const vals={};
+  let hasContent=false;
+  slots.forEach(s=>{
+    const v=document.getElementById('slot_'+s.id).value.trim();
+    vals[s.id]=v;
+    if(v) hasContent=true;
+  });
+  if(!hasContent){gsToast('请至少填写一个卡槽');return;}
+
+  let prompt='';
+  const items=[];
+  if(vals.subject) items.push(`Portrait of ${vals.subject}`);
+  if(vals.action) items.push(vals.action);
+  if(vals.clothing) items.push(`wearing ${vals.clothing}`);
+  if(vals.expression) items.push(`${vals.expression} expression`);
+  if(vals.environment) items.push(`in ${vals.environment}`);
+  if(vals.lighting) items.push(vals.lighting+', cinematic lighting');
+  if(vals.style) items.push(vals.style+', film photography');
+  if(vals.mood) items.push(`${vals.mood} atmosphere`);
+
+  prompt=items.join(', ');
+  prompt+=', detailed skin texture, natural imperfections, subtle film grain<br>';
+  prompt+='<br>◆ <b>Negative</b>: plastic skin, doll-like, airbrushed, smooth, CGI, 3D render, overexposure, harsh lighting, photorealistic, watermark, text<br>';
+  prompt+='<br>◆ <b>Krea 2 Settings</b>: Turbo mode, strength 0.7-0.85, high fidelity<br>';
+
+  document.getElementById('expandedOutput').innerHTML=prompt;
+  gsToast('Prompt 已扩写');
+}
+
+function copyExpanded(){
+  const t=document.getElementById('expandedOutput').innerText;
+  if(t.includes('在左侧')){gsToast('请先扩写 Prompt');return;}
+  gsCopy(t);
+}
+
+renderSlots();
+renderExamples();
+renderMappings();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

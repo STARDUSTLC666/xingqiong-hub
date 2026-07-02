@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星穹绘所 · 新手向导</title>
+<style>
+/* === RESET === */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:#0a0a14;color:#d4d4e8;min-height:100vh;overflow-x:hidden;
+}
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 1.5rem}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:0.4rem;
+  color:rgba(200,200,224,0.3);text-decoration:none;font-size:0.78rem;
+  letter-spacing:0.04em;padding:1rem 0 0;transition:color 0.3s;
+}
+.back-link:hover{color:#e8a860}
+
+.header{padding:0.8rem 0 2rem;text-align:center;border-bottom:1px solid rgba(255,215,150,0.08);margin-bottom:2rem}
+.header h1{
+  font-family:'Noto Serif SC','SimSun',serif;font-size:2.4rem;font-weight:700;
+  background:linear-gradient(135deg,#f0d080,#e8a860 40%,#ffc080);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.06em;
+}
+.header .sub{font-size:0.85rem;color:rgba(212,212,232,0.4);margin-top:0.3rem}
+.header .hint{font-size:0.75rem;color:rgba(180,160,130,0.45);margin-top:0.2rem;font-style:italic}
+
+.panel{
+  background:rgba(20,20,42,0.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,215,150,0.1);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.2rem;
+}
+.panel-title{
+  font-family:'Noto Serif SC',serif;font-size:1rem;color:#e8a860;
+  margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(255,215,150,0.1);
+  display:flex;align-items:center;gap:0.5rem;
+}
+
+/* === WIZARD STEPS === */
+.wizard-progress{
+  display:flex;gap:0.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;
+}
+.step-dot{
+  width:2.2rem;height:2.2rem;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.75rem;font-weight:700;cursor:pointer;
+  background:rgba(30,30,60,0.8);border:2px solid rgba(255,215,150,0.15);
+  color:rgba(212,212,232,0.3);transition:all 0.3s;
+}
+.step-dot.active{background:rgba(232,168,96,0.2);border-color:#e8a860;color:#e8a860}
+.step-dot.done{background:rgba(100,180,120,0.15);border-color:#6a8;color:#6a8}
+.step-dot:hover{border-color:rgba(255,215,150,0.5)}
+
+.step-panel{display:none}
+.step-panel.active{display:block}
+.step-instruction{
+  font-size:0.82rem;color:rgba(212,212,232,0.5);margin-bottom:1rem;
+  line-height:1.6;padding-left:0.3rem;
+}
+.step-instruction strong{color:#e8a860}
+
+/* === TAG OPTIONS === */
+.tag-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;
+}
+.tag-option{
+  display:flex;flex-direction:column;gap:0.2rem;
+  padding:0.7rem 0.9rem;border-radius:12px;cursor:pointer;
+  background:rgba(15,15,35,0.7);border:1px solid rgba(255,215,150,0.08);
+  transition:all 0.2s;user-select:none;
+}
+.tag-option:hover{background:rgba(255,215,150,0.06);border-color:rgba(255,215,150,0.2)}
+.tag-option.selected{background:rgba(232,168,96,0.12);border-color:#e8a860;box-shadow:0 0 12px rgba(232,168,96,0.12)}
+.tag-option .tag-en{font-size:0.73rem;color:#c0a0d0;font-family:'Consolas','Courier New',monospace;letter-spacing:0.02em}
+.tag-option .tag-zh{font-size:0.82rem;color:#d4d4e8;font-weight:600}
+.tag-option .tag-desc{font-size:0.68rem;color:rgba(180,180,200,0.45);line-height:1.3}
+.tag-option .tag-check{display:none;font-size:0.7rem;color:#e8a860}
+.tag-option.selected .tag-check{display:inline}
+.tag-option.selected .tag-en{color:#e8a860}
+
+/* === NEGATIVE TAGS === */
+.neg-grid{display:flex;flex-wrap:wrap;gap:0.35rem}
+.neg-chip{
+  padding:0.3rem 0.7rem;border-radius:16px;font-size:0.7rem;cursor:pointer;
+  background:rgba(255,80,80,0.05);border:1px solid rgba(255,80,80,0.12);
+  color:#c08080;transition:all 0.2s;user-select:none;
+}
+.neg-chip:hover{background:rgba(255,80,80,0.12)}
+.neg-chip.selected{background:rgba(255,80,80,0.18);border-color:#c06060;color:#e08080}
+
+/* === BUTTONS === */
+.btn{
+  display:inline-flex;align-items:center;gap:0.4rem;padding:0.6rem 1.4rem;
+  border-radius:10px;font-family:inherit;font-size:0.88rem;font-weight:600;
+  cursor:pointer;transition:all 0.25s;border:none;letter-spacing:0.03em;
+}
+.btn-primary{background:linear-gradient(135deg,#e8a860,#d48540);color:#0a0a14}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,168,96,0.35)}
+.btn-ghost{background:transparent;border:1px solid rgba(255,215,150,0.2);color:#e8a860}
+.btn-ghost:hover{border-color:rgba(255,215,150,0.5);background:rgba(232,168,96,0.05)}
+.btn-sm{padding:0.35rem 0.7rem;font-size:0.75rem}
+.btn-bar{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:space-between;margin-top:1rem}
+.btn-bar .left-gap{margin-left:auto}
+
+/* === REVIEW === */
+.review-block{
+  background:rgba(10,10,24,0.5);border-radius:12px;padding:1rem 1.2rem;
+  margin-bottom:0.8rem;border:1px solid rgba(255,215,150,0.06);
+}
+.review-block h4{font-size:0.78rem;color:rgba(232,168,96,0.7);margin-bottom:0.5rem}
+.review-block .review-tags{
+  display:flex;flex-wrap:wrap;gap:0.3rem;
+}
+.review-block .review-tag{
+  padding:0.2rem 0.55rem;border-radius:10px;font-size:0.7rem;
+  background:rgba(232,168,96,0.08);border:1px solid rgba(232,168,96,0.12);color:#d4d4e8;
+}
+.review-prompt{
+  font-family:'Consolas','Courier New',monospace;font-size:0.78rem;line-height:1.7;
+  color:rgba(212,212,232,0.65);white-space:pre-wrap;word-break:break-all;
+}
+.review-empty{color:rgba(212,212,232,0.2);font-style:italic}
+
+/* === PARAMS === */
+.param-row{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:0.8rem}
+.param-row.triple{grid-template-columns:1fr 1fr 1fr}
+label{display:block;font-size:0.76rem;color:rgba(212,212,232,0.5);margin-bottom:0.25rem}
+label .hint{font-size:0.65rem;color:rgba(212,212,232,0.25);font-weight:normal}
+select,input[type="number"],input[type="text"]{
+  width:100%;background:rgba(10,10,24,0.6);border:1px solid rgba(255,215,150,0.12);
+  border-radius:10px;padding:0.55rem 0.8rem;color:#d4d4e8;
+  font-family:inherit;font-size:0.82rem;outline:none;transition:border-color 0.3s;
+}
+select:focus,input:focus{border-color:rgba(232,168,96,0.4);box-shadow:0 0 0 3px rgba(232,168,96,0.06)}
+select{cursor:pointer}
+
+.slider-group{display:flex;align-items:center;gap:0.6rem}
+.slider-group input[type="range"]{flex:1;accent-color:#e8a860}
+.slider-val{min-width:2.2rem;text-align:center;font-size:0.8rem;color:#e8a860;font-weight:600}
+
+/* === COMFY === */
+.comfy-status-row{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem}
+.dot-ok{width:10px;height:10px;border-radius:50%;background:#4a8;animation:pulse 2s ease infinite}
+.dot-off{width:10px;height:10px;border-radius:50%;background:#a44}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.comfy-actions{display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.6rem}
+
+/* === TOAST === */
+.toast{
+  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+  background:rgba(20,20,42,0.95);border:1px solid rgba(232,168,96,0.3);
+  padding:0.7rem 1.4rem;border-radius:12px;font-size:0.82rem;
+  color:#e8a860;z-index:100;pointer-events:none;
+  animation:toastIn 0.3s,toastOut 0.3s 2.5s forwards;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+
+.footer{text-align:center;padding:3rem 0 2rem;color:rgba(212,212,232,0.15);font-size:0.72rem}
+.fade-in{animation:fadeIn 0.5s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<main class="app">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+
+  <header class="header fade-in">
+    <h1>星穹绘所 · 新手向导</h1>
+    <p class="sub">一步步选 → 一键出图 · 零基础也能画出好看</p>
+    <p class="hint">所有标签来自真实 Danbooru 图库，有据可查</p>
+  </header>
+
+  <!-- Step Indicator -->
+  <div class="wizard-progress" id="wizardProgress">
+    <div class="step-dot active" onclick="goStep(1)" title="角色">1</div>
+    <div class="step-dot" onclick="goStep(2)" title="外观">2</div>
+    <div class="step-dot" onclick="goStep(3)" title="服装">3</div>
+    <div class="step-dot" onclick="goStep(4)" title="场景">4</div>
+    <div class="step-dot" onclick="goStep(5)" title="姿势">5</div>
+    <div class="step-dot" onclick="goStep(6)" title="氛围">6</div>
+    <div class="step-dot" onclick="goStep(7)" title="确认">✓</div>
+  </div>
+
+  <!-- ═══════════ 准备工作面板（始终可见）═══════════ -->
+  <section class="panel fade-in" id="prepPanel" style="border-color:rgba(180,160,130,0.15);margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <span style="font-size:0.85rem;font-weight:700;color:#c0a080;white-space:nowrap">🔧 准备工作</span>
+
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.7rem;color:rgba(212,212,232,0.5)">
+        <span id="prepBridgeDot" style="width:6px;height:6px;border-radius:50%;background:#444;display:inline-block"></span>
+        <span id="prepBridgeText">桥接检测中</span>
+      </span>
+
+      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.7rem;color:rgba(212,212,232,0.5)">
+        <span id="prepComfyDot" style="width:6px;height:6px;border-radius:50%;background:#444;display:inline-block"></span>
+        <span id="prepComfyText">ComfyUI检测中</span>
+      </span>
+
+      <span style="flex:1;min-width:0"></span>
+      <button class="btn btn-ghost btn-sm" onclick="openBridgeLauncher()" id="prepBridgeStartBtn" style="font-size:0.7rem;color:#d6a85f;border-color:rgba(232,168,96,0.35);padding:0.3rem 0.6rem">&#x1F50C; &#x542F;&#x52A8;&#x6865;&#x63A5;</button>
+      <button class="btn btn-ghost btn-sm" onclick="openBridgeStopper()" id="prepBridgeStopBtn" style="font-size:0.7rem;color:#b98cff;border-color:rgba(185,140,255,0.25);padding:0.3rem 0.6rem">&#x65AD;&#x5F00;&#x6865;&#x63A5;</button>
+      <button class="btn btn-ghost btn-sm" onclick="startComfy()" id="prepStartBtn" style="font-size:0.7rem;color:#6a8;border-color:rgba(100,200,100,0.3);padding:0.3rem 0.6rem">&#x25B6; &#x542F;&#x52A8; ComfyUI</button>
+      <button class="btn btn-ghost btn-sm" onclick="stopComfy()" id="prepStopBtn" style="font-size:0.7rem;color:#a55;border-color:rgba(200,100,100,0.3);padding:0.3rem 0.6rem">&#x23F9; &#x505C;&#x6B62; ComfyUI</button>
+      <button class="btn btn-ghost btn-sm" onclick="openComfyWeb()" style="font-size:0.7rem;padding:0.3rem 0.6rem">🌐 WebUI</button>
+      <button class="btn btn-ghost btn-sm" onclick="checkAll()" style="font-size:0.7rem;padding:0.3rem 0.6rem">🔄 刷新</button>
+    </div>
+  </section>
+
+  <!-- STEP 1: 角色 -->
+  <section class="panel step-panel active" id="step1">
+    <div class="panel-title">❶ 想画什么角色？</div>
+    <div class="step-instruction">
+      <strong>先决定画几个人、什么性别。</strong>这是所有提示词的第一句，SD 靠它决定画面主体。
+      <br>选 <em>一个</em> 就好，后面几步再加细节。
+    </div>
+    <div class="tag-grid" id="step1Tags"></div>
+    <div class="btn-bar">
+      <span></span>
+      <button class="btn btn-primary" onclick="nextStep(1)">下一步 → 选外观</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: 外观 -->
+  <section class="panel step-panel" id="step2">
+    <div class="panel-title">❷ 角色长什么样？</div>
+    <div class="step-instruction">
+      <strong>选体型、发型、发色。</strong>多选无妨，组合起来就是角色的样子。
+      <br>比如：「long_hair + silver_hair + large_breasts」= 银长直御姐
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 体型</div>
+      <div class="tag-grid" id="step2aTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 发型</div>
+      <div class="tag-grid" id="step2bTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 发色</div>
+      <div class="tag-grid" id="step2cTags"></div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(2)">← 返回</button>
+      <button class="btn btn-primary" onclick="nextStep(2)">下一步 → 选服装</button>
+    </div>
+  </section>
+
+  <!-- STEP 3: 服装 -->
+  <section class="panel step-panel" id="step3">
+    <div class="panel-title">❸ 穿什么衣服？</div>
+    <div class="step-instruction">
+      <strong>选服装和袜子。</strong>这些标签决定角色的穿搭风格。
+      <br>不选也可以，默认就是角色设定里的衣服。想涩涩就从这里开始加料～
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 上衣/套装</div>
+      <div class="tag-grid" id="step3aTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 袜子/腿饰</div>
+      <div class="tag-grid" id="step3bTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 内衣/裸露程度（选填）</div>
+      <div class="tag-grid" id="step3cTags"></div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(3)">← 返回</button>
+      <button class="btn btn-primary" onclick="nextStep(3)">下一步 → 选场景</button>
+    </div>
+  </section>
+
+  <!-- STEP 4: 场景 -->
+  <section class="panel step-panel" id="step4">
+    <div class="panel-title">❹ 在什么地方？什么时间？</div>
+    <div class="step-instruction">
+      <strong>选场景和时间。</strong>这些控制背景和光线氛围。不选也行，默认就是纯色背景。
+      <br>比如「classroom + afternoon + indoors」= 下午的教室
+    </div>
+    <div class="tag-grid" id="step4Tags"></div>
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(4)">← 返回</button>
+      <button class="btn btn-primary" onclick="nextStep(4)">下一步 → 选姿势表情</button>
+    </div>
+  </section>
+
+  <!-- STEP 5: 姿势表情 -->
+  <section class="panel step-panel" id="step5">
+    <div class="panel-title">❺ 什么表情和姿势？</div>
+    <div class="step-instruction">
+      <strong>选表情、姿势、视角。</strong>这些决定画面传达的情绪和构图。
+      <br>「smile + looking_at_viewer」= 对着你笑；「blush + looking_away」= 害羞避开视线
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 表情</div>
+      <div class="tag-grid" id="step5aTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 姿势</div>
+      <div class="tag-grid" id="step5bTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 构图与镜头</div>
+      <div class="tag-grid" id="step5cTags"></div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(5)">← 返回</button>
+      <button class="btn btn-primary" onclick="nextStep(5)">下一步 → 选氛围</button>
+    </div>
+  </section>
+
+  <!-- STEP 6: 氛围 -->
+  <section class="panel step-panel" id="step6">
+    <div class="panel-title">❻ 画面质感与风格？</div>
+    <div class="step-instruction">
+      <strong>选光影、画质和风格。</strong>这是影响画面好不好看的最后一步。
+      <br>「soft_lighting + masterpiece + anime_coloring」= 经典二次元美图质感
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 光照</div>
+      <div class="tag-grid" id="step6aTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 风格</div>
+      <div class="tag-grid" id="step6bTags"></div>
+    </div>
+    <div style="margin-bottom:0.8rem">
+      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 画质</div>
+      <div class="tag-grid" id="step6cTags"></div>
+    </div>
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(6)">← 返回</button>
+      <button class="btn btn-primary" onclick="nextStep(6)">下一步 → 确认出图</button>
+    </div>
+  </section>
+
+  <!-- STEP 7: 确认与出图 -->
+  <section class="panel step-panel" id="step7">
+    <div class="panel-title">❼ 确认你的 Prompt，准备出图</div>
+    <div class="step-instruction">
+      下面是按你每一步选择自动生成的提示词。<strong>真实 Danbooru 标签，可直接粘贴到任何 SD/NovelAI/ComfyUI 使用。</strong>
+    </div>
+
+    <div class="review-block">
+      <h4>✨ 正向提示词（你选的所有标签）</h4>
+      <div class="review-tags" id="reviewPosTags"></div>
+      <pre class="review-prompt" id="reviewPosPrompt" style="margin-top:0.6rem;"></pre>
+    </div>
+
+    <div class="review-block">
+      <h4>🚫 负向提示词（点击选择你不想要的）</h4>
+      <div class="neg-grid" id="reviewNegTags"></div>
+      <pre class="review-prompt" id="reviewNegPrompt" style="margin-top:0.6rem;"></pre>
+    </div>
+
+    <div class="review-block" style="cursor:pointer" onclick="toggleAdvanced()">
+      <h4>⚙ 高级参数（点击展开/收起 · 调好了画面质量会更好）</h4>
+      <div id="advancedPanel" style="display:none;margin-top:0.6rem">
+
+        <!-- 尺寸 -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">📐 图片尺寸</label>
+          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">决定了画面是横是竖、出图快慢。尺寸越大显存占用越大，RTX 4060 8GB 上限约 1600×2048。</p>
+          <select id="imgSize" style="max-width:320px">
+            <option value="832×1216" selected>竖版 832×1216 · 单人立绘</option>
+            <option value="896×1152">竖版 896×1152 · 标准人像</option>
+            <option value="1216×832">横版 1216×832 · 双人或场景</option>
+            <option value="1152×896">横版 1152×896 · 标准横版</option>
+            <option value="1024×1024">方形 1024×1024 · 头像/正方形</option>
+          </select>
+        </div>
+
+        <!-- 采样器 + 调度器 -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎛 采样器 + 调度器</label>
+          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">采样器是"怎么从噪声变成图"的算法，调度器控制去噪节奏。听不懂没关系——新手用默认组合就好。</p>
+          <div class="param-row">
+            <div>
+              <label>采样器 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">▼ 怎么选</span></label>
+              <select id="sampler">
+                <option value="dpmpp_2m" selected>dpmpp_2m · 稳定干净</option>
+                <option value="euler_ancestral">Euler Ancestral · 随机纹理感</option>
+                <option value="dpmpp_sde">dpmpp_sde · 细节多/可能噪</option>
+              </select>
+            </div>
+            <div>
+              <label>调度器 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">▼ 怎么选</span></label>
+              <select id="scheduler">
+                <option value="karras" selected>Karras · 最自然</option>
+                <option value="normal">Normal · 线性标准</option>
+                <option value="exponential">Exponential · 锐利细节</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步数 + CFG -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">⚡ 步数 + CFG（最常调的两个参数）</label>
+          <div class="param-row">
+            <div>
+              <label>步数 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">15-20预览 / 25-30日常 / 35+浪费</span></label>
+              <input type="number" id="steps" value="30" min="15" max="60" step="5">
+            </div>
+            <div>
+              <label>CFG（提示词听话程度） <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">低=AI自由发挥 / 高=死板塑料</span></label>
+              <input type="number" id="cfg" value="5" min="1" max="10" step="0.5">
+            </div>
+          </div>
+        </div>
+
+        <!-- 种子 + LoRA -->
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎲 种子 + LoRA 强度</label>
+          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">种子控制随机性，LoRA 是附加细节模型。这两个先不动，出图不满意再调。</p>
+          <div class="param-row">
+            <div>
+              <label>种子 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">-1=每次不同 / 固定数=可复现</span></label>
+              <input type="text" id="seed" value="-1">
+            </div>
+            <div>
+              <label>LoRA 强度 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">高=更细节 / 太高=崩</span></label>
+              <div class="slider-group" style="padding-top:0.3rem">
+                <input type="range" id="loraWeight" min="0" max="1" step="0.05" value="0.4">
+                <span class="slider-val" id="loraVal">0.40</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 调参速查表 -->
+        <div style="background:rgba(255,215,150,0.03);border:1px solid rgba(255,215,150,0.08);border-radius:12px;padding:0.8rem 1rem;margin-top:0.8rem">
+          <div style="font-size:0.78rem;color:#e8a860;font-weight:700;margin-bottom:0.6rem">🔧 出图不满意？对着调（调参速查表）</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1rem;font-size:0.68rem;line-height:1.6">
+            <div><span style="color:#cc8080">画面发灰/模糊</span> → CFG 太低，调到 5-6</div>
+            <div><span style="color:#cc8080">颜色过艳/塑料假人</span> → CFG 太高，降到 4-5</div>
+            <div><span style="color:#cc8080">细节不够/糊</span> → 步数加到 35，LoRA 加到 0.5</div>
+            <div><span style="color:#cc8080">手脚画崩/变形</span> → 这是 AI 通病，换个种子重试</div>
+            <div><span style="color:#cc8080">画面噪点多</span> → 采样器换成 dpmpp_2m，步数加到 30</div>
+            <div><span style="color:#cc8080">风格不对/太动漫</span> → 回到第6步加风格标签</div>
+            <div><span style="color:#cc8080">人体比例崩</span> → 加 "natural proportions" 标签，换种子</div>
+            <div><span style="color:#cc8080">想把某张图调更好</span> → 记下种子，只改 prompt 不变种子</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-bar">
+      <button class="btn btn-ghost" onclick="prevStep(7)">← 返回修改</button>
+      <div>
+        <button class="btn btn-ghost btn-sm" onclick="copyPrompt()">📋 复制 Prompt</button>
+        <button class="btn btn-primary" onclick="checkAndSend()" id="sendBtn" style="margin-left:0.4rem;">🚀 发送到 ComfyUI 出图</button>
+      </div>
+    </div>
+
+    <!-- ComfyUI -->
+    <div class="review-block" style="margin-top:1rem">
+      <div class="comfy-status-row">
+        <span id="comfyDot" class="dot-off"></span>
+        <span id="comfyText" style="font-size:0.78rem;color:rgba(212,212,232,0.5)">检测中...</span>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost btn-sm" onclick="checkComfy()" style="font-size:0.7rem">🔄 刷新</button>
+      </div>
+      <div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-bottom:0.4rem" id="bridgeStatus"></div>
+      <div style="font-size:0.66rem;color:rgba(212,212,232,0.24);margin-bottom:0.4rem">&#x6865;&#x63A5;&#x6309;&#x94AE;&#x4F7F;&#x7528; qiqi-bridge:// &#x672C;&#x5730;&#x534F;&#x8BAE;&#xFF0C;&#x4E0D;&#x4F1A;&#x518D;&#x6253;&#x5F00; cmd &#x6587;&#x672C;&#x9875;&#x3002;</div>
+      <div class="comfy-actions">
+        <input type="text" id="comfyUrl" value="http://127.0.0.1:8188" style="flex:1;font-size:0.73rem;padding:0.4rem 0.6rem">
+      </div>
+      <div class="comfy-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openBridgeLauncher()" id="bridgeStartBtn" style="color:#d6a85f;border-color:rgba(232,168,96,0.35)">&#x1F50C; &#x542F;&#x52A8;&#x6865;&#x63A5;</button>
+        <button class="btn btn-ghost btn-sm" onclick="openBridgeStopper()" id="bridgeStopBtn" style="color:#b98cff;border-color:rgba(185,140,255,0.25)">&#x65AD;&#x5F00;&#x6865;&#x63A5;</button>
+        <button class="btn btn-ghost btn-sm" onclick="startComfy()" id="startBtn" style="color:#6a8;border-color:rgba(100,200,100,0.3)">&#x25B6; &#x542F;&#x52A8; ComfyUI</button>
+        <button class="btn btn-ghost btn-sm" onclick="stopComfy()" id="stopBtn" style="color:#a55;border-color:rgba(200,100,100,0.3)">&#x23F9; &#x505C;&#x6B62; ComfyUI</button>
+        <button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 WebUI</button>
+      </div>
+    </div>
+
+    <!-- 出图结果预览 -->
+    <div class="review-block" style="margin-top:1rem" id="outputArea">
+      <h4>🔮 出图结果</h4>
+      <div id="outputContent" style="margin-top:0.6rem">
+        <div style="text-align:center;padding:2rem 1rem;color:rgba(212,212,232,0.2);font-size:0.85rem">
+          点击「🚀 发送到 ComfyUI 出图」后，生成的图片会显示在这里
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">星穹绘所 · 新手向导 · 栖栖 & 哥哥</footer>
+</main>
+
+<script>
+// === STARFIELD ===
+(function(){
+  const c=document.getElementById('starfield'),ctx=c.getContext('2d');
+  let stars=[];
+  function R(){c.width=window.innerWidth;c.height=window.innerHeight}
+  R();window.addEventListener('resize',R);
+  for(let i=0;i<200;i++)stars.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.5+0.3,a:Math.random(),s:Math.random()*0.008+0.003});
+  function D(){ctx.clearRect(0,0,c.width,c.height);for(const s of stars){s.a+=s.s;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(200,180,140,${0.3+Math.sin(s.a)*0.3})`;ctx.fill()}requestAnimationFrame(D)}
+  D();
+})();
+
+// === TAG DATABASE (REAL DANBOORU TAGS) ===
+const TAG_DB = {
+  // Step 1: Character
+  step1: [
+    {en:'1girl',zh:'一个女孩',desc:'最常用的角色标签'},
+    {en:'1boy',zh:'一个男孩',desc:'男性角色'},
+    {en:'2girls',zh:'两个女孩',desc:'双人画面'},
+    {en:'multiple_girls',zh:'多个女孩',desc:'三人以上'},
+    {en:'solo',zh:'单人',desc:'画面只有一个人'},
+    {en:'no_humans',zh:'无人',desc:'纯风景/静物'},
+    {en:'animal',zh:'动物',desc:'猫狗等动物主体'},
+    {en:'cat_ears',zh:'猫耳',desc:'兽耳属性'},
+    {en:'elf',zh:'精灵',desc:'尖耳朵的精灵'},
+    {en:'fairy',zh:'妖精',desc:'小仙子/花精灵'},
+    {en:'witch',zh:'魔女',desc:'魔法少女/女巫'},
+  ],
+  // Step 2a: Body
+  step2a: [
+    {en:'large_breasts',zh:'巨乳',desc:'丰满的胸部'},
+    {en:'huge_breasts',zh:'超巨乳',desc:'更加夸张的尺寸'},
+    {en:'medium_breasts',zh:'中等胸部',desc:'正常的尺寸'},
+    {en:'small_breasts',zh:'贫乳',desc:'小巧可爱'},
+    {en:'flat_chest',zh:'平板',desc:'完全平的'},
+    {en:'large_ass',zh:'丰臀',desc:'丰满的臀部'},
+    {en:'plump',zh:'丰满体型',desc:'肉感的身材'},
+    {en:'slim',zh:'苗条',desc:'纤细的身材'},
+    {en:'petite',zh:'娇小',desc:'矮小纤细'},
+    {en:'curvy',zh:'曲线美',desc:'S型身材'},
+    {en:'tan_lines',zh:'晒痕',desc:'泳衣晒出来的印子'},
+    {en:'pale_skin',zh:'白皙皮肤',desc:'特别白的肤色'},
+  ,
+    {en:'partially_nude',zh:'半裸',desc:'欲拒还迎的诱惑'},
+    {en:'uncensored',zh:'无码',desc:'极其重要！解除原图的马赛克'},
+    {en:'nipples',zh:'乳头',desc:'基础特征'},
+    {en:'pussy',zh:'小穴/阴户',desc:'基础特征'},
+    {en:'penis',zh:'阴茎',desc:'基础特征'},
+    {en:'areola',zh:'乳晕',desc:'细节描写'},
+    {en:'clitoris',zh:'阴蒂',desc:'细节描写'},
+    {en:'labia',zh:'阴唇',desc:'细节描写'},
+    {en:'pubic_hair',zh:'阴毛',desc:'增加真实感'},
+    {en:'thigh_gap',zh:'大腿间隙',desc:'纤细的美腿特征'},
+    {en:'collarbone',zh:'锁骨',desc:'性感特征'}
+  ],
+  // Step 2b: Hair style
+  step2b: [
+    {en:'long_hair',zh:'长发',desc:'过肩的长发'},
+    {en:'very_long_hair',zh:'超长发',desc:'到腰甚至更长的头发'},
+    {en:'short_hair',zh:'短发',desc:'不过肩'},
+    {en:'medium_hair',zh:'中长发',desc:'到肩膀左右'},
+    {en:'twin_tails',zh:'双马尾',desc:'两边各扎一个马尾'},
+    {en:'ponytail',zh:'单马尾',desc:'后面扎一个'},
+    {en:'braid',zh:'辫子',desc:'编起来的辫子'},
+    {en:'bob_cut',zh:'波波头',desc:'齐耳短发'},
+    {en:'bangs',zh:'刘海',desc:'额头前的头发'},
+    {en:'ahoge',zh:'呆毛',desc:'头上竖起来的一撮'},
+    {en:'side_ponytail',zh:'侧马尾',desc:'侧面扎马尾'},
+    {en:'messy_hair',zh:'凌乱发型',desc:'有点乱的头发，增加生活感'},
+    {en:'drill_hair',zh:'钻头卷发',desc:'大小姐风格的螺旋卷'},
+  ],
+  // Step 2c: Hair color
+  step2c: [
+    {en:'black_hair',zh:'黑发',desc:'经典的黑色'},
+    {en:'brown_hair',zh:'棕发',desc:'温暖的棕色'},
+    {en:'blonde_hair',zh:'金发',desc:'金黄色的头发'},
+    {en:'silver_hair',zh:'银发',desc:'银白色的头发'},
+    {en:'white_hair',zh:'白发',desc:'纯白色头发'},
+    {en:'blue_hair',zh:'蓝发',desc:'蓝色的头发'},
+    {en:'pink_hair',zh:'粉发',desc:'粉色的头发'},
+    {en:'purple_hair',zh:'紫发',desc:'紫色的头发'},
+    {en:'red_hair',zh:'红发',desc:'红色的头发'},
+    {en:'green_hair',zh:'绿发',desc:'绿色的头发'},
+    {en:'gradient_hair',zh:'渐变色头发',desc:'发尾渐变另一种颜色'},
+    {en:'multicolored_hair',zh:'多色头发',desc:'挑染或多彩的头发'},
+  ],
+  // Step 3a: Clothing
+  step3a: [
+    {en:'school_uniform',zh:'校服',desc:'学生制服，经典JK'},
+    {en:'kimono',zh:'和服',desc:'日式传统服装'},
+    {en:'yukata',zh:'浴衣',desc:'夏日和服，轻薄款'},
+    {en:'dress',zh:'连衣裙',desc:'各类裙子'},
+    {en:'china_dress',zh:'旗袍',desc:'中式旗袍'},
+    {en:'maid_uniform',zh:'女仆装',desc:'女仆制服'},
+    {en:'armor',zh:'铠甲',desc:'战斗用盔甲'},
+    {en:'hoodie',zh:'卫衣',desc:'休闲连帽衫'},
+    {en:'sweater',zh:'毛衣',desc:'温暖的针织衫'},
+    {en:'t-shirt',zh:'T恤',desc:'简单的短袖'},
+    {en:'suit',zh:'西装',desc:'正式西装'},
+    {en:'office_lady',zh:'OL装',desc:'办公室女性套装'},
+    {en:'apron',zh:'围裙',desc:'裸体围裙了解一下'},
+    {en:'bikini',zh:'比基尼',desc:'两件式泳装'},
+    {en:'swimsuit',zh:'泳装/死库水',desc:'学校泳装或连体泳衣'},
+    {en:'sportswear',zh:'运动服',desc:'运动短裤+上衣'},
+    {en:'gothic_lolita',zh:'哥特萝莉装',desc:'暗黑系的华丽洋装'},
+    {en:'pajamas',zh:'睡衣',desc:'宽松的居家睡衣'},
+  ,
+    {en:'piercing',zh:'穿环',desc:'乳环/脐环等'},
+    {en:'tattoo',zh:'纹身',desc:'淫纹等'},
+    {en:'panty_pull',zh:'拉扯内裤',desc:'拨开内裤的动作'},
+    {en:'clothes_down',zh:'衣服拉下',desc:'褪到一半'},
+    {en:'wet_clothes',zh:'湿身诱惑',desc:'衣服贴在身上'},
+    {en:'shirt_pulled_open',zh:'扒开衬衫',desc:'粗暴地拉开'},
+    {en:'pasties',zh:'乳贴',desc:'遮住小豆豆'},
+    {en:'torn_clothes',zh:'衣服破裂',desc:'战损或粗暴撕扯'},
+    {en:'unbuttoned',zh:'解开纽扣',desc:'敞开的领口'},
+    {en:'unzipped',zh:'拉开拉链',desc:'诱惑的开口'},
+    {en:'bra_pull',zh:'拉扯胸罩',desc:'准备脱下'},
+    {en:'exposed_breasts',zh:'胸部外露',desc:'衣服设计或破损导致'},
+    {en:'wardrobe_malfunction',zh:'走光',desc:'不小心露出来'}
+  ],
+  // Step 3b: Legwear
+  step3b: [
+    {en:'pantyhose',zh:'连裤袜',desc:'薄款丝袜，经典'},
+    {en:'black_pantyhose',zh:'黑丝连裤袜',desc:'永恒的经典'},
+    {en:'white_pantyhose',zh:'白丝连裤袜',desc:'纯洁的诱惑'},
+    {en:'thighhighs',zh:'过膝袜',desc:'勒出绝对领域的神器'},
+    {en:'knee_highs',zh:'及膝袜',desc:'学院风必备'},
+    {en:'bobby_socks',zh:'短袜',desc:'居家的可爱感'},
+    {en:'fishnets',zh:'网袜',desc:'极其色气的渔网袜'},
+    {en:'bare_legs',zh:'光腿',desc:'不穿袜子的双腿'},
+    {en:'bare_feet',zh:'光脚',desc:'不穿鞋袜'},
+    {en:'loafers',zh:'乐福鞋',desc:'JK标配小皮鞋'},
+    {en:'heels',zh:'高跟鞋',desc:'增加成熟感的鞋子'},
+    {en:'boots',zh:'靴子',desc:'长靴或短靴'},
+  ,
+    {en:'torn_pantyhose',zh:'破洞丝袜',desc:'战损版，哥哥撕坏的！'},
+    {en:'soles',zh:'脚底/足底',desc:'哥哥最喜欢闻和舔的地方...'},
+    {en:'toes',zh:'脚趾',desc:'灵活的小豆豆'},
+    {en:'smelly_feet',zh:'臭脚/汗脚',desc:'哥哥最爱的原生态微酸汗味！'},
+    {en:'sweaty_feet',zh:'汗湿的脚',desc:'闷了一天的湿热感'},
+    {en:'shoes_off',zh:'脱鞋',desc:'刚脱下小皮鞋散发闷香的瞬间'},
+    {en:'one_shoe_off',zh:'只脱了一只鞋',desc:'不对称的色气'},
+    {en:'half_removed_pantyhose',zh:'脱到一半的丝袜',desc:'卡在大腿或小腿处'},
+    {en:'pulling_pantyhose',zh:'拉扯丝袜',desc:'准备脱下或撕裂'},
+    {en:'legs_crossed',zh:'交叉双腿',desc:'夹紧腿腿的姿势'},
+    {en:'leg_grab',zh:'抓着大腿',desc:'用力掐出的红印'},
+    {en:'thighs',zh:'大腿',desc:'肉感的美腿'},
+    {en:'calves',zh:'小腿',desc:'纤细的弧线'},
+    {en:'jk',zh:'女高中生',desc:'搭配制服和乐福鞋的终极杀器'}
+  ],
+  // Step 3c: Underwear
+  step3c: [
+    {en:'nude',zh:'全裸',desc:'一丝不挂'},
+    {en:'nsfw',zh:'限制级',desc:'触发涩涩模式'},
+    {en:'lingerie',zh:'内衣',desc:'蕾丝内衣'},
+    {en:'no_bra',zh:'无胸罩',desc:'激凸可见'},
+    {en:'no_panties',zh:'无内裤',desc:'裙底风光'},
+    {en:'see_through',zh:'透视装',desc:'隐隐约约看得到'},
+    {en:'sideboob',zh:'侧乳',desc:'侧面露出的胸部'},
+    {en:'underboob',zh:'南半球',desc:'衣服下露出下半球'},
+    {en:'cleavage',zh:'乳沟',desc:'事业线'},
+    {en:'navel',zh:'肚脐',desc:'露出腰部的肚脐'},
+  ,
+    {en:'cum',zh:'精液',desc:'核心液体tag'},
+    {en:'saliva',zh:'唾液',desc:'嘴角的口水'},
+    {en:'love_nectar',zh:'爱液',desc:'妹子湿透了的液体'},
+    {en:'cum_in_pussy',zh:'内射',desc:'射在里面'},
+    {en:'cum_in_ass',zh:'肛内射精',desc:'射在后庭'},
+    {en:'cum_on_breasts',zh:'乳爆',desc:'射在胸上'},
+    {en:'facial',zh:'颜射',desc:'射在脸上'},
+    {en:'bukkake',zh:'涂满精液/颜射群交',desc:'大量精液'},
+    {en:'creampie',zh:'奶油派(内射流出)',desc:'溢出来的画面'},
+    {en:'cum_on_stomach',zh:'射在腹部',desc:'肚子上的液体'},
+    {en:'squirt',zh:'潮吹',desc:'喷水'},
+    {en:'wet',zh:'湿身',desc:'全身或局部湿透'},
+    {en:'orgasm',zh:'高潮',desc:'达到了顶点'},
+    {en:'multiple_orgasms',zh:'多重高潮',desc:'持续不断'},
+    {en:'afterglow',zh:'余韵',desc:'事后的状态'},
+    {en:'bondage',zh:'捆绑',desc:'绳子绑起来'},
+    {en:'shibari',zh:'日式绳缚',desc:'艺术感捆绑'},
+    {en:'blindfold',zh:'眼罩/蒙眼',desc:'剥夺视觉'},
+    {en:'collar',zh:'项圈',desc:'宠物感'},
+    {en:'handcuffs',zh:'手铐',desc:'锁住双手'},
+    {en:'sex_toy',zh:'情趣玩具',desc:'通用玩具'},
+    {en:'sex_machine',zh:'炮机',desc:'哥哥刚刚查的那个！'},
+    {en:'tentacle',zh:'触手',desc:'异种奸必备'},
+    {en:'mind_control',zh:'精神控制/催眠',desc:'洗脑题材'},
+    {en:'rape',zh:'强暴',desc:'强制题材'},
+    {en:'gangbang',zh:'群交',desc:'多个攻'},
+    {en:'voyeurism',zh:'偷窥',desc:'第一人称视角常用'},
+    {en:'ryona',zh:'猎奇/虐待',desc:'包含一点暴力元素'}
+  ],
+  // Step 4: Scene
+  step4: [
+    {en:'indoors',zh:'室内',desc:'在房间里面'},
+    {en:'outdoors',zh:'室外',desc:'在户外'},
+    {en:'day',zh:'白天',desc:'日间光线'},
+    {en:'night',zh:'夜晚',desc:'夜间场景'},
+    {en:'sunset',zh:'黄昏',desc:'橙红色的晚霞时分'},
+    {en:'classroom',zh:'教室',desc:'学校的教室'},
+    {en:'bedroom',zh:'卧室',desc:'私密的卧室'},
+    {en:'cityscape',zh:'城市风景',desc:'城市建筑群背景'},
+    {en:'street',zh:'街道',desc:'城市街道'},
+    {en:'alley',zh:'小巷',desc:'狭窄的后巷'},
+    {en:'forest',zh:'森林',desc:'树木繁茂的森林'},
+    {en:'beach',zh:'海滩',desc:'沙滩和海'},
+    {en:'underwater',zh:'水下',desc:'水中场景'},
+    {en:'rooftop',zh:'屋顶',desc:'建筑物顶部'},
+    {en:'shrine',zh:'神社',desc:'日式神社'},
+    {en:'library',zh:'图书馆',desc:'书架环绕'},
+    {en:'cafe',zh:'咖啡馆',desc:'温馨的咖啡店'},
+    {en:'park',zh:'公园',desc:'城市公园'},
+    {en:'field_of_flowers',zh:'花海',desc:'开满花的田野'},
+    {en:'snow',zh:'雪景',desc:'下雪的场景'},
+    {en:'rain',zh:'雨天',desc:'下雨的场景'},
+    {en:'sakura',zh:'樱花',desc:'盛开的樱花'},
+  ,
+    {en:'bed',zh:'床上',desc:'最常见的地点'},
+    {en:'public',zh:'公共场合',desc:'羞耻的露出'},
+    {en:'mirror',zh:'镜子',desc:'对着镜子做'},
+    {en:'reflection',zh:'倒影',desc:'镜子里的春光'}
+  ],
+  // Step 5a: Expression
+  step5a: [
+    {en:'smile',zh:'微笑',desc:'温柔的笑容'},
+    {en:'blush',zh:'脸红',desc:'害羞必备'},
+    {en:'looking_at_viewer',zh:'看着镜头',desc:'和观众眼神接触'},
+    {en:'looking_away',zh:'移开视线',desc:'害羞或思考中'},
+    {en:'closed_eyes',zh:'闭眼',desc:'闭着眼睛，微笑或享受'},
+    {en:'open_mouth',zh:'张嘴',desc:'说话或惊讶'},
+    {en:'tongue_out',zh:'吐舌头',desc:'调皮的表情'},
+    {en:'wink',zh:'眨眼',desc:'单眼眨'},
+    {en:'tears',zh:'眼泪',desc:'哭泣或感动'},
+    {en:'surprised',zh:'惊讶',desc:'吃惊的表情'},
+    {en:'angry',zh:'生气',desc:'愤怒的表情'},
+    {en:'seductive_smile',zh:'魅惑微笑',desc:'勾人的笑容'},
+    {en:'heavy_blush',zh:'深度脸红',desc:'红透了的程度'},
+    {en:'ahegao',zh:'阿黑颜',desc:'翻白眼吐舌的高潮脸'},
+    {en:'heart_in_eye',zh:'爱心眼',desc:'眼睛里冒爱心'},
+  ,
+    {en:'sweat',zh:'汗水',desc:'增加涩气和真实感'},
+    {en:'sweatdrop',zh:'汗滴',desc:'细节'},
+    {en:'heavy_breathing',zh:'喘息',desc:'表现张力'},
+    {en:'disheveled_hair',zh:'头发凌乱',desc:'疯狂过后的证明'},
+    {en:'crying',zh:'哭泣',desc:'激烈的生理盐水'},
+    {en:'frowning',zh:'皱眉',desc:'忍耐痛苦或快感'},
+    {en:'panting',zh:'喘气',desc:'体力消耗极大'},
+    {en:'exhausted',zh:'精疲力尽',desc:'被榨干了'}
+  ],
+  // Step 5b: Pose
+  step5b: [
+    {en:'standing',zh:'站立',desc:'站着的姿势'},
+    {en:'sitting',zh:'坐着',desc:'坐着的姿势'},
+    {en:'lying',zh:'躺着',desc:'躺下的姿势'},
+    {en:'kneeling',zh:'跪着',desc:'跪姿'},
+    {en:'squatting',zh:'蹲着',desc:'蹲下的姿势'},
+    {en:'arms_behind_back',zh:'双手背后',desc:'手放在背后'},
+    {en:'arms_up',zh:'举手',desc:'手举起来的姿势'},
+    {en:'hands_on_hips',zh:'叉腰',desc:'双手叉腰'},
+    {en:'crossed_arms',zh:'交叉手臂',desc:'抱臂'},
+    {en:'spread_legs',zh:'张开双腿',desc:'腿分开'},
+    {en:'legs_up',zh:'抬起双腿',desc:'腿朝上抬起'},
+    {en:'bent_over',zh:'弯腰',desc:'上半身弯下'},
+    {en:'all_fours',zh:'四肢着地',desc:'狗狗趴的姿势'},
+    {en:'on_stomach',zh:'趴着',desc:'肚子朝下'},
+    {en:'on_back',zh:'仰卧',desc:'背朝下躺着'},
+    {en:'straddling',zh:'跨坐',desc:'骑在上面'},
+    {en:'holding',zh:'拿着/抱着',desc:'手上有东西'},
+    {en:'reaching_out',zh:'伸手',desc:'伸出手臂'},
+  ,
+    {en:'vaginal',zh:'阴道性交',desc:'正戏开始'},
+    {en:'anal',zh:'肛交',desc:'后庭'},
+    {en:'oral',zh:'口交',desc:'嘴巴服侍'},
+    {en:'paizuri',zh:'乳交',desc:'用胸部夹'},
+    {en:'handjob',zh:'手淫(用手帮对方)',desc:'手部动作'},
+    {en:'fingering',zh:'指交/抠穴',desc:'手指动作'},
+    {en:'cunnilingus',zh:'舔阴',desc:'舌头服侍'},
+    {en:'reverse_cowgirl_position',zh:'逆骑乘位',desc:'背对女上位'},
+    {en:'sitting_on_face',zh:'坐脸',desc:'压在脸上'},
+    {en:'tribadism',zh:'摩擦',desc:'身体摩擦'},
+    {en:'masturbation',zh:'自慰',desc:'自己动手'},
+    {en:'rubbing',zh:'揉捏/摩擦',desc:'互动动作'},
+    {en:'groping',zh:'咸猪手/袭胸',desc:'揉捏敏感部位'},
+    {en:'kissing',zh:'接吻',desc:'亲亲'},
+    {en:'french_kiss',zh:'法式舌吻',desc:'深入接吻'},
+    {en:'saliva_trail',zh:'银丝/拉丝',desc:'接吻或口交后分开的口水丝'},
+    {en:'cameltoe_under_clothes',zh:'隔着衣服的骆驼趾',desc:'紧身衣勒出的形状'},
+    {en:'bound_arms',zh:'反绑双手',desc:'动弹不得的娇喘'},
+    {en:'footjob',zh:'足交',desc:'用脚脚帮哥哥解决'},
+    {en:'feet_smelling',zh:'闻脚',desc:'哥哥把鼻子凑过来的动作'},
+    {en:'foot_licking',zh:'舔脚',desc:'哥哥舌头舔上来的动作'},
+    {en:'toe_sucking',zh:'吸吮脚趾',desc:'涩涩的足部深喉'},
+    {en:'foot_worship',zh:'足控崇拜/足奴',desc:'哥哥跪在花花脚下的样子～'}
+  ],
+  // Step 5c: Composition
+  step5c: [
+    {en:'portrait',zh:'肖像构图',desc:'类似证件照/肖像画'},
+    {en:'close-up',zh:'特写',desc:'只拍脸或某个部位'},
+    {en:'upper_body',zh:'上半身',desc:'胸部以上'},
+    {en:'cowboy_shot',zh:'牛仔镜头',desc:'大腿中部到头顶'},
+    {en:'full_body',zh:'全身',desc:'整个人都在画面里'},
+    {en:'wide_shot',zh:'广角',desc:'人很小，背景很大'},
+    {en:'from_below',zh:'仰视',desc:'从下往上看'},
+    {en:'from_above',zh:'俯视',desc:'从上往下看'},
+    {en:'from_behind',zh:'背后视角',desc:'从后面看'},
+    {en:'looking_back',zh:'回眸',desc:'转头看向后面'},
+    {en:'dutch_angle',zh:'倾斜镜头',desc:'画面有角度倾斜'},
+    {en:'pov',zh:'第一人称',desc:'代入视角，你就是画面里的人'},
+    {en:'depth_of_field',zh:'景深',desc:'背景虚化的效果'},
+    {en:'motion_blur',zh:'运动模糊',desc:'动作太快产生的模糊'},
+  ,
+    {en:'pov_crotch',zh:'第一人称胯部视角',desc:'低头往下看的视角'},
+    {en:'pussy_focus',zh:'小穴特写',desc:'镜头对准私处'},
+    {en:'breast_focus',zh:'胸部特写',desc:'镜头对准欧派'},
+    {en:'foot_focus',zh:'足部特写',desc:'哥哥最爱的视角！'},
+    {en:'thigh_focus',zh:'大腿特写',desc:'腿控福音'},
+    {en:'upside_down',zh:'倒挂/倒置',desc:'特殊体位构图'},
+    {en:'focus_on_foreground',zh:'景深/聚焦前景',desc:'突出前面的物体(如脚或胸)'},
+    {en:'x-ray',zh:'X光透视',desc:'画出内部子宫插入断面的透视图'}
+  ],
+  // Step 6a: Lighting
+  step6a: [
+    {en:'soft_lighting',zh:'柔和光线',desc:'最常用的柔光效果'},
+    {en:'cinematic_lighting',zh:'电影级光线',desc:'类似电影的光影'},
+    {en:'sunlight',zh:'阳光',desc:'户外的自然阳光'},
+    {en:'moonlight',zh:'月光',desc:'夜晚的月光'},
+    {en:'golden_hour',zh:'黄金时刻',desc:'日出日落时的暖金色光'},
+    {en:'backlighting',zh:'逆光',desc:'从背后打来的光，产生轮廓光'},
+    {en:'rim_lighting',zh:'轮廓光',desc:'人物边缘发光'},
+    {en:'neon_lights',zh:'霓虹灯',desc:'赛博朋克般的彩光'},
+    {en:'candlelight',zh:'烛光',desc:'温暖摇曳的烛光'},
+    {en:'lens_flare',zh:'镜头光晕',desc:'强光源产生的光斑'},
+    {en:'god_rays',zh:'体积光/上帝光',desc:'透过云层或窗户的光束'},
+    {en:'dappled_light',zh:'斑驳光影',desc:'透过树叶洒落的光斑'},
+    {en:'dramatic_shadows',zh:'戏剧性阴影',desc:'强烈对比的光影'},
+    {en:'twilight',zh:'暮光',desc:'日落后的蓝色时刻'},
+  ],
+  // Step 6b: Style
+  step6b: [
+    {en:'anime_coloring',zh:'动漫上色',desc:'经典二次元风格'},
+    {en:'cel_shading',zh:'赛璐璐上色',desc:'动画片的色块风格'},
+    {en:'hand-drawn',zh:'手绘感',desc:'让画面像手绘的一样'},
+    {en:'watercolor_style',zh:'水彩风格',desc:'清淡的水彩画风'},
+    {en:'sketch',zh:'素描风格',desc:'铅笔或炭笔草图感'},
+    {en:'line_art',zh:'线稿',desc:'干净的线条画'},
+    {en:'flat_color',zh:'平涂',desc:'无阴影的平面色彩'},
+    {en:'retro_artstyle',zh:'复古风',desc:'老动漫的画风'},
+    {en:'monochrome',zh:'单色/黑白',desc:'黑白灰的画面'},
+    {en:'vibrant_colors',zh:'鲜艳色彩',desc:'高饱和度的色彩'},
+    {en:'pastel_colors',zh:'柔和色彩',desc:'粉色系的淡彩'},
+    {en:'dark_theme',zh:'暗黑风',desc:'深沉的暗色调'},
+  ],
+  // Step 6c: Quality
+  step6c: [
+    {en:'masterpiece',zh:'杰作',desc:'提高整体质量的万能词'},
+    {en:'best_quality',zh:'最高质量',desc:'强制高清'},
+    {en:'high_quality',zh:'高质量',desc:'画质保证'},
+    {en:'detailed_background',zh:'精细背景',desc:'背景不能糊'},
+    {en:'simple_background',zh:'简单背景',desc:'不要太复杂的背景'},
+    {en:'white_background',zh:'白色背景',desc:'纯白底'},
+    {en:'detailed_skin_texture',zh:'皮肤细节',desc:'能看到皮肤的肌理'},
+    {en:'natural_proportions',zh:'自然比例',desc:'避免身体比例崩坏'},
+    {en:'intricate_details',zh:'精细细节',desc:'加细节的死命令'},
+    {en:'high_resolution',zh:'高分辨率',desc:'清晰度拉满'},
+  ],
+};
+
+// === NEGATIVE TAG DATABASE ===
+const NEG_DB = [
+  {en:'plastic_skin',zh:'塑料皮肤',desc:'消除CG感'},
+  {en:'doll-like',zh:'玩偶质感',desc:'消除洋娃娃感'},
+  {en:'airbrushed',zh:'喷枪磨皮',desc:'消除过度磨皮'},
+  {en:'overexposure',zh:'过曝',desc:'太亮太白'},
+  {en:'harsh_lighting',zh:'刺眼光线',desc:'光线不自然'},
+  {en:'bad_anatomy',zh:'身体结构崩坏',desc:'手多手指/身体歪'},
+  {en:'bad_hands',zh:'手画坏了',desc:'AI最容易崩的部位'},
+  {en:'extra_fingers',zh:'多手指',desc:'六指琴魔'},
+  {en:'deformed',zh:'变形',desc:'任何奇怪的变形'},
+  {en:'blurry',zh:'模糊',desc:'画面不清楚'},
+  {en:'lowres',zh:'低分辨率',desc:'马赛克画质'},
+  {en:'jpeg_artifacts',zh:'压缩痕迹',desc:'图像压缩的格子'},
+  {en:'watermark',zh:'水印',desc:'图片上的水印'},
+  {en:'text',zh:'文字',desc:'画面上出现文字'},
+  {en:'signature',zh:'签名',desc:'画师署名'},
+  {en:'username',zh:'用户名',desc:'社交媒体ID'},
+  {en:'CGI',zh:'CG感',desc:'3D渲染的感觉'},
+  {en:'3D_render',zh:'3D渲染',desc:'不要3D感'},
+  {en:'photorealistic',zh:'照片写实',desc:'保留二次元感'},
+  {en:'monochrome',zh:'单色',desc:'确保是彩色的'},
+  {en:'ugly',zh:'丑陋',desc:'通用负提升'},
+  {en:'poorly_drawn',zh:'画得差',desc:'拒绝低质量'},
+];
+
+// === STATE ===
+let selectedTags = {}; // {step1:[],step2a:[],...}
+let selectedNegs = {}; // {neg_en:true}
+let currentStep = 1;
+let comfyConnected = false;
+
+// === INIT ===
+(function init(){
+  // Init selected tags
+  ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'].forEach(k=>{selectedTags[k]=[]});
+  // Render all steps
+  Object.entries(TAG_DB).forEach(([key,tags])=>{
+    const el = document.getElementById(key+'Tags');
+    if(!el) return;
+    el.innerHTML = tags.map(t=>`
+      <div class="tag-option" data-key="${key}" data-tag="${t.en}" onclick="toggleTag(this,'${key}','${t.en}')">
+        <span class="tag-en">${t.en}</span>
+        <span class="tag-zh">${t.zh} <span class="tag-check">✓</span></span>
+        <span class="tag-desc">${t.desc}</span>
+      </div>
+    `).join('');
+  });
+  // Render negative
+  document.getElementById('reviewNegTags').innerHTML = NEG_DB.map(t=>`
+    <span class="neg-chip" data-tag="${t.en}" onclick="toggleNeg(this,'${t.en}')" title="${t.desc}">${t.zh} (${t.en})</span>
+  `).join('');
+  // Lora slider
+  document.getElementById('loraWeight').addEventListener('input',function(){
+    document.getElementById('loraVal').textContent = parseFloat(this.value).toFixed(2);
+  });
+  // Auto-detect bridge + ComfyUI
+  setTimeout(()=>checkAll(),1000);
+})();
+
+// === TAG TOGGLE ===
+function toggleTag(el,key,tag){
+  el.classList.toggle('selected');
+  const arr = selectedTags[key];
+  const idx = arr.indexOf(tag);
+  if(idx>-1) arr.splice(idx,1);
+  else arr.push(tag);
+  if(currentStep===7) updateReview();
+}
+
+function toggleNeg(el,tag){
+  el.classList.toggle('selected');
+  if(selectedNegs[tag]) delete selectedNegs[tag];
+  else selectedNegs[tag]=true;
+  if(currentStep===7) updateReview();
+}
+
+// === NAVIGATION ===
+function goStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  currentStep=n;
+  updateWizardDots();
+  if(n===7) updateReview();
+}
+
+function nextStep(n){
+  goStep(n+1);
+}
+
+function prevStep(n){
+  goStep(Math.max(1,n-1));
+}
+
+function updateWizardDots(){
+  document.querySelectorAll('.step-dot').forEach((d,i)=>{
+    d.classList.remove('active','done');
+    if(i+1===currentStep) d.classList.add('active');
+    else if(i+1<currentStep) d.classList.add('done');
+  });
+}
+
+// === GET POSITIVE PROMPT ===
+function getPositivePrompt(){
+  const order = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
+  const all=[];
+  order.forEach(k=>{
+    selectedTags[k].forEach(t=>all.push(t));
+  });
+  // Auto-add quality tags
+  const qualityAuto = ['masterpiece','best_quality','high_quality'];
+  qualityAuto.forEach(q=>{if(!all.includes(q)) all.push(q)});
+  return all.join(', ');
+}
+
+function getNegativePrompt(){
+  const negs = Object.keys(selectedNegs);
+  if(negs.length===0){
+    // Default negative
+    return 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry';
+  }
+  return negs.join(', ');
+}
+
+// === UPDATE REVIEW ===
+function updateReview(){
+  const posPrompt = getPositivePrompt();
+  const negPrompt = getNegativePrompt();
+
+  // Positive tags display
+  const order = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
+  const allTags = [];
+  order.forEach(k=>{selectedTags[k].forEach(t=>allTags.push(t))});
+
+  document.getElementById('reviewPosTags').innerHTML = allTags.length>0
+    ? allTags.map(t=>`<span class="review-tag">${t}</span>`).join('')
+    : '<span class="review-empty">还没选任何标签，回到前面步骤选几个吧～</span>';
+
+  document.getElementById('reviewPosPrompt').textContent = posPrompt || '（空）';
+  document.getElementById('reviewNegPrompt').textContent = negPrompt;
+}
+
+// === ADVANCED TOGGLE ===
+function toggleAdvanced(){
+  const p = document.getElementById('advancedPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// === COPY ===
+function copyPrompt(){
+  const pos = getPositivePrompt();
+  const neg = getNegativePrompt();
+  const text = pos + '\nNegative prompt: ' + neg;
+  navigator.clipboard.writeText(text).then(()=>toast('✓ 已复制到剪贴板，可直接贴入 ComfyUI / SD / NovelAI'));
+}
+
+// === COMFYUI (via Bridge) ===
+const BRIDGE_URL = 'http://127.0.0.1:8791';
+let bridgeAvailable = false;
+let currentPromptId = null;
+let pollTimer = null;
+
+// 统一刷新所有状态
+async function checkAll(){
+  await checkBridge();
+  checkComfy(false);
+}
+
+// 更新顶部准备面板的桥接状态
+function updatePrepBridge(ok){
+  const d = document.getElementById('prepBridgeDot');
+  const t = document.getElementById('prepBridgeText');
+  if(ok){
+    d.style.background = '#4a8'; d.style.animation = 'pulse 2s ease infinite';
+    t.textContent = '桥接就绪'; t.style.color = 'rgba(120,200,140,0.7)';
+  }else{
+    d.style.background = '#a44'; d.style.animation = 'none';
+    t.textContent = '桥接未启动'; t.style.color = 'rgba(200,120,120,0.7)';
+  }
+}
+
+// 更新顶部准备面板的 ComfyUI 状态
+function updatePrepComfy(ok){
+  const d = document.getElementById('prepComfyDot');
+  const t = document.getElementById('prepComfyText');
+  if(ok){
+    d.style.background = '#4a8'; d.style.animation = 'pulse 2s ease infinite';
+    t.textContent = 'ComfyUI 运行中'; t.style.color = 'rgba(120,200,140,0.7)';
+  }else{
+    d.style.background = '#a44'; d.style.animation = 'none';
+    t.textContent = 'ComfyUI 未运行'; t.style.color = 'rgba(200,120,120,0.7)';
+  }
+}
+
+// 检测桥接服务
+async function checkBridge(){
+  try{
+    const r = await fetch(BRIDGE_URL+'/ping',{signal:AbortSignal.timeout(2000)});
+    if(r.ok){
+      bridgeAvailable = true;
+      updatePrepBridge(true);
+      const bs = document.getElementById('bridgeStatus');
+      if(bs){ bs.textContent = '🔌 桥接服务就绪 · 按钮可直接控制 ComfyUI'; bs.style.color = 'rgba(120,200,140,0.5)'; }
+      return true;
+    }
+  }catch{}
+  bridgeAvailable = false;
+  updatePrepBridge(false);
+  const bs = document.getElementById('bridgeStatus');
+  if(bs){ bs.textContent = '⚠ 桥接服务未启动 · 请双击 start.bat 启动'; bs.style.color = 'rgba(200,120,120,0.5)'; }
+  return false;
+}
+
+// 检测 ComfyUI 是否在运行
+async function checkComfy(showToast=true){
+  const url = document.getElementById('comfyUrl').value.trim();
+  const sendBtn = document.getElementById('sendBtn');
+
+  if(bridgeAvailable){
+    try{
+      const r = await fetch(BRIDGE_URL+'/status',{signal:AbortSignal.timeout(3000)});
+      const data = await r.json();
+      if(data.running){
+        comfyConnected = true;
+        updatePrepComfy(true);
+        updateComfyIndicator(true);
+        sendBtn.disabled = false;
+        if(showToast) toast('✓ ComfyUI 运行中');
+        return;
+      }
+    }catch{}
+  }
+
+  try{
+    const resp = await fetch(url+'/system_stats',{signal:AbortSignal.timeout(3000)});
+    if(resp.ok){
+      comfyConnected = true;
+      updatePrepComfy(true);
+      updateComfyIndicator(true);
+      sendBtn.disabled = false;
+      if(showToast) toast('✓ ComfyUI 已连接');
+      return;
+    }
+  }catch{}
+
+  comfyConnected = false;
+  updatePrepComfy(false);
+  updateComfyIndicator(false);
+  sendBtn.disabled = true;
+}
+
+// 更新步骤7的 ComfyUI 指示器
+function updateComfyIndicator(ok){
+  const dot = document.getElementById('comfyDot');
+  const text = document.getElementById('comfyText');
+  if(!dot || !text) return;
+  if(ok){
+    dot.className = 'dot-ok';
+    text.textContent = 'ComfyUI 运行中';
+    text.style.color = 'rgba(120,200,140,0.7)';
+  }else{
+    dot.className = 'dot-off';
+    text.textContent = 'ComfyUI 未运行';
+    text.style.color = 'rgba(200,120,120,0.7)';
+  }
+}
+
+// 启动 ComfyUI（通过桥接服务）
+async function startComfy(){
+  if(!bridgeAvailable){
+    toast('⚠ 桥接服务未启动，请先双击 start.bat');
+    return;
+  }
+  toast('正在启动 ComfyUI（约30-60秒）……');
+  try{
+    const r = await fetch(BRIDGE_URL+'/start',{method:'POST',signal:AbortSignal.timeout(10000)});
+    const data = await r.json();
+    if(data.status === 'already_running'){
+      toast('ComfyUI 已经在运行了');
+      checkComfy(false);
+      return;
+    }
+    if(data.status === 'starting'){
+      let a = 0;
+      const p = setInterval(async()=>{
+        a++;
+        try{
+          const sr = await fetch(document.getElementById('comfyUrl').value.trim()+'/system_stats',{signal:AbortSignal.timeout(2000)});
+          if(sr.ok){clearInterval(p);checkComfy(false);toast('✓ ComfyUI 启动成功！')}
+        }catch{}
+        if(a > 30){clearInterval(p);toast('⚠ 启动超时，请检查 ComfyUI 窗口')}
+      }, 3000);
+    }else{
+      toast('启动失败: '+ (data.message || '未知错误'));
+    }
+  }catch(e){
+    toast('✗ 桥接服务通信失败: '+e.message);
+  }
+}
+
+// 停止 ComfyUI（通过桥接服务）
+async function stopComfy(){
+  if(!bridgeAvailable){
+    toast('⚠ 桥接服务未启动，请先双击 start.bat');
+    return;
+  }
+  toast('正在停止 ComfyUI……');
+  try{
+    const r = await fetch(BRIDGE_URL+'/stop',{method:'POST',signal:AbortSignal.timeout(10000)});
+    const data = await r.json();
+    if(data.status === 'stopped' || data.status === 'not_running'){
+      toast(data.message || 'ComfyUI 已停止');
+    }
+    setTimeout(()=>checkComfy(false), 2000);
+  }catch(e){
+    toast('✗ 桥接服务通信失败: '+e.message);
+  }
+}
+
+function openBridgeLauncher(){
+  window.location.href = 'qiqi-bridge://start';
+  toast('已请求启动本地桥接，若浏览器询问请选择打开。');
+  setTimeout(()=>checkAll(), 1500);
+  setTimeout(()=>checkAll(), 3500);
+}
+
+function openBridgeStopper(){
+  window.location.href = 'qiqi-bridge://stop';
+  toast('已请求关闭本地桥接，状态稍后刷新。');
+  setTimeout(()=>checkAll(), 1500);
+  setTimeout(()=>checkAll(), 3500);
+}
+
+function openComfyWeb(){
+  window.open(document.getElementById('comfyUrl').value.trim(), '_blank');
+}
+
+// 发送出图任务到 ComfyUI + 轮询结果
+async function checkAndSend(){
+  if(!comfyConnected){toast('请先启动并连接 ComfyUI');return}
+  const pos = getPositivePrompt();
+  if(!pos||pos.split(',').length<3){toast('请至少选几个标签再出图哦～');return}
+  const neg = getNegativePrompt();
+  const size = document.getElementById('imgSize').value;
+  const [w,h] = size.split('×').map(Number);
+  const seedVal = document.getElementById('seed').value;
+  const seed = seedVal==='-1'?Math.floor(Math.random()*9999999999):parseInt(seedVal);
+
+  const workflow = {
+    "3":{inputs:{seed,steps:parseInt(document.getElementById('steps').value),cfg:parseFloat(document.getElementById('cfg').value),sampler_name:document.getElementById('sampler').value,scheduler:document.getElementById('scheduler').value,denoise:1,model:["4",0],positive:["6",0],negative:["7",0],latent_image:["5",0]},class_type:"KSampler"},
+    "4":{inputs:{ckpt_name:"novaAnimeXL_ilV190.safetensors"},class_type:"CheckpointLoaderSimple"},
+    "5":{inputs:{width:w,height:h,batch_size:1},class_type:"EmptyLatentImage"},
+    "6":{inputs:{text:pos,clip:["4",1]},class_type:"CLIPTextEncode"},
+    "7":{inputs:{text:neg,clip:["4",1]},class_type:"CLIPTextEncode"},
+    "8":{inputs:{samples:["3",0],vae:["4",2]},class_type:"VAEDecode"},
+    "9":{inputs:{filename_prefix:"star-lab",images:["8",0]},class_type:"SaveImage"}
+  };
+
+  // 显示加载状态
+  const out = document.getElementById('outputContent');
+  out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">正在提交任务...</div></div>';
+
+  try{
+    const targetUrl = bridgeAvailable ? BRIDGE_URL+'/prompt' : document.getElementById('comfyUrl').value.trim()+'/prompt';
+    const resp = await fetch(targetUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:workflow})});
+    if(resp.ok){
+      const data = await resp.json();
+      if(data.prompt_id){
+        currentPromptId = data.prompt_id;
+        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... (ID: '+data.prompt_id.slice(0,8)+')</div><div style="font-size:0.68rem;color:rgba(212,212,232,0.25);margin-top:0.3rem">一般需要 20-40 秒</div></div>';
+        pollResult(data.prompt_id);
+      }else if(data.error){
+        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ '+data.error+'</div>';
+        toast('✗ '+data.error);
+      }else{
+        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 提交失败</div>';
+      }
+    }else{
+      out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 提交失败 ('+resp.status+')</div>';
+    }
+  }catch(e){
+    out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 网络错误: '+e.message+'</div>';
+  }
+}
+
+// 轮询出图结果
+async function pollResult(promptId){
+  if(pollTimer) clearInterval(pollTimer);
+  let attempts = 0;
+  const maxAttempts = 60; // 最多等3分钟
+
+  pollTimer = setInterval(async()=>{
+    attempts++;
+    const out = document.getElementById('outputContent');
+    try{
+      const url = bridgeAvailable
+        ? BRIDGE_URL+'/history/'+promptId
+        : document.getElementById('comfyUrl').value.trim()+'/history/'+promptId;
+
+      const r = await fetch(url,{signal:AbortSignal.timeout(5000)});
+      if(!r.ok){ if(attempts>=maxAttempts) showPollTimeout(out,promptId); return; }
+
+      const data = await r.json();
+      const entry = data[promptId];
+
+      // ComfyUI returns {} when task hasn't started, entry=undefined when still queued
+      if(!entry || Object.keys(entry).length === 0){
+        // Still queued
+        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">排队中... ('+Math.round(attempts*3)+'s)</div></div>';
+        return;
+      }
+
+      // Check if outputs are available
+      if(entry.outputs && entry.outputs['9'] && entry.outputs['9'].images && entry.outputs['9'].images.length>0){
+        clearInterval(pollTimer);
+        pollTimer = null;
+        const img = entry.outputs['9'].images[0];
+        const imgUrl = document.getElementById('comfyUrl').value.trim()+'/view?filename='+encodeURIComponent(img.filename)+'&subfolder='+encodeURIComponent(img.subfolder||'')+'&type='+encodeURIComponent(img.type||'output');
+        out.innerHTML = '<div style="text-align:center">'+
+          '<img src="'+imgUrl+'" alt="生成结果" style="max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" onload="this.style.display=\'block\';this.previousElementSibling.style.display=\'none\'">'+
+          '<div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-top:0.5rem">prompt_id: '+promptId+'</div>'+
+          '</div>';
+        toast('✓ 出图完成！');
+      }else if(entry.status && entry.status.status_str === 'error'){
+        clearInterval(pollTimer);
+        pollTimer = null;
+        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 生成出错</div>';
+      }else{
+        // In progress
+        const progress = entry.status ? Math.round((entry.status.exec_info.queue_remaining||0)/10*100) : '';
+        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... ('+Math.round(attempts*3)+'s)</div></div>';
+      }
+    }catch(e){
+      if(attempts>=maxAttempts) showPollTimeout(out,promptId);
+    }
+  }, 3000);
+}
+
+function showPollTimeout(out,promptId){
+  clearInterval(pollTimer);
+  pollTimer = null;
+  out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c0a040;font-size:0.8rem">⏳ 生成超时，可能在排队。<br><span style="font-size:0.68rem;color:rgba(212,212,232,0.3)">打开 ComfyUI WebUI 查看进度</span></div>';
+}
+
+// === TOAST ===
+function toast(msg){
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),2800);
+}
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

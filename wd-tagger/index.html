@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WD 标签反推器 · Gemini Sanctuary</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+:root{--gold:#e8a860;--green:#7fd49a;--red:#d86f6f;--cyan:#78d8df;--panel:rgba(16,16,36,.68);--line:rgba(255,215,150,.12);--muted:rgba(210,210,235,.48)}
+body{overflow-x:hidden}.page{max-width:1180px}.status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-bottom:1rem}.status-card{background:rgba(10,10,24,.46);border:1px solid var(--line);border-radius:14px;padding:.85rem}.status-card h3{font-size:.78rem;color:#d8c48a;margin-bottom:.4rem}.status-line{display:flex;align-items:center;gap:.42rem;color:var(--muted);font-size:.76rem}.dot{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 12px rgba(255,255,255,.08)}.dot.ok{background:var(--green);box-shadow:0 0 16px rgba(127,212,154,.45)}.dot.bad{background:var(--red);box-shadow:0 0 16px rgba(216,111,111,.3)}.drop-zone{border:2px dashed rgba(232,168,96,.24);border-radius:18px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:.25s;background:rgba(16,16,36,.36);margin-bottom:1rem}.drop-zone:hover,.drop-zone.drag-over{border-color:rgba(232,168,96,.65);background:rgba(232,168,96,.055)}.drop-zone .icon{font-size:2.5rem;margin-bottom:.7rem}.drop-zone .text{color:rgba(220,220,245,.72);font-size:.95rem;font-weight:700}.drop-zone .hint{color:rgba(210,210,235,.36);font-size:.75rem;margin-top:.4rem}.drop-zone img{max-width:100%;max-height:340px;border-radius:12px;display:none;box-shadow:0 14px 50px rgba(0,0,0,.35)}.drop-zone.has-image{padding:1rem}.drop-zone.has-image .icon,.drop-zone.has-image .text,.drop-zone.has-image .hint{display:none}.drop-zone.has-image img{display:block;margin:0 auto}.toolbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center}.toolbar .spacer{flex:1}.threshold{display:flex;align-items:center;gap:.45rem;color:var(--muted);font-size:.78rem}.threshold input{width:84px}.progress-bar{width:100%;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin:1rem 0}.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),#d0a0f0);transition:width .2s}.result-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:1rem}.filter-bar{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem}.filter-chip{padding:.26rem .65rem;border-radius:999px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);color:rgba(210,210,235,.5);font-size:.7rem;cursor:pointer}.filter-chip.active{border-color:rgba(232,168,96,.55);background:rgba(232,168,96,.12);color:var(--gold)}.tag-list{max-height:560px;overflow:auto;display:flex;flex-direction:column;gap:.28rem;padding-right:.2rem}.tag-result{display:grid;grid-template-columns:minmax(0,1fr) 58px 84px;align-items:center;gap:.5rem;padding:.46rem .62rem;border-radius:10px;background:rgba(255,255,255,.026);border:1px solid rgba(255,255,255,.055);cursor:pointer;transition:.18s}.tag-result:hover{border-color:rgba(232,168,96,.28)}.tag-result.selected{background:rgba(232,168,96,.12);border-color:rgba(232,168,96,.72)}.tag-name{color:#dfc58a;font-family:Consolas,monospace;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tag-conf{text-align:right;font-size:.72rem;color:#d8d088}.tag-conf.high{color:#8fd69a}.tag-conf.low{color:rgba(210,210,235,.35)}.tag-cat{text-align:center;font-size:.62rem;text-transform:uppercase;border-radius:99px;padding:.14rem .4rem;background:rgba(255,255,255,.045);color:rgba(210,210,235,.38)}.selected-tags-box{min-height:86px;background:rgba(10,10,24,.48);border:1px solid rgba(232,168,96,.12);border-radius:12px;padding:.75rem;display:flex;align-content:flex-start;flex-wrap:wrap;gap:.35rem}.sel-tag{display:inline-flex;align-items:center;gap:.3rem;padding:.23rem .55rem;border-radius:999px;background:rgba(232,168,96,.12);border:1px solid rgba(232,168,96,.24);color:#e8c07d;font-family:Consolas,monospace;font-size:.72rem}.sel-tag button{border:0;background:transparent;color:rgba(232,168,96,.7);cursor:pointer}.error-box{display:none;white-space:pre-wrap;word-break:break-word;border:1px solid rgba(216,111,111,.24);background:rgba(216,111,111,.07);border-radius:12px;padding:.75rem;margin-top:.75rem;color:#e49b9b;font-size:.76rem;line-height:1.55}.mini-note{color:rgba(210,210,235,.32);font-size:.72rem;line-height:1.7}.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}@media(max-width:820px){.status-grid,.result-layout{grid-template-columns:1fr}.tag-result{grid-template-columns:minmax(0,1fr) 52px}.tag-cat{display:none}.toolbar .spacer{display:none}}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <header class="page-header">
+    <h1>WD 标签反推器</h1>
+    <p class="subtitle">WD14 ONNX 本地识图 · 同源 API 代理 · 不依赖 ComfyUI 节点</p>
+  </header>
+
+  <section class="status-grid">
+    <div class="status-card"><h3>网页入口</h3><div class="status-line"><span class="dot ok"></span><span id="webStatus">已打开</span></div></div>
+    <div class="status-card"><h3>WD14 后台</h3><div class="status-line"><span class="dot" id="wdDot"></span><span id="wdStatus">检测中...</span></div></div>
+    <div class="status-card"><h3>ComfyUI</h3><div class="status-line"><span class="dot" id="comfyDot"></span><span id="comfyStatus">检测中...</span></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title flex-between"><span>① 后台与参数</span><button class="btn btn-ghost btn-sm" onclick="checkAll()">刷新状态</button></div>
+    <div class="toolbar">
+      <button class="btn btn-primary btn-sm" onclick="startBackend()">启动 WD14 后台</button>
+      <button class="btn btn-ghost btn-sm" onclick="stopBackend()">停止 WD14</button>
+      <button class="btn btn-ghost btn-sm" onclick="startComfy()">启动 ComfyUI</button>
+      <button class="btn btn-ghost btn-sm" onclick="stopComfy()">停止 ComfyUI</button>
+      <a class="btn btn-ghost btn-sm" href="http://127.0.0.1:8188" target="_blank">打开 WebUI</a>
+      <span class="spacer"></span>
+      <label class="threshold">阈值 <input type="number" id="threshold" value="0.35" min="0.05" max="0.95" step="0.05"></label>
+    </div>
+    <p class="mini-note mt-1">正式入口推荐使用 <code>http://127.0.0.1:18435</code>。如果从 file:// 打开，点击“启动 WD14 后台”会尝试调用本地协议启动服务。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">② 拖入图片</div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">🖼️</div>
+      <div class="text">拖放图片到这里，或点击选择</div>
+      <div class="hint">支持 JPG / PNG / WebP；图片只发给本机 127.0.0.1</div>
+      <img id="previewImg" alt="图片预览">
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="runBtn" onclick="runTagger()" disabled>反推标签</button>
+      <button class="btn btn-ghost" onclick="pasteClipboard()">粘贴剪贴板图片</button>
+      <button class="btn btn-ghost" onclick="resetAll()">清空</button>
+    </div>
+    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="error-box" id="errorBox"></div>
+  </section>
+
+  <section class="result-layout" id="resultLayout" style="display:none">
+    <div class="panel">
+      <div class="panel-title flex-between"><span>③ 识别标签 <span class="text-muted" id="tagCount"></span></span><button class="btn btn-ghost btn-sm" onclick="selectAllVisible()">全选当前</button></div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="tag-list" id="tagResults"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title flex-between"><span>④ 已选标签 <span class="text-muted" id="selCount">0</span></span><button class="btn btn-ghost btn-sm" onclick="clearSelectedTags()">清空已选</button></div>
+      <div class="selected-tags-box" id="selectedBox"><span class="text-muted">点击左侧标签添加...</span></div>
+      <div class="flex-row mt-1">
+        <button class="btn btn-primary btn-sm" onclick="copySelected()">复制标签</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyWeighted()">带权重复制</button>
+        <button class="btn btn-ghost btn-sm" onclick="sendToCyberSummon()">发送到赛博魔典</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="../assets/gemini.js"></script>
+<script>
+let currentImageBase64=null,currentMime='image/png',currentTags=[],selectedTags=new Set(),currentFilter='all',taggerReady=false,comfyReady=false;
+const IS_FILE_PAGE = location.protocol === 'file:';
+const IS_LOCAL_PAGE = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+// 从 GitHub Pages / Vercel / Cloudflare Pages 等公网静态页打开时，仍然请求使用者自己电脑上的本地后台。
+const API_BASE = (IS_FILE_PAGE || !IS_LOCAL_PAGE) ? 'http://127.0.0.1:18435' : '';
+const api = p => API_BASE + p;
+function timeout(ms){return AbortSignal.timeout?{signal:AbortSignal.timeout(ms)}:{}}
+function toast(msg){ if(window.gsToast) gsToast(msg); else alert(msg); }
+function showError(msg){const e=document.getElementById('errorBox'); e.style.display='block'; e.textContent=msg;}
+function clearError(){const e=document.getElementById('errorBox'); e.style.display='none'; e.textContent='';}
+function setDot(id,ok,bad=false){const d=document.getElementById(id);d.classList.toggle('ok',!!ok);d.classList.toggle('bad',!!bad&&!ok)}
+async function getJson(url,opts={}){const r=await fetch(url,opts); let data=null; try{data=await r.json()}catch{}; if(!r.ok) throw new Error((data&&(data.error||data.msg))||('HTTP '+r.status)); return data||{};}
+async function checkBackend(){try{const d=await getJson(api('/api/tagger/status?start=1'), timeout(3500)); taggerReady=!!(d.ready||d.running||d.status==='ok'); setDot('wdDot',taggerReady,!taggerReady); document.getElementById('wdStatus').textContent=taggerReady?'已就绪：'+(d.model||'WD14'):(d.msg||'未运行');}catch(e){taggerReady=false;setDot('wdDot',false,true);document.getElementById('wdStatus').textContent='未连接：'+e.message;} updateRunBtn();}
+async function checkComfy(){try{const d=await getJson(api('/api/comfy/status'), timeout(2500)); comfyReady=!!d.running; setDot('comfyDot',comfyReady,!comfyReady); document.getElementById('comfyStatus').textContent=comfyReady?'运行中，端口 '+d.port:'未运行';}catch(e){comfyReady=false;setDot('comfyDot',false,true);document.getElementById('comfyStatus').textContent='未连接：'+e.message;}}
+async function checkAll(){await Promise.allSettled([checkBackend(),checkComfy()]);}
+async function startBackend(){clearError(); if(IS_FILE_PAGE || !IS_LOCAL_PAGE){location.href='qiqi-wd://start'; toast('已请求启动本地后台，若浏览器询问请选择打开。'); setTimeout(checkAll,3500); return;} try{document.getElementById('wdStatus').textContent='正在启动...';const d=await getJson(api('/api/tagger/start'),{method:'POST',...timeout(50000)});toast(d.msg||'WD14 已启动');await checkBackend();}catch(e){showError('启动 WD14 失败：'+e.message+'\n请运行 E:\\GeminiSanctuary\\wd-tagger\\start-wd-tagger.cmd');}}
+async function stopBackend(){try{const d=await getJson(api('/api/tagger/stop'),{method:'POST',...timeout(10000)});toast(d.msg||'已停止');await checkBackend();}catch(e){toast('停止失败：'+e.message)}}
+async function startComfy(){try{document.getElementById('comfyStatus').textContent='正在启动 ComfyUI...';const d=await getJson(api('/api/comfy/start'),{method:'POST',...timeout(130000)});toast(d.msg||'ComfyUI 已启动');await checkComfy();}catch(e){showError('启动 ComfyUI 失败：'+e.message)}}
+async function stopComfy(){try{const d=await getJson(api('/api/comfy/stop'),{method:'POST',...timeout(20000)});toast(d.msg||'ComfyUI 已停止');await checkComfy();}catch(e){toast('停止失败：'+e.message)}}
+function updateRunBtn(){document.getElementById('runBtn').disabled=!(taggerReady&&currentImageBase64)}
+const dropZone=document.getElementById('dropZone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)handleFile(f)});document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
+function handleFile(file){if(!file||!file.type.startsWith('image/')){toast('请选择图片文件');return} const reader=new FileReader(); reader.onload=e=>{currentMime=file.type||'image/png';currentImageBase64=e.target.result.split(',')[1];document.getElementById('previewImg').src=e.target.result;dropZone.classList.add('has-image');currentTags=[];selectedTags.clear();document.getElementById('resultLayout').style.display='none';clearError();updateRunBtn();toast('图片已载入：'+Math.round(file.size/1024)+'KB')}; reader.readAsDataURL(file)}
+async function pasteClipboard(){try{const items=await navigator.clipboard.read();for(const item of items){for(const type of item.types){if(type.startsWith('image/')){const blob=await item.getType(type);handleFile(new File([blob],'clipboard.png',{type}));return}}}toast('剪贴板里没有图片')}catch(e){toast('无法读取剪贴板：'+e.message)}}
+function resetAll(){currentImageBase64=null;currentTags=[];selectedTags.clear();document.getElementById('previewImg').src='';dropZone.classList.remove('has-image');document.getElementById('resultLayout').style.display='none';clearError();updateRunBtn()}
+async function runTagger(){if(!currentImageBase64){toast('请先拖入图片');return} clearError(); await checkBackend(); if(!taggerReady){showError('WD14 后台还没就绪。请点“启动 WD14 后台”，或运行 start-wd-tagger.cmd。');return} const threshold=parseFloat(document.getElementById('threshold').value||'0.35'); const bar=document.getElementById('progressBar'),fill=document.getElementById('progressFill'); bar.style.display='block'; fill.style.width='18%'; try{const bytes=Uint8Array.from(atob(currentImageBase64),c=>c.charCodeAt(0)); fill.style.width='42%'; const resp=await fetch(api('/api/tag'),{method:'POST',headers:{'Content-Type':currentMime,'X-Threshold':String(threshold)},body:new Blob([bytes],{type:currentMime}),...timeout(60000)}); const data=await resp.json().catch(()=>null); if(!resp.ok||!data||!data.ok) throw new Error((data&&(data.error||data.msg))||('HTTP '+resp.status)); fill.style.width='100%'; currentTags=(data.tags||[]).map(t=>({tag:t.tag,confidence:Number(t.confidence||0),category:String(t.category||'general')})); currentFilter='all'; renderResults(); toast(`${data.count||currentTags.length} 个标签 · ${data.time_ms||'?'}ms`); setTimeout(()=>bar.style.display='none',450)}catch(e){bar.style.display='none';showError('反推失败：'+e.message+'\n请求：'+api('/api/tag')+'\n建议：刷新状态，确认 WD14 后台为“已就绪”。')}}
+function renderResults(){document.getElementById('resultLayout').style.display='grid';document.getElementById('tagCount').textContent=currentTags.length+' 个';const cats=['all',...Array.from(new Set(currentTags.map(t=>t.category))).filter(Boolean)];document.getElementById('filterBar').innerHTML=cats.map(c=>`<span class="filter-chip${currentFilter===c?' active':''}" onclick="currentFilter='${c}';renderResults()">${c==='all'?'全部':c}</span>`).join('');const list=currentFilter==='all'?currentTags:currentTags.filter(t=>t.category===currentFilter);document.getElementById('tagResults').innerHTML=list.map(t=>{const conf=t.confidence>0.7?'high':t.confidence<0.35?'low':'';return `<div class="tag-result${selectedTags.has(t.tag)?' selected':''}" onclick="toggleTag(${JSON.stringify(t.tag).replace(/"/g,'&quot;')})"><span class="tag-name" title="${escapeHtml(t.tag)}">${escapeHtml(t.tag)}</span><span class="tag-conf ${conf}">${(t.confidence*100).toFixed(0)}%</span><span class="tag-cat">${escapeHtml(t.category)}</span></div>`}).join('')||'<p class="text-muted">没有超过阈值的标签，试着降低阈值。</p>';renderSelected()}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function toggleTag(tag){selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag);renderResults()}function selectAllVisible(){(currentFilter==='all'?currentTags:currentTags.filter(t=>t.category===currentFilter)).forEach(t=>selectedTags.add(t.tag));renderResults()}function clearSelectedTags(){selectedTags.clear();renderResults()}
+function renderSelected(){document.getElementById('selCount').textContent=selectedTags.size;const box=document.getElementById('selectedBox');if(!selectedTags.size){box.innerHTML='<span class="text-muted">点击左侧标签添加...</span>';return}box.innerHTML=[...selectedTags].map(t=>`<span class="sel-tag">${escapeHtml(t)}<button onclick="event.stopPropagation();selectedTags.delete(${JSON.stringify(t).replace(/"/g,'&quot;')});renderResults()">×</button></span>`).join('')}
+function copyText(text){navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text).then(()=>toast('已复制')):(window.gsCopy?gsCopy(text):toast(text))}function copySelected(){if(!selectedTags.size){toast('请先选择标签');return}copyText([...selectedTags].join(', '))}function copyWeighted(){if(!selectedTags.size){toast('请先选择标签');return}copyText([...selectedTags].map(t=>{const f=currentTags.find(x=>x.tag===t),c=f?f.confidence:.5;return c>.75?`(${t}:1.3)`:c>.5?`(${t}:1.1)`:t}).join(', '))}function sendToCyberSummon(){if(!selectedTags.size){toast('请先选择标签');return}localStorage.setItem('cyber_summon_import',[...selectedTags].join(', '));toast('已存入，打开赛博魔典后可导入');window.open('../cyber-summon/index.html','_blank')}
+checkAll();setInterval(()=>{if(!taggerReady||!comfyReady)checkAll()},5000);
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

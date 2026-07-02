@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛博魔典 · Cyber Summon</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+#sakura { position:fixed; inset:0; z-index:1; pointer-events:none; }
+.page { z-index: 3; }
+
+.weight-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.6rem; border-radius: 8px;
+  font-size: 0.78rem; transition: background 0.2s;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+.weight-row:hover { background: rgba(255,255,255,0.02); }
+.weight-tag { flex: 1; min-width: 80px; color: #d0b880; font-size: 0.78rem; }
+.weight-btns { display: flex; gap: 0.2rem; }
+.wt-btn {
+  width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(232,168,96,0.2);
+  background: rgba(232,168,96,0.06); color: #c8a870; cursor: pointer;
+  font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.wt-btn:hover { background: rgba(232,168,96,0.18); border-color: #e8a860; }
+.weight-val {
+  min-width: 2.2rem; text-align: center;
+  font-size: 0.72rem; color: #e8a860; font-weight: 600;
+}
+.weight-row.min .weight-tag { color: rgba(200,200,224,0.3); }
+.weight-row.min .weight-val { color: rgba(200,200,224,0.3); }
+.weight-row.max .weight-tag { color: #e8a860; text-shadow: 0 0 8px rgba(232,168,96,0.3); }
+
+.remove-tag {
+  font-size: 0.65rem; cursor: pointer; color: rgba(200,100,100,0.4);
+  padding: 2px 4px; border-radius: 4px; transition: all 0.2s;
+}
+.remove-tag:hover { color: #e06060; background: rgba(255,50,50,0.1); }
+
+.import-area { margin-top: 0.6rem; }
+.import-area textarea { font-size: 0.75rem; min-height: 60px; }
+
+.zone-section h3 {
+  font-size: 0.8rem; color: rgba(255,140,180,0.7);
+  margin-bottom: 0.4rem; letter-spacing: 0.04em;
+}
+.zone-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.8rem; }
+.zone-chip {
+  padding: 0.2rem 0.55rem; border-radius: 10px; font-size: 0.7rem; cursor: pointer;
+  background: rgba(255,120,160,0.05); border: 1px solid rgba(255,120,160,0.12);
+  color: #cc88a0; transition: all 0.2s;
+}
+.zone-chip:hover { background: rgba(255,120,160,0.15); border-color: rgba(255,120,160,0.35); }
+.zone-chip.selected { background: rgba(255,120,160,0.2); border-color: #e880a8; color: #f0a8c8; }
+
+.raw-output {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.1);
+  border-radius: 10px; padding: 1rem; font-size: 0.78rem; line-height: 1.8;
+  color: #e0c090; min-height: 50px; word-break: break-all;
+}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<canvas id="sakura"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <header class="page-header">
+    <h1>赛博魔典</h1>
+    <p class="subtitle">Cyber Summon · Danbooru NSFW 高频吟唱法阵</p>
+  </header>
+
+  <!-- 外部导入 -->
+  <div class="panel">
+    <div class="panel-title">📥 外部词条导入</div>
+    <p class="text-muted mb-1">粘贴 Danbooru 标签串（逗号/空格分隔），自动解析并加入权重列表</p>
+    <div class="import-area">
+      <textarea id="importInput" placeholder="粘贴标签... 如: 1girl, blush, nude, spread legs..."></textarea>
+      <div class="flex-row mt-1">
+        <button class="btn btn-ghost btn-sm" onclick="importTags()">📥 导入解析</button>
+        <button class="btn btn-ghost btn-sm" onclick="importFromClipboard()">📋 从剪贴板导入</button>
+        <span class="text-muted" id="importCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 权重控制区 -->
+  <div class="panel">
+    <div class="panel-title flex-between">
+      <span>⚖️ 词条权重矩阵</span>
+      <span class="text-muted" id="weightCount">0 个词条</span>
+    </div>
+    <div id="weightList"><p class="text-muted" style="padding:1rem 0;">还没有词条——粘贴标签或点击下方专区添加</p></div>
+    <div class="flex-row mt-1">
+      <button class="btn btn-primary btn-sm" onclick="genPrompt()">🔮 生成咒文</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyWeights()">📋 复制</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetWeights()">✕ 重置</button>
+    </div>
+  </div>
+
+  <!-- 快捷添加区 -->
+  <div class="panel">
+    <div class="panel-title">🏷️ 高频标签速加</div>
+    <div id="quickAddSections"></div>
+  </div>
+
+  <!-- 足袜专区 -->
+  <div class="panel zone-section">
+    <h3>👣 极品足袜专区</h3>
+    <div class="zone-chips" id="footZone"></div>
+  </div>
+
+  <!-- BDSM 专区 -->
+  <div class="panel zone-section">
+    <h3>⛓️ BDSM 专区</h3>
+    <div class="zone-chips" id="bdsmZone"></div>
+  </div>
+
+  <!-- 输出 -->
+  <div class="panel">
+    <div class="panel-title">✨ 生成咒文</div>
+    <div class="raw-output" id="output">点击「生成咒文」创建带权重的完整 prompt...</div>
+  </div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === SAKURA CANVAS ===
+(function(){
+  const c=document.getElementById('sakura'),ctx=c.getContext('2d');
+  c.width=window.innerWidth; c.height=window.innerHeight;
+  window.addEventListener('resize',()=>{c.width=window.innerWidth;c.height=window.innerHeight;});
+  const petals=[];
+  for(let i=0;i<40;i++) petals.push({
+    x:Math.random()*c.width, y:Math.random()*c.height,
+    r:Math.random()*3+1, s:Math.random()*0.5+0.3,
+    w:Math.random()*0.3+0.1, a:Math.random()*Math.PI*2
+  });
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(const p of petals){
+      p.y+=p.s; p.x+=Math.sin(p.a)*0.3; p.a+=0.01;
+      if(p.y>c.height+10){p.y=-10;p.x=Math.random()*c.width;}
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,160,180,${0.15+p.w})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// === WEIGHT SYSTEM ===
+let weights = {}; // {tag: weight}
+
+function getWeight(tag){ return weights[tag]||1.0; }
+function setWeight(tag, w){
+  if(w<=0){ delete weights[tag]; renderWeights(); return; }
+  weights[tag] = Math.round(w*100)/100;
+  renderWeights();
+}
+
+function addTag(tag, w=1.0){
+  if(weights[tag]!==undefined) return;
+  weights[tag]=w; renderWeights();
+}
+function removeTag(tag){ delete weights[tag]; renderWeights(); }
+
+function importTags(){
+  const raw=document.getElementById('importInput').value;
+  if(!raw.trim()){gsToast('请先粘贴标签');return;}
+  // Split by comma, semicolon, or newlines
+  const tags=raw.split(/[,;，；\n]+/).map(t=>{
+    // Check for (tag:weight) format
+    const m=t.trim().match(/^\((.+?):([\d.]+)\)$/);
+    if(m) return {tag:m[1].trim(), w:parseFloat(m[2])};
+    // Check for (tag) format
+    const m2=t.trim().match(/^\((.+?)\)$/);
+    if(m2) return {tag:m2[1].trim(), w:1.1};
+    return {tag:t.trim(), w:1.0};
+  }).filter(t=>t.tag);
+  let added=0;
+  tags.forEach(t=>{if(!weights[t.tag]){weights[t.tag]=t.w;added++;}});
+  document.getElementById('importCount').textContent='导入了 '+added+' 个新词条';
+  renderWeights();
+  if(added) gsToast('导入 '+added+' 个词条');
+}
+
+async function importFromClipboard(){
+  try{
+    const text=await navigator.clipboard.readText();
+    document.getElementById('importInput').value=text;
+    importTags();
+  }catch{gsToast('无法读取剪贴板');}
+}
+
+function resetWeights(){ weights={}; renderWeights(); document.getElementById('output').textContent='点击「生成咒文」创建带权重的完整 prompt...'; }
+
+function renderWeights(){
+  const el=document.getElementById('weightList');
+  const entries=Object.entries(weights);
+  document.getElementById('weightCount').textContent=entries.length+' 个词条';
+  if(!entries.length){el.innerHTML='<p class="text-muted" style="padding:1rem 0;">还没有词条——粘贴标签或点击下方专区添加</p>';return;}
+  // Sort by weight desc
+  entries.sort((a,b)=>b[1]-a[1]);
+  el.innerHTML=entries.map(([tag,w])=>{
+    const cls=w>1.2?'max':w<0.6?'min':'';
+    return `<div class="weight-row${cls?' '+cls:''}">
+      <span class="weight-tag">${tag}</span>
+      <div class="weight-btns">
+        <button class="wt-btn" onclick="setWeight('${tag.replace(/'/g,"&#39;")}',${(w-0.1).toFixed(1)})">−</button>
+        <span class="weight-val">${w.toFixed(1)}</span>
+        <button class="wt-btn" onclick="setWeight('${tag.replace(/'/g,"&#39;")}',${(w+0.1).toFixed(1)})">+</button>
+      </div>
+      <span class="remove-tag" onclick="removeTag('${tag.replace(/'/g,"&#39;")}')">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function genPrompt(){
+  const entries=Object.entries(weights);
+  if(!entries.length){gsToast('请先添加词条');return;}
+  const parts=entries.map(([tag,w])=>{
+    if(w===1.0) return tag;
+    if(w>1.0) return `(${tag}:${w.toFixed(1)})`;
+    return `(${tag}:${w.toFixed(1)})`;
+  });
+  const result=parts.join(', ');
+  document.getElementById('output').textContent=result;
+  gsToast('咒文已生成');
+}
+
+function copyWeights(){
+  const t=document.getElementById('output').textContent;
+  if(t.includes('点击')){gsToast('请先生成咒文');return;}
+  gsCopy(t);
+}
+
+// === QUICK ADD SECTIONS ===
+const quickSections = [
+  {name:'核心角色', tags:['1girl','1boy','2girls','multiple girls','loli','mature','tall','petite','curvy','busty','flat chest','muscular']},
+  {name:'表情神态', tags:['blush','smile','ahegao','embarrassed','seductive smile','tears','drooling','tongue out',':3','wincing','nosebleed']},
+  {name:'服装状态', tags:['nude','topless','bottomless','lingerie','see-through','school uniform','maid','bunny girl','swimsuit','kimono']},
+  {name:'姿势体位', tags:['spread legs','on back','kneeling','arms up','doggy style','cowgirl','missionary','from behind','pinned','standing sex']},
+  {name:'体液效果', tags:['sweat','drool','tears','cum','cum on body','cum on face','cum in pussy','precum','wet','body fluids']},
+  {name:'画质增益', tags:['masterpiece','high quality','absurdres','hand-drawn','anime coloring','cel shading','detailed','soft lighting']},
+];
+const footTags=['barefoot','thighhighs','kneehighs','pantyhose','feet','toes','footjob','toe curling','soles','arches','licking feet','stepping','high heels','sandals','stockings','fishnets'];
+const bdsmTags=['bound','rope','shibari','handcuffs','blindfold','gag','collar','leash','choker','dominated','submissive','master','slave','suspension','hogtie','spreader bar','whip','candle wax'];
+
+function renderQuickSections(){
+  document.getElementById('quickAddSections').innerHTML=quickSections.map(s=>`
+    <div style="margin-bottom:0.8rem;">
+      <span style="font-size:0.72rem;color:rgba(200,200,224,0.35);">${s.name}:</span>
+      <div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;">
+        ${s.tags.map(t=>`<span class="chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);renderWeights()">${t}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('footZone').innerHTML=footTags.map(t=>`<span class="zone-chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);document.querySelectorAll('#footZone .zone-chip').forEach(c=>c.classList.remove('selected'));event.target.classList.add('selected');renderWeights()">${t}</span>`).join('');
+  document.getElementById('bdsmZone').innerHTML=bdsmTags.map(t=>`<span class="zone-chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);document.querySelectorAll('#bdsmZone .zone-chip').forEach(c=>c.classList.remove('selected'));event.target.classList.add('selected');renderWeights()">${t}</span>`).join('');
+}
+
+renderQuickSections();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

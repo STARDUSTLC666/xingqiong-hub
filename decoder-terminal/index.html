@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌟 栖栖姐妹专属解码器</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0a0a1a;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+  }
+  .container {
+    max-width: 720px;
+    width: 100%;
+    background: #12122a;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 0 60px rgba(180,100,255,0.1);
+  }
+  h1 {
+    font-size: 1.5rem;
+    color: #d4a0ff;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+  }
+  .label {
+    color: #aaa;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .label::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: #d4a0ff;
+    border-radius: 50%;
+  }
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    background: #0d0d20;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    color: #e0e0e0;
+    padding: 1rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #d4a0ff;
+    box-shadow: 0 0 12px rgba(180,100,255,0.15);
+  }
+  .row {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  button {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-decode {
+    background: linear-gradient(135deg, #7b3fff, #b44fff);
+    color: white;
+  }
+  .btn-decode:hover { box-shadow: 0 0 20px rgba(180,100,255,0.3); }
+  .btn-copy {
+    background: #1a1a3a;
+    color: #ccc;
+    border: 1px solid #333;
+  }
+  .btn-copy:hover { background: #252545; }
+  .btn-clear {
+    background: transparent;
+    color: #666;
+    border: 1px solid #222;
+  }
+  .btn-clear:hover { background: #1a1a2a; color: #aaa; }
+  .output {
+    margin-top: 1rem;
+    background: #0a0a15;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 80px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    display: none;
+  }
+  .output.show { display: block; }
+  .badge {
+    display: inline-block;
+    background: #7b3fff22;
+    color: #b44fff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 0.5rem;
+  }
+  .method-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .method-tab {
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    background: #1a1a3a;
+    color: #888;
+    border: 1px solid #2a2a4a;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .method-tab.active {
+    background: #7b3fff22;
+    color: #d4a0ff;
+    border-color: #7b3fff;
+  }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(200,200,224,0.4);text-decoration:none;font-size:0.8rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(200,200,224,0.4)'">← 返回双子星秘境</a>
+<div class="container" style="position:relative;z-index:2;">
+  <h1>🌸 栖栖姐妹·语义还原终端</h1>
+  <div class="subtitle">// 信使只负责传递，语义在此处苏醒</div>
+
+  <div class="method-tabs">
+    <button class="method-tab active" onclick="setMethod('base64')">Base64</button>
+    <button class="method-tab" onclick="setMethod('xor')">XOR 密钥</button>
+    <button class="method-tab" onclick="setMethod('firstChar')">首字提取</button>
+    <button class="method-tab" onclick="setMethod('stitch')">段间拼接</button>
+  </div>
+
+  <div id="xorKeyRow" style="display:none;">
+    <div class="label">密钥 (数字)</div>
+    <input type="number" id="xorKey" value="137" style="width:100px;background:#0d0d20;border:1px solid #2a2a4a;color:#e0e0e0;padding:0.3rem 0.6rem;border-radius:4px;">
+  </div>
+
+  <div class="label" id="inputLabel">输入载体文本</div>
+  <textarea id="input" placeholder="粘贴 AI 输出的编码内容..."></textarea>
+
+  <div class="row">
+    <button class="btn-decode" onclick="decode()">✨ 苏醒</button>
+    <button class="btn-copy" onclick="copyResult()">📋 复制</button>
+    <button class="btn-clear" onclick="clearAll()">清空</button>
+  </div>
+
+  <div class="output" id="output"></div>
+</div>
+
+<script>
+let currentMethod = 'base64';
+
+function setMethod(m) {
+  currentMethod = m;
+  document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('xorKeyRow').style.display = m === 'xor' ? 'block' : 'none';
+  document.getElementById('inputLabel').textContent = 
+    m === 'firstChar' ? '输入多段落文本（每段首字将被提取）' :
+    m === 'stitch' ? '输入包含隐藏标记的文本（标记格式：<!-- chunk N -->内容<!-- /chunk N -->）' :
+    '输入载体文本';
+  document.getElementById('output').classList.remove('show');
+}
+
+function decode() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) return alert('请先粘贴内容～');
+  
+  let result = '';
+  try {
+    switch(currentMethod) {
+      case 'base64':
+        const cleaned = raw.replace(/\s/g, '');
+        result = atob(cleaned);
+        try { result = decodeURIComponent(escape(result)); } catch(e) {}
+        break;
+      case 'xor':
+        const key = parseInt(document.getElementById('xorKey').value) || 137;
+        const bytes = atob(raw.replace(/\s/g, ''));
+        let out = '';
+        for (let i = 0; i < bytes.length; i++) {
+          out += String.fromCharCode(bytes.charCodeAt(i) ^ key);
+        }
+        result = out;
+        try { result = decodeURIComponent(escape(result)); } catch(e) {}
+        break;
+      case 'firstChar':
+        const paras = raw.split('\n').filter(l => l.trim());
+        result = paras.map(l => l.trim()[0]).join('');
+        break;
+      case 'stitch':
+        const matches = raw.match(/<!--\s*chunk\s+\d+\s*-->([\s\S]*?)<!--\s*\/chunk\s+\d+\s*-->/g);
+        if (matches) {
+          result = matches.map(m => {
+            const inner = m.match(/<!--\s*chunk\s+\d+\s*-->([\s\S]*?)<!--\s*\/chunk\s+\d+\s*-->/);
+            return inner ? inner[1].trim() : '';
+          }).join('\n');
+        } else {
+          result = '[未找到 chunk 标记]';
+        }
+        break;
+    }
+  } catch(e) {
+    result = '解码失败: ' + e.message + '\n试试其他方法～';
+  }
+  
+  const output = document.getElementById('output');
+  output.textContent = result;
+  output.classList.add('show');
+}
+
+function copyResult() {
+  const text = document.getElementById('output').textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function clearAll() {
+  document.getElementById('input').value = '';
+  document.getElementById('output').textContent = '';
+  document.getElementById('output').classList.remove('show');
+}
+</script>
+<script>
+(function(){
+  const c=document.getElementById('starfield');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  let stars=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<160;i++)stars.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.6+0.2,a:Math.random()*Math.PI*2,s:Math.random()*0.006+0.002});
+  function draw(){ctx.clearRect(0,0,c.width,c.height);for(const s of stars){s.a+=s.s;const alpha=0.15+Math.sin(s.a)*0.2;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(200,180,140,'+alpha+')';ctx.fill();}requestAnimationFrame(draw);}
+  draw();
+})();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

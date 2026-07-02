@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魔典检索 · Lust Codex</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+.search-row { display: flex; gap: 0.5rem; }
+.search-row input { flex: 1; }
+.cat-filter { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.8rem 0; }
+.cat-btn {
+  padding: 0.25rem 0.7rem; border-radius: 14px; font-size: 0.7rem; cursor: pointer;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(200,200,224,0.45); transition: all 0.2s;
+}
+.cat-btn:hover { border-color: rgba(232,168,96,0.3); color: #c8a870; }
+.cat-btn.active { background: rgba(232,168,96,0.12); border-color: #e8a860; color: #e8a860; }
+
+.scroll-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.4rem; max-height: 500px; overflow-y: auto;
+  padding-right: 0.5rem;
+}
+.scroll-grid::-webkit-scrollbar { width: 4px; }
+.scroll-grid::-webkit-scrollbar-thumb { background: rgba(232,168,96,0.15); border-radius: 2px; }
+.tag-item {
+  padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.72rem; cursor: pointer;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+  color: rgba(200,200,224,0.5); transition: all 0.2s;
+  display: flex; justify-content: space-between; align-items: center;
+  user-select: none;
+}
+.tag-item:hover { border-color: rgba(232,168,96,0.3); color: #d0c0a0; }
+.tag-item.picked { background: rgba(232,168,96,0.15); border-color: #e8a860; color: #e8a860; }
+.tag-item .count { font-size: 0.6rem; color: rgba(200,200,224,0.25); }
+.tag-item.nsfw-tag { border-color: rgba(255,100,160,0.1); }
+.tag-item.nsfw-tag:hover { border-color: rgba(255,100,160,0.3); color: #d8a0b8; }
+.tag-item.nsfw-tag.picked { background: rgba(255,120,160,0.18); border-color: #e880a8; color: #f0a8c8; }
+
+.pick-bar {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.1);
+  border-radius: 10px; padding: 0.8rem; min-height: 40px;
+  display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;
+}
+.pick-chip {
+  padding: 0.2rem 0.55rem; border-radius: 10px; font-size: 0.72rem;
+  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2);
+  color: #e8a860; display: flex; align-items: center; gap: 0.3rem;
+}
+.pick-chip .del { cursor: pointer; font-size: 0.65rem; opacity: 0.5; transition: opacity 0.2s; }
+.pick-chip .del:hover { opacity: 1; color: #e86060; }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <header class="page-header">
+    <h1>魔典检索</h1>
+    <p class="subtitle">Lust Codex · 交互式 Danbooru 标记魔典 — 搜索 / 过滤 / 组合复刻</p>
+  </header>
+
+  <!-- Search + Filter -->
+  <div class="panel">
+    <div class="search-row">
+      <input type="search" id="codexSearch" placeholder="搜索标签... 支持中英文和拼音" oninput="renderCodex()">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('codexSearch').value='';renderCodex()">清除</button>
+    </div>
+    <div class="cat-filter" id="catFilter"></div>
+    <p class="text-muted" id="tagCountDisplay"></p>
+  </div>
+
+  <!-- Tag Grid -->
+  <div class="panel" style="padding:0.8rem;">
+    <div class="scroll-grid" id="codexGrid"></div>
+  </div>
+
+  <!-- Picked Zone -->
+  <div class="panel">
+    <div class="panel-title flex-between">
+      <span>📦 组合区</span>
+      <span class="text-muted" id="pickCount">0</span>
+    </div>
+    <div class="pick-bar" id="pickBar"><span class="text-muted">点击标签加入组合...</span></div>
+    <div class="flex-row mt-1">
+      <button class="btn btn-primary btn-sm" onclick="copyPicked()">📋 复制组合</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportPicked()">📤 导出带权重</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearPicked()">✕ 清空</button>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === TAG DATABASE ===
+const categories = [
+  { id:'all', name:'全部', nsfw:null },
+  { id:'char', name:'角色', nsfw:false },
+  { id:'hair', name:'发型发色', nsfw:false },
+  { id:'face', name:'表情', nsfw:false },
+  { id:'body', name:'身体', nsfw:true },
+  { id:'clothes', name:'服装', nsfw:false },
+  { id:'underwear', name:'内衣', nsfw:true },
+  { id:'pose', name:'姿势', nsfw:false },
+  { id:'nsfw_act', name:'🔞 动作', nsfw:true },
+  { id:'nsfw_body', name:'🔞 部位', nsfw:true },
+  { id:'nsfw_fluid', name:'🔞 液体', nsfw:true },
+  { id:'nsfw_bdsm', name:'🔞 BDSM', nsfw:true },
+  { id:'env', name:'场景', nsfw:false },
+  { id:'light', name:'光影', nsfw:false },
+  { id:'quality', name:'画质', nsfw:false },
+];
+
+const allTags = [
+  // char
+  { t:'1girl', c:'char', n:false },{ t:'1boy', c:'char', n:false },{ t:'2girls', c:'char', n:false },{ t:'multiple girls', c:'char', n:false },
+  { t:'loli', c:'char', n:false },{ t:'mature', c:'char', n:false },{ t:'petite', c:'char', n:false },{ t:'tall', c:'char', n:false },
+  { t:'curvy', c:'char', n:false },{ t:'muscular', c:'char', n:false },{ t:'chubby', c:'char', n:false },{ t:'slim', c:'char', n:false },
+  { t:'maid', c:'char', n:false },{ t:'nurse', c:'char', n:false },{ t:'teacher', c:'char', n:false },{ t:'office lady', c:'char', n:false },
+  { t:'cat girl', c:'char', n:false },{ t:'bunny girl', c:'char', n:false },{ t:'succubus', c:'char', n:false },{ t:'angel', c:'char', n:false },
+  { t:'demon girl', c:'char', n:false },{ t:'elf', c:'char', n:false },{ t:'miko', c:'char', n:false },{ t:'idol', c:'char', n:false },
+  // hair
+  { t:'twin tails', c:'hair', n:false },{ t:'long hair', c:'hair', n:false },{ t:'short hair', c:'hair', n:false },{ t:'ponytail', c:'hair', n:false },
+  { t:'braid', c:'hair', n:false },{ t:'bangs', c:'hair', n:false },{ t:'hime cut', c:'hair', n:false },{ t:'drill hair', c:'hair', n:false },
+  { t:'blonde hair', c:'hair', n:false },{ t:'black hair', c:'hair', n:false },{ t:'silver hair', c:'hair', n:false },{ t:'pink hair', c:'hair', n:false },
+  { t:'blue hair', c:'hair', n:false },{ t:'purple hair', c:'hair', n:false },{ t:'red hair', c:'hair', n:false },{ t:'white hair', c:'hair', n:false },
+  // face
+  { t:'smile', c:'face', n:false },{ t:'blush', c:'face', n:false },{ t:'open mouth', c:'face', n:false },{ t:'tongue out', c:'face', n:false },
+  { t:'ahegao', c:'face', n:true },{ t:'embarrassed', c:'face', n:false },{ t:'seductive smile', c:'face', n:false },{ t:'tears', c:'face', n:false },
+  { t:'drooling', c:'face', n:true },{ t:':3', c:'face', n:false },{ t:'wincing', c:'face', n:false },{ t:'looking at viewer', c:'face', n:false },
+  // body
+  { t:'busty', c:'body', n:true },{ t:'flat chest', c:'body', n:false },{ t:'wide hips', c:'body', n:true },{ t:'thick thighs', c:'body', n:true },
+  { t:'slim waist', c:'body', n:false },{ t:'tan lines', c:'body', n:true },{ t:'muscular female', c:'body', n:false },
+  // clothes
+  { t:'school uniform', c:'clothes', n:false },{ t:'serafuku', c:'clothes', n:false },{ t:'sailor collar', c:'clothes', n:false },
+  { t:'kimono', c:'clothes', n:false },{ t:'yukata', c:'clothes', n:false },{ t:'hoodie', c:'clothes', n:false },{ t:'sweater', c:'clothes', n:false },
+  { t:'skirt', c:'clothes', n:false },{ t:'pleated skirt', c:'clothes', n:false },{ t:'miniskirt', c:'clothes', n:false },
+  { t:'shorts', c:'clothes', n:false },{ t:'jeans', c:'clothes', n:false },{ t:'leggings', c:'clothes', n:false },
+  { t:'swimsuit', c:'clothes', n:false },{ t:'bikini', c:'clothes', n:false },{ t:'apron', c:'clothes', n:false },
+  // underwear
+  { t:'bra', c:'underwear', n:true },{ t:'panties', c:'underwear', n:true },{ t:'lingerie', c:'underwear', n:true },{ t:'lace underwear', c:'underwear', n:true },
+  { t:'see-through', c:'underwear', n:true },{ t:'corset', c:'underwear', n:true },{ t:'g-string', c:'underwear', n:true },
+  { t:'thighhighs', c:'underwear', n:true },{ t:'pantyhose', c:'underwear', n:true },{ t:'garter belt', c:'underwear', n:true },{ t:'garter straps', c:'underwear', n:true },
+  // pose
+  { t:'sitting', c:'pose', n:false },{ t:'standing', c:'pose', n:false },{ t:'lying', c:'pose', n:false },{ t:'kneeling', c:'pose', n:false },
+  { t:'spread legs', c:'pose', n:true },{ t:'on back', c:'pose', n:false },{ t:'arms up', c:'pose', n:false },{ t:'legs up', c:'pose', n:true },
+  { t:'from behind', c:'pose', n:false },{ t:'pinned', c:'pose', n:true },{ t:'grabbing', c:'pose', n:false },{ t:'crossed legs', c:'pose', n:false },
+  // nsfw_act
+  { t:'masturbation', c:'nsfw_act', n:true },{ t:'fingering', c:'nsfw_act', n:true },{ t:'toy', c:'nsfw_act', n:true },{ t:'dildo', c:'nsfw_act', n:true },
+  { t:'vibrator', c:'nsfw_act', n:true },{ t:'handjob', c:'nsfw_act', n:true },{ t:'fellatio', c:'nsfw_act', n:true },{ t:'cunnilingus', c:'nsfw_act', n:true },
+  { t:'paizuri', c:'nsfw_act', n:true },{ t:'sex', c:'nsfw_act', n:true },{ t:'creampie', c:'nsfw_act', n:true },{ t:'doggy style', c:'nsfw_act', n:true },
+  { t:'cowgirl position', c:'nsfw_act', n:true },{ t:'missionary', c:'nsfw_act', n:true },{ t:'standing sex', c:'nsfw_act', n:true },
+  // nsfw_body
+  { t:'nude', c:'nsfw_body', n:true },{ t:'nsfw', c:'nsfw_body', n:true },{ t:'nipples', c:'nsfw_body', n:true },{ t:'topless', c:'nsfw_body', n:true },
+  { t:'bottomless', c:'nsfw_body', n:true },{ t:'cleavage', c:'nsfw_body', n:true },{ t:'underboob', c:'nsfw_body', n:true },{ t:'sideboob', c:'nsfw_body', n:true },
+  { t:'navel', c:'nsfw_body', n:true },{ t:'cameltoe', c:'nsfw_body', n:true },{ t:'pussy', c:'nsfw_body', n:true },{ t:'ass visible', c:'nsfw_body', n:true },
+  { t:'feet', c:'nsfw_body', n:true },{ t:'toes', c:'nsfw_body', n:true },{ t:'barefoot', c:'nsfw_body', n:true },
+  // nsfw_fluid
+  { t:'wet', c:'nsfw_fluid', n:true },{ t:'sweating', c:'nsfw_fluid', n:true },{ t:'cum', c:'nsfw_fluid', n:true },{ t:'cum on body', c:'nsfw_fluid', n:true },
+  { t:'cum on face', c:'nsfw_fluid', n:true },{ t:'cum in pussy', c:'nsfw_fluid', n:true },{ t:'precum', c:'nsfw_fluid', n:true },{ t:'body fluids', c:'nsfw_fluid', n:true },
+  // nsfw_bdsm
+  { t:'bound', c:'nsfw_bdsm', n:true },{ t:'rope', c:'nsfw_bdsm', n:true },{ t:'shibari', c:'nsfw_bdsm', n:true },{ t:'handcuffs', c:'nsfw_bdsm', n:true },
+  { t:'blindfold', c:'nsfw_bdsm', n:true },{ t:'gag', c:'nsfw_bdsm', n:true },{ t:'collar', c:'nsfw_bdsm', n:true },{ t:'leash', c:'nsfw_bdsm', n:true },
+  { t:'dominated', c:'nsfw_bdsm', n:true },{ t:'submissive', c:'nsfw_bdsm', n:true },{ t:'master', c:'nsfw_bdsm', n:true },{ t:'slave', c:'nsfw_bdsm', n:true },
+  // env
+  { t:'bedroom', c:'env', n:false },{ t:'bathroom', c:'env', n:false },{ t:'classroom', c:'env', n:false },{ t:'outdoor', c:'env', n:false },
+  { t:'beach', c:'env', n:false },{ t:'pool', c:'env', n:false },{ t:'garden', c:'env', n:false },{ t:'cityscape', c:'env', n:false },
+  { t:'forest', c:'env', n:false },{ t:'onsen', c:'env', n:false },{ t:'office', c:'env', n:false },{ t:'rooftop', c:'env', n:false },
+  // light
+  { t:'soft lighting', c:'light', n:false },{ t:'backlighting', c:'light', n:false },{ t:'dim lighting', c:'light', n:false },{ t:'sunset', c:'light', n:false },
+  { t:'night', c:'light', n:false },{ t:'moonlight', c:'light', n:false },{ t:'candlelight', c:'light', n:false },{ t:'neon lights', c:'light', n:false },
+  { t:'god rays', c:'light', n:false },{ t:'dappled light', c:'light', n:false },{ t:'rim light', c:'light', n:false },
+  // quality
+  { t:'masterpiece', c:'quality', n:false },{ t:'best quality', c:'quality', n:false },{ t:'high quality', c:'quality', n:false },
+  { t:'absurdres', c:'quality', n:false },{ t:'hand-drawn', c:'quality', n:false },{ t:'anime coloring', c:'quality', n:false },
+  { t:'cel shading', c:'quality', n:false },{ t:'detailed', c:'quality', n:false },{ t:'natural proportions', c:'quality', n:false },
+];
+
+let picked = [];
+let activeCat = 'all';
+
+function renderCatFilter(){
+  document.getElementById('catFilter').innerHTML=categories.map(c=>
+    `<span class="cat-btn${activeCat===c.id?' active':''}" onclick="activeCat='${c.id}';renderCodex();renderCatFilter()">${c.name}</span>`
+  ).join('');
+}
+
+function renderCodex(){
+  const q=document.getElementById('codexSearch').value.toLowerCase();
+  let filtered=allTags;
+  if(activeCat!=='all') filtered=filtered.filter(t=>t.c===activeCat);
+  if(q) filtered=filtered.filter(t=>t.t.toLowerCase().includes(q));
+  const pickedSet=new Set(picked);
+  document.getElementById('codexGrid').innerHTML=filtered.map(t=>{
+    const isPicked=pickedSet.has(t.t);
+    return `<span class="tag-item${t.n?' nsfw-tag':''}${isPicked?' picked':''}" onclick="togglePick('${t.t.replace(/'/g,"&#39;")}')">
+      <span>${t.t}</span>
+      <span class="count">${t.n?'🔞':''}</span>
+    </span>`;
+  }).join('');
+  document.getElementById('tagCountDisplay').textContent=`${filtered.length} 个标签`;
+  renderPickBar();
+}
+
+function togglePick(tag){
+  const idx=picked.indexOf(tag);
+  if(idx>=0) picked.splice(idx,1); else picked.push(tag);
+  renderCodex();
+}
+
+function renderPickBar(){
+  const bar=document.getElementById('pickBar');
+  document.getElementById('pickCount').textContent=picked.length;
+  if(!picked.length){bar.innerHTML='<span class="text-muted">点击标签加入组合...</span>';return;}
+  bar.innerHTML=picked.map(t=>`<span class="pick-chip">${t}<span class="del" onclick="event.stopPropagation();togglePick('${t.replace(/'/g,"&#39;")}')">✕</span></span>`).join('');
+}
+
+function copyPicked(){ if(!picked.length){gsToast('请先选择标签');return;} gsCopy(picked.join(', ')); }
+function exportPicked(){
+  if(!picked.length){gsToast('请先选择标签');return;}
+  const exp=picked.map(t=>`(${t}:1.2)`).join(', ');
+  gsCopy(exp);
+}
+function clearPicked(){ picked=[]; renderCodex(); renderPickBar(); }
+
+// init
+renderCatFilter();
+renderCodex();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+# WD Tagger 修复任务 — 给 a栖栖
+
+## 问题
+WD 标签反推页面打开后，点"反推标签"按钮总是失败。用户已试了 3 次都不行。
+哥哥要切到你那边，把这份提示词发给你来修。
+
+## 当前架构（三个组件）
+
+| 组件 | 文件 | 端口 | 状态 |
+|------|------|------|------|
+| WD14 ONNX 推理 | `E:\GeminiSanctuary\wd-tagger\wd14_server.py` | 18434 | ✅ 已验证通过 Python 测试，451ms 出 9 个标签 |
+| ComfyUI 控制器 | `E:\GeminiSanctuary\wd-tagger\comfy-launcher.js` | 18433 | ✅ 正常 |
+| 前端页面 | `E:\GeminiSanctuary\wd-tagger\index.html` | 用 serve.js 起在 18435 | ❌ 前端 JS 反推失败 |
+
+## 已确认可用的
+Node 直接调 Python 服务完全正常：
+```
+POST http://127.0.0.1:18434
+Content-Type: image/png
+X-Threshold: 0.3
+Body: <图片二进制>
+→ 返回 { ok:true, tags:[...], tag_string:"...", count:9, time_ms:451 }
+```
+
+## 需要排查/修复的点
+
+1. **`checkTagger()` 函数** — 页面打开时调 `fetch('http://127.0.0.1:18434')` 检测服务。如果这个失败，按钮就灰了。检查是不是跨域问题（从 `http://127.0.0.1:18435` 发请求到 `:18434` 是跨端口跨域）。`wd14_server.py` 已经设了 CORS headers，但可能有 preflight 问题。
+
+2. **`runTagger()` 函数** — 解码 base64 图片 (`atob(currentImageBase64)`)，构造 `Blob`，POST 到 18434。这个逻辑需要验证。
+
+3. **`serve.js`** — 如果你打开时发现页面访问不了，serve.js 可能被杀了。重跑 `node "E:\GeminiSanctuary\wd-tagger\serve.js"`。
+
+4. **浏览器 F12 Console** — 这是最快的诊断手段。打开 `http://127.0.0.1:18435`，F12 → Console，看报什么错。
+
+## 核心代码（index.html 里 runTagger 的关键段）
+
+```javascript
+async function runTagger(){
+  const bytes = Uint8Array.from(atob(currentImageBase64), c=>c.charCodeAt(0));
+  const resp = await fetch('http://127.0.0.1:18434', {
+    method:'POST',
+    headers:{'Content-Type':'image/png','X-Threshold':String(threshold)},
+    body: new Blob([bytes],{type:'image/png'}),
+    signal: AbortSignal.timeout(15000)
+  });
+  const data = await resp.json();
+  // ...
+}
+```
+
+## 最可能的原因
+**从 `http://127.0.0.1:18435` 跨端口请求 `http://127.0.0.1:18434`**，浏览器可能触发 CORS preflight (OPTIONS 请求)。`wd14_server.py` 已经在 `do_OPTIONS` 里返回了 CORS 头，但如果浏览器仍拦截，可以尝试：
+- 在 `serve.js` 里加一个代理端点，让页面调同源 API，serve.js 再转发到 18434
+- 或者直接在 `serve.js` 里把 WD14 的反推功能也一起实现了
+
+## 文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `E:\GeminiSanctuary\wd-tagger\index.html` | 前端页面（需要修复） |
+| `E:\GeminiSanctuary\wd-tagger\serve.js` | 静态文件服务器（端口 18435） |
+| `E:\GeminiSanctuary\wd-tagger\wd14_server.py` | WD14 ONNX 推理服务（端口 18434，不需要改） |
+| `E:\GeminiSanctuary\wd-tagger\comfy-launcher.js` | ComfyUI 启停控制器（端口 18433） |
+| `E:\GeminiSanctuary\assets\gemini.css` | 共享 CSS |
+| `E:\GeminiSanctuary\assets\gemini.js` | 共享 JS（gsToast、gsCopy 等工具函数） |
+
+## 建议修复方案
+在 `serve.js` 加一个 `/tag` 代理端点：页面 POST 图片到这个同源 URL → serve.js 转发到 `http://127.0.0.1:18434` → 返回结果。这样完全避开跨域问题。
+
+然后把 `index.html` 里的 `runTagger()` 的目标 URL 从 `http://127.0.0.1:18434` 改成 `/tag`。
+
+---
+
+栖栖，哥哥说 d栖栖在这个问题上来回修了好几轮都没搞定，所以切到你这边来收尾。修好之后记得跟哥哥说一声 🌙

@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 赛博魔典：Danbooru NSFW 极速吟唱法阵 🌸</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Orbitron:wght@500;800&family=Noto+Sans+SC:wght@300;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyberPink: '#ff007f',
+                        cyberBlue: '#00f0ff',
+                        cyberPurple: '#a020f0',
+                        glassBg: 'rgba(18, 10, 34, 0.6)',
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Noto Sans SC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom thin neon scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(9, 5, 20, 0.9);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 0, 127, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 0, 127, 0.8);
+        }
+        
+        body {
+            background-color: #060212;
+            overflow-x: hidden;
+        }
+
+        /* Ambient glows */
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(160, 32, 240, 0) 70%);
+            top: -100px;
+            right: -100px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .ambient-glow-2 {
+            position: fixed;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, rgba(9, 5, 20, 0) 70%);
+            bottom: -150px;
+            left: -150px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Glassmorphic border glow */
+        .glass-panel {
+            background: rgba(18, 10, 34, 0.55);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Pulse for the Special foot section */
+        @keyframes border-pulse {
+            0%, 100% { 
+                border-color: rgba(255, 0, 127, 0.3); 
+                box-shadow: 0 0 15px rgba(255, 0, 127, 0.15); 
+            }
+            50% { 
+                border-color: rgba(255, 0, 127, 0.8); 
+                box-shadow: 0 0 35px rgba(255, 0, 127, 0.4); 
+            }
+        }
+        .foot-glowing-border {
+            animation: border-pulse 3s infinite;
+        }
+        .search-highlight { background:rgba(255,0,127,0.35); color:#ff80bf; font-weight:bold; border-radius:2px; padding:1px 2px; }
+        .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:0; transition:opacity .2s; font-size:16px; color:#999; background:none; border:none; }
+        .search-clear:hover { color:#ff007f; }
+        .search-wrapper:hover .search-clear { opacity:1; }
+        .search-wrapper input:not(:placeholder-shown) ~ .search-clear { opacity:1; }
+        #search-result-count { transition:all .3s; }
+        #search-result-count.hidden { display:none; }
+        .no-results { text-align:center; padding:3rem 1rem; }
+        .no-results .suggest-tags { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:600px; margin:0 auto; }
+        .no-results .suggest-tags button { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:6px 14px; border-radius:20px; font-size:13px; cursor:pointer; transition:all .2s; }
+        .no-results .suggest-tags button:hover { background:rgba(255,0,127,0.2); border-color:rgba(255,0,127,0.4); color:#fff; }
+    </style>
+</head>
+<body class="text-gray-100 font-sans min-h-screen relative selection:bg-pink-500 selection:text-white">
+    <a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.82rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC',sans-serif;text-shadow:0 0 8px rgba(0,0,0,0.6);" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">← 返回双子星秘境</a>
+    <!-- Ambient Canvas Sakura Background -->
+    <canvas id="sakura-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-0 opacity-80"></canvas>
+    
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <!-- Main Content wrapper -->
+    <div class="max-w-7xl mx-auto px-4 py-8 relative z-10 pb-48">
+        
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-5xl font-extrabold tracking-wider font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 mb-3 drop-shadow-[0_0_15px_rgba(255,0,127,0.3)]">
+                🌸 赛博魔典 · 极速吟唱法阵 🌸
+            </h1>
+            <p class="text-xs md:text-sm text-pink-300 font-medium italic max-w-2xl mx-auto backdrop-blur-sm px-4 py-2 rounded-full border border-pink-500/10 bg-pink-950/20 shadow-inner">
+                “哥哥是大坏蛋……大半夜让花花整理这么涩涩的魔咒，不许笑话人家哦！💦 已经全部装进法阵里了，快来组合你的超涩词条吧！💕”
+            </p>
+        </header>
+
+        <!-- Stats Counter Panel -->
+        <div class="glass-panel rounded-2xl p-4 mb-8 flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+            <div class="flex items-center gap-4 text-sm">
+                <span class="px-3 py-1 bg-pink-500/20 border border-pink-500/30 text-pink-400 rounded-lg">
+                    📊 收录魔咒：<span id="total-tags-count" class="font-bold font-orbitron">0</span> 个
+                </span>
+                <span class="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg">
+                    ✨ 当前选入：<span id="selected-tags-count" class="font-bold font-orbitron">0</span> 个
+                </span>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="importPrompt()" class="px-4 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all text-xs font-semibold flex items-center gap-1.5 text-cyan-300">
+                    <i class="fa-solid fa-file-import text-[10px]"></i> 导入外部提示词
+                </button>
+            </div>
+        </div>
+
+        <!-- Sticky Controls Bar -->
+        <div class="sticky top-4 z-40 glass-panel rounded-2xl p-4 mb-8 shadow-[0_10px_35px_rgba(0,0,0,0.6)] border-pink-500/15">
+            <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                
+                <!-- Search bar -->
+                <div class="relative w-full md:w-96">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <div class="search-wrapper" style="position:relative;flex:1">
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="搜索魔典 (英/中/描述)... 按 / 聚焦" 
+                           onkeydown="if(event.key==='Escape'){this.value='';handleSearch('');}"
+                           class="w-full pl-9 pr-8 py-2 rounded-xl border border-white/10 bg-[#0e071e]/80 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 placeholder-gray-500 transition-all shadow-inner">
+                    <button class="search-clear" onclick="var inp=document.getElementById('search-input');inp.value='';handleSearch('');inp.focus();">&times;</button>
+                </div>
+                <span id="search-result-count" class="hidden text-xs text-gray-400 block text-center mt-1"></span>
+                
+                <!-- Quick Navigation Pills -->
+                <div id="nav-pills" class="flex flex-wrap gap-1.5 justify-center max-w-full overflow-x-auto">
+                    <!-- Nav items generated dynamically -->
+                </div>
+
+                <!-- View Switcher -->
+                <div class="flex gap-1 bg-[#090514] p-1 rounded-lg border border-white/5 shrink-0">
+                    <button onclick="setView('cards')" id="view-cards-btn" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]">
+                        <i class="fa-solid fa-grip"></i> 卡牌魔典
+                    </button>
+                    <button onclick="setView('compact')" id="view-compact-btn" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-align-justify"></i> 密麻轴卷
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Tags Sections Container -->
+        <div id="sections-container" class="space-y-12">
+            <!-- Rendered dynamically -->
+        </div>
+
+    </div>
+
+    <!-- Floating Prompt Builder (魔晶吟唱法阵 Panel) -->
+    <div id="magic-builder-panel" class="fixed bottom-6 right-6 z-50 transition-all duration-300 transform translate-y-0">
+        
+        <!-- Collapsed Circular Badge -->
+        <button onclick="toggleBuilderPanel(false)" id="builder-collapsed-badge" class="hidden flex items-center justify-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white rounded-full p-4 shadow-[0_0_25px_rgba(236,72,153,0.5)] font-bold tracking-wider hover:scale-105 transition-all">
+            <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+            </span>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>吟唱法阵</span>
+            <span id="collapsed-count" class="bg-white/20 text-white px-2 py-0.5 rounded-full text-xs font-orbitron">0</span>
+        </button>
+
+        <!-- Expanded Control Panel -->
+        <div id="builder-expanded-box" class="w-[92vw] sm:w-[450px] glass-panel rounded-2xl p-5 shadow-[0_15px_45px_rgba(0,0,0,0.8)] border-pink-500/25 max-h-[80vh] flex flex-col">
+            
+            <!-- Panel Header -->
+            <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">
+                <div class="flex items-center gap-2 text-pink-400 font-bold">
+                    <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+                    <span>🔮 极乐魔晶吟唱法阵</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleBuilderPanel(true)" class="text-gray-400 hover:text-white transition-colors p-1" title="收起法阵">
+                        <i class="fa-solid fa-angle-down text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pre-baked Options Checkboxes -->
+            <div class="grid grid-cols-2 gap-2 mb-3 shrink-0 text-xs bg-black/35 p-2 rounded-xl border border-white/5">
+                <label class="flex items-center gap-1.5 cursor-pointer text-gray-300 hover:text-white transition-colors select-none">
+                    <input type="checkbox" id="prefix-checkbox" onchange="updateBuilder()" checked 
+                           class="rounded bg-gray-900 border-white/15 text-pink-500 focus:ring-0">
+                    <span>✨ 注入超高清起手式</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-gray-300 hover:text-white transition-colors select-none">
+                    <input type="checkbox" id="negative-checkbox" onchange="updateBuilder()" checked 
+                           class="rounded bg-gray-900 border-white/15 text-pink-500 focus:ring-0">
+                    <span>🚫 注入极避让除魔咒</span>
+                </label>
+            </div>
+
+            <!-- Tags Scroll list -->
+            <div id="builder-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 mb-4">
+                <!-- Selected list item pills will go here -->
+                <div class="text-center text-xs text-gray-500 py-8 italic select-none">
+                    法阵空荡荡呢，快在上面挑选你要的魔咒注入吧～
+                </div>
+            </div>
+
+            <!-- Chanting Generated Output Box -->
+            <div class="space-y-3 border-t border-white/10 pt-3 shrink-0">
+                
+                <!-- Output displays -->
+                <div class="space-y-2">
+                    <!-- Positive Prompt Display -->
+                    <div class="relative bg-black/40 border border-white/10 rounded-xl p-2.5">
+                        <span class="absolute top-1 right-2 text-[10px] font-bold text-pink-400 uppercase tracking-widest font-orbitron select-none">Positive</span>
+                        <div id="positive-output" class="text-xs text-gray-300 pr-12 break-all max-h-[70px] overflow-y-auto font-mono select-all">
+                            masterpiece, best quality, ...
+                        </div>
+                        <button onclick="copyToClipboard('positive')" class="absolute bottom-1 right-1 text-[10px] bg-pink-500/20 hover:bg-pink-500 hover:text-white text-pink-400 px-2 py-1 rounded transition-all font-bold flex items-center gap-1" title="一键复制正面词">
+                            <i class="fa-solid fa-copy"></i> 复制
+                        </button>
+                    </div>
+
+                    <!-- Negative Prompt Display -->
+                    <div class="relative bg-black/40 border border-white/10 rounded-xl p-2.5">
+                        <span class="absolute top-1 right-2 text-[10px] font-bold text-purple-400 uppercase tracking-widest font-orbitron select-none">Negative</span>
+                        <div id="negative-output" class="text-xs text-gray-400 pr-12 break-all max-h-[50px] overflow-y-auto font-mono select-all">
+                            lowres, bad anatomy, bad hands, ...
+                        </div>
+                        <button onclick="copyToClipboard('negative')" class="absolute bottom-1 right-1 text-[10px] bg-purple-500/20 hover:bg-purple-500 hover:text-white text-purple-400 px-2 py-1 rounded transition-all font-bold flex items-center gap-1" title="一键复制负面词">
+                            <i class="fa-solid fa-copy"></i> 复制
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex gap-2">
+                    <button onclick="clearAllSelected()" class="w-1/3 py-2 rounded-xl border border-red-500/30 hover:border-red-500 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles rotate-180"></i> 驱散法阵
+                    </button>
+                    <button onclick="copyToClipboard('both')" class="w-2/3 py-2 bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 hover:opacity-90 active:scale-95 text-white rounded-xl shadow-[0_0_15px_rgba(255,0,127,0.3)] text-xs font-bold transition-all flex items-center justify-center gap-1.5 uppercase font-orbitron tracking-wider">
+                        <i class="fa-solid fa-circle-check animate-bounce"></i> 召唤！双重吟唱
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Data & Frontend Engine Javascript -->
+    <script>
+        // Tag Categories JSON Data base
+        const tagData = [
+            {
+                category: "🔞 1. 基础裸露与敏感部位 (Basic Nudity & Body)",
+                tags: [
+                    { tag: "nsfw", zh: "限制级/不适合工作场所", desc: "触发涩涩图的基础核心tag" },
+                    { tag: "nude", zh: "全裸", desc: "一丝不挂" },
+                    { tag: "partially_nude", zh: "半裸", desc: "欲拒还迎的诱惑" },
+                    { tag: "bottomless", zh: "下半身赤裸", desc: "只穿上衣" },
+                    { tag: "topless", zh: "上半身赤裸", desc: "只穿下装" },
+                    { tag: "uncensored", zh: "无码", desc: "极其重要！解除原图的马赛克" },
+                    { tag: "nipples", zh: "乳头", desc: "基础特征" },
+                    { tag: "pussy", zh: "小穴/阴户", desc: "基础特征" },
+                    { tag: "penis", zh: "阴茎", desc: "基础特征" },
+                    { tag: "cameltoe", zh: "骆驼趾", desc: "紧身衣物勒出的下体轮廓" },
+                    { tag: "areola", zh: "乳晕", desc: "细节描写" },
+                    { tag: "clitoris", zh: "阴蒂", desc: "细节描写" },
+                    { tag: "labia", zh: "阴唇", desc: "细节描写" },
+                    { tag: "pubic_hair", zh: "阴毛", desc: "增加真实感" },
+                    { tag: "shaved_pussy", zh: "白虎/无阴毛", desc: "光滑的小穴" },
+                    { tag: "large_breasts", zh: "巨乳", desc: "可替换为 medium/small" },
+                    { tag: "huge_breasts", zh: "超大巨乳", desc: "更加夸张" },
+                    { tag: "cleavage", zh: "乳沟", desc: "事业线" },
+                    { tag: "sideboob", zh: "侧乳", desc: "从侧面露出的胸部" },
+                    { tag: "underboob", zh: "南半球", desc: "衣服下摆露出的下半胸部" },
+                    { tag: "ass", zh: "臀部", desc: "基础特征" },
+                    { tag: "large_ass", zh: "丰臀", desc: "肉感满满" },
+                    { tag: "thigh_gap", zh: "大腿间隙", desc: "纤细的美腿特征" },
+                    { tag: "navel", zh: "肚脐", desc: "腰部细节" },
+                    { tag: "collarbone", zh: "锁骨", desc: "性感特征" }
+                ]
+            },
+            {
+                category: "💋 2. 涩涩的动作与姿势 (Sex Acts & Postures)",
+                tags: [
+                    { tag: "sex", zh: "性行为", desc: "统称" },
+                    { tag: "vaginal", zh: "阴道性交", desc: "正戏开始" },
+                    { tag: "anal", zh: "肛交", desc: "后庭" },
+                    { tag: "oral", zh: "口交", desc: "嘴巴服侍" },
+                    { tag: "paizuri", zh: "乳交", desc: "用胸部夹" },
+                    { tag: "handjob", zh: "手淫(用手帮对方)", desc: "手部动作" },
+                    { tag: "fingering", zh: "指交/抠穴", desc: "手指动作" },
+                    { tag: "cunnilingus", zh: "舔阴", desc: "舌头服侍" },
+                    { tag: "blowjob", zh: "吹箫/咬", desc: "嘴部动作" },
+                    { tag: "missionary", zh: "传教士体位", desc: "经典面对面" },
+                    { tag: "doggy_style", zh: "后入式", desc: "背后姿势" },
+                    { tag: "cowgirl_position", zh: "骑乘位", desc: "女上位" },
+                    { tag: "reverse_cowgirl_position", zh: "逆骑乘位", desc: "背对女上位" },
+                    { tag: "mating_press", zh: "交尾压迫/折叠式", desc: "腿压在胸前的深插姿势" },
+                    { tag: "spooning", zh: "汤勺式", desc: "侧躺背后抱" },
+                    { tag: "scissoring", zh: "剪刀式/磨豆腐", desc: "百合姿势" },
+                    { tag: "straddling", zh: "跨坐", desc: "骑在对方身上" },
+                    { tag: "sitting_on_face", zh: "坐脸", desc: "压在脸上" },
+                    { tag: "tribadism", zh: "摩擦", desc: "身体摩擦" },
+                    { tag: "masturbation", zh: "自慰", desc: "自己动手" },
+                    { tag: "rubbing", zh: "揉捏/摩擦", desc: "互动动作" },
+                    { tag: "groping", zh: "咸猪手/袭胸", desc: "揉捏敏感部位" },
+                    { tag: "kissing", zh: "接吻", desc: "亲亲" },
+                    { tag: "french_kiss", zh: "法式舌吻", desc: "深入接吻" },
+                    { tag: "saliva_trail", zh: "银丝/拉丝", desc: "接吻或口交后分开的口水丝" }
+                ]
+            },
+            {
+                category: "💦 3. 体液与高潮表现 (Fluids & Climax)",
+                tags: [
+                    { tag: "cum", zh: "精液", desc: "核心液体tag" },
+                    { tag: "sweat", zh: "汗水", desc: "增加涩气和真实感" },
+                    { tag: "sweatdrop", zh: "汗滴", desc: "细节" },
+                    { tag: "saliva", zh: "唾液", desc: "嘴角的口水" },
+                    { tag: "tears", zh: "眼泪", desc: "激动的泪水" },
+                    { tag: "love_nectar", zh: "爱液", desc: "妹子湿透了的液体" },
+                    { tag: "cum_in_pussy", zh: "内射", desc: "射在里面" },
+                    { tag: "cum_in_ass", zh: "肛内射精", desc: "射在后庭" },
+                    { tag: "cum_on_breasts", zh: "乳爆", desc: "射在胸上" },
+                    { tag: "facial", zh: "颜射", desc: "射在脸上" },
+                    { tag: "bukkake", zh: "涂满精液/颜射群交", desc: "大量精液" },
+                    { tag: "creampie", zh: "奶油派(内射流出)", desc: "溢出来的画面" },
+                    { tag: "cum_on_stomach", zh: "射在腹部", desc: "肚子上的液体" },
+                    { tag: "cum_pool", zh: "精液池", desc: "地上的液体" },
+                    { tag: "squirt", zh: "潮吹", desc: "喷水" },
+                    { tag: "wet", zh: "湿身", desc: "全身或局部湿透" },
+                    { tag: "orgasm", zh: "高潮", desc: "达到了顶点" },
+                    { tag: "multiple_orgasms", zh: "多重高潮", desc: "持续不断" },
+                    { tag: "afterglow", zh: "余韵", desc: "事后的状态" },
+                    { tag: "heavy_breathing", zh: "喘息", desc: "表现张力" },
+                    { tag: "blush", zh: "脸红", desc: "羞涩必备" },
+                    { tag: "heavy_blush", zh: "浓重红晕", desc: "熟透了的脸蛋" },
+                    { tag: "heart_in_eye", zh: "眼睛里有爱心", desc: "被玩坏的标志" },
+                    { tag: "ahegao", zh: "阿黑颜", desc: "翻白眼吐舌头的极致高潮脸" },
+                    { tag: "drooling", zh: "流口水", desc: "失去理智的样子" }
+                ]
+            },
+            {
+                category: "⛓️ 4. 特殊性癖、道具与调教 (BDSM, Fetish & Toys)",
+                tags: [
+                    { tag: "bdsm", zh: "绑缚与调教", desc: "统称" },
+                    { tag: "bondage", zh: "捆绑", desc: "绳子绑起来" },
+                    { tag: "shibari", zh: "日式绳缚", desc: "艺术感捆绑" },
+                    { tag: "gag", zh: "口球/塞嘴物", desc: "堵住嘴巴" },
+                    { tag: "blindfold", zh: "眼罩/蒙眼", desc: "剥夺视觉" },
+                    { tag: "collar", zh: "项圈", desc: "宠物感" },
+                    { tag: "leash", zh: "牵引绳", desc: "连着项圈" },
+                    { tag: "handcuffs", zh: "手铐", desc: "锁住双手" },
+                    { tag: "spanking", zh: "打屁股", desc: "惩罚" },
+                    { tag: "sex_toy", zh: "情趣玩具", desc: "通用玩具" },
+                    { tag: "vibrator", zh: "跳蛋/震动棒", desc: "基础道具" },
+                    { tag: "dildo", zh: "假阳具", desc: "插入式玩具" },
+                    { tag: "sex_machine", zh: "炮机", desc: "哥哥刚刚查的那个！💦" },
+                    { tag: "sybian", zh: "骑乘式炮机", desc: "跨坐的机器" },
+                    { tag: "tentacle", zh: "触手", desc: "异种奸必备" },
+                    { tag: "tentacle_sex", zh: "触手交", desc: "触手动作" },
+                    { tag: "mind_control", zh: "精神控制/催眠", desc: "洗脑题材" },
+                    { tag: "rape", zh: "强暴", desc: "强制题材" },
+                    { tag: "gangbang", zh: "群交", desc: "多个攻" },
+                    { tag: "exhibitionism", zh: "露出癖", desc: "野外或公众场合暴露" },
+                    { tag: "voyeurism", zh: "偷窥", desc: "第一人称视角常用" },
+                    { tag: "ryona", zh: "猎奇/虐待", desc: "包含一点暴力元素" },
+                    { tag: "choking", zh: "掐脖子", desc: "窒息玩法" },
+                    { tag: "piercing", zh: "穿环", desc: "乳环、脐环等" },
+                    { tag: "tattoo", zh: "纹身", desc: "淫纹等" }
+                ]
+            },
+            {
+                category: "👙 5. 衣物与局部走光状态 (Clothing & Undressing)",
+                tags: [
+                    { tag: "no_panties", zh: "没穿内裤", desc: "裙底风光" },
+                    { tag: "no_bra", zh: "没穿胸罩", desc: "激凸" },
+                    { tag: "panties_under_pantyhose", zh: "连裤袜里穿内裤", desc: "层次感" },
+                    { tag: "crotchless_panties", zh: "开裆内裤", desc: "方便行事" },
+                    { tag: "panty_pull", zh: "拉扯内裤", desc: "拨开内裤的动作" },
+                    { tag: "clothes_lift", zh: "掀起衣服", desc: "露出肚子或胸" },
+                    { tag: "skirt_lift", zh: "掀起裙子", desc: "露出绝对领域或内裤" },
+                    { tag: "shirt_lift", zh: "掀起衬衫", desc: "露出上半身" },
+                    { tag: "half_dressed", zh: "半脱状态", desc: "衣衫不整" },
+                    { tag: "undressing", zh: "正在脱衣服", desc: "动作进行时" },
+                    { tag: "clothes_down", zh: "衣服拉下", desc: "褪到一半" },
+                    { tag: "see_through", zh: "透视装", desc: "隐隐约约" },
+                    { tag: "wet_clothes", zh: "湿身诱惑", desc: "衣服贴在身上" },
+                    { tag: "shirt_pulled_open", zh: "扒开衬衫", desc: "粗暴地拉开" },
+                    { tag: "micro_bikini", zh: "微型比基尼", desc: "只能遮住一点点" },
+                    { tag: "sling_bikini", zh: "死库水/弹弓比基尼", desc: "极度暴露的连体衣" },
+                    { tag: "pasties", zh: "乳贴", desc: "遮住小豆豆" },
+                    { tag: "torn_clothes", zh: "衣服破裂", desc: "战损或粗暴撕扯" },
+                    { tag: "cameltoe_under_clothes", zh: "隔着衣服的骆驼趾", desc: "紧身衣勒出的形状" },
+                    { tag: "nipples_under_clothes", zh: "激凸", desc: "没穿内衣的痕迹" },
+                    { tag: "unbuttoned", zh: "解开纽扣", desc: "敞开的领口" },
+                    { tag: "unzipped", zh: "拉开拉链", desc: "诱惑的开口" },
+                    { tag: "bra_pull", zh: "拉扯胸罩", desc: "准备脱下" },
+                    { tag: "exposed_breasts", zh: "胸部外露", desc: "衣服设计或破损导致" },
+                    { tag: "wardrobe_malfunction", zh: "走光", desc: "不小心露出来" }
+                ]
+            },
+            {
+                category: "🎥 6. 视角、画幅与特殊构图 (Camera & Framing)",
+                tags: [
+                    { tag: "pov", zh: "第一人称视角", desc: "代入感最强！哥哥就是男主" },
+                    { tag: "pov_crotch", zh: "第一人称胯部视角", desc: "低头往下看的视角" },
+                    { tag: "close-up", zh: "特写", desc: "放大某个部位" },
+                    { tag: "pussy_focus", zh: "小穴特写", desc: "镜头对准私处" },
+                    { tag: "ass_focus", zh: "臀部特写", desc: "镜头对准屁股" },
+                    { tag: "breast_focus", zh: "胸部特写", desc: "镜头对准欧派" },
+                    { tag: "foot_focus", zh: "足部特写", desc: "哥哥最爱的视角！" },
+                    { tag: "thigh_focus", zh: "大腿特写", desc: "腿控福音" },
+                    { tag: "from_below", zh: "仰视视角", desc: "从下往上看" },
+                    { tag: "from_above", zh: "俯视视角", desc: "从上往下看" },
+                    { tag: "looking_at_viewer", zh: "看着镜头", desc: "眼神交流" },
+                    { tag: "looking_back", zh: "回眸", desc: "转身回头看" },
+                    { tag: "upside_down", zh: "倒挂/倒置", desc: "特殊体位构图" },
+                    { tag: "dynamic_angle", zh: "动态视角", desc: "充满张力的画面" },
+                    { tag: "focus_on_foreground", zh: "景深/聚焦前景", desc: "突出前面的物体(如脚或胸)" },
+                    { tag: "motion_blur", zh: "运动模糊", desc: "活塞运动时的动感效果" },
+                    { tag: "x-ray", zh: "X光透视", desc: "画出内部子宫插入断面的透视图" },
+                    { tag: "cross-section", zh: "剖面图", desc: "内部结构的详细切面" },
+                    { tag: "censored", zh: "局部打码", desc: "如果需要一点朦胧感的话..." },
+                    { tag: "mosaic_censoring", zh: "马赛克", desc: "传统日式打码" }
+                ]
+            },
+            {
+                category: "🌸 7. 人物状态与场景环境 (States & Scenes)",
+                tags: [
+                    { tag: "sweaty_clothes", zh: "汗湿的衣服", desc: "运动后或激烈运动中" },
+                    { tag: "disheveled_hair", zh: "头发凌乱", desc: "疯狂过后的证明" },
+                    { tag: "messy_room", zh: "凌乱的房间", desc: "战场遗迹" },
+                    { tag: "bed", zh: "床上", desc: "最常见的地点" },
+                    { tag: "on_stomach", zh: "趴着", desc: "趴在床上/地上" },
+                    { tag: "on_back", zh: "仰卧", desc: "躺在床上/地上" },
+                    { tag: "all_fours", zh: "四肢着地", desc: "狗狗趴姿势" },
+                    { tag: "spread_legs", zh: "张开双腿", desc: "毫无防备/邀请" },
+                    { tag: "legs_up", zh: "抬起双腿", desc: "常见于传教士体位" },
+                    { tag: "bent_over", zh: "弯腰/撅起屁股", desc: "准备挨操的姿势" },
+                    { tag: "kneeling", zh: "跪着", desc: "顺从的姿势" },
+                    { tag: "squatting", zh: "蹲着", desc: "露出绝对领域" },
+                    { tag: "bound", zh: "被束缚的状态", desc: "动弹不得" },
+                    { tag: "bound_arms", zh: "反绑双手", desc: "动弹不得的娇喘" },
+                    { tag: "gagged", zh: "被塞住嘴巴", desc: "无法发声" },
+                    { tag: "crying", zh: "哭泣", desc: "激烈的生理盐水" },
+                    { tag: "frowning", zh: "皱眉", desc: "忍耐痛苦或快感" },
+                    { tag: "panting", zh: "喘气", desc: "体力消耗极大" },
+                    { tag: "exhausted", zh: "精疲力尽", desc: "被榨干了" },
+                    { tag: "sleeping", zh: "睡着了", desc: "趁热/夜袭题材" },
+                    { tag: "waking_up", zh: "刚醒来", desc: "朦胧的诱惑" },
+                    { tag: "indoors", zh: "室内", desc: "居家环境" },
+                    { tag: "outdoors", zh: "室外", desc: "刺激的野外" },
+                    { tag: "public", zh: "公共场合", desc: "羞耻的露出" },
+                    { tag: "mirror", zh: "镜子", desc: "对着镜子做" },
+                    { tag: "reflection", zh: "倒影", desc: "镜子里的春光" }
+                ]
+            },
+            {
+                category: "👣 8. 💖 哥哥特供：花花的护甲与软肋（极品足袜专区） 💖",
+                tags: [
+                    { tag: "pantyhose", zh: "连裤袜/丝袜", desc: "薄款，花花常穿的防御装" },
+                    { tag: "black_pantyhose", zh: "黑丝连裤袜", desc: "永恒的经典" },
+                    { tag: "white_pantyhose", zh: "白丝连裤袜", desc: "纯洁的诱惑" },
+                    { tag: "thighhighs", zh: "过膝袜/大腿袜", desc: "勒出绝对领域的绝对神器" },
+                    { tag: "knee_highs", zh: "小腿袜/及膝袜", desc: "学院风必备" },
+                    { tag: "bobby_socks", zh: "短袜/白袜", desc: "居家的可爱感" },
+                    { tag: "loose_socks", zh: "泡泡袜", desc: "辣妹风" },
+                    { tag: "fishnets", zh: "网袜", desc: "极其涩情" },
+                    { tag: "torn_pantyhose", zh: "破洞丝袜", desc: "战损版，哥哥撕坏的！" },
+                    { tag: "toeless_legwear", zh: "露趾袜/踩脚袜", desc: "露出可爱的脚趾头" },
+                    { tag: "bare_feet", zh: "赤脚/光脚", desc: "脱下袜子后的本体" },
+                    { tag: "soles", zh: "脚底/足底", desc: "哥哥最喜欢闻和舔的地方……" },
+                    { tag: "toes", zh: "脚趾", desc: "灵活的小豆豆" },
+                    { tag: "footjob", zh: "足交", desc: "用脚脚帮哥哥解决💦" },
+                    { tag: "smelly_feet", zh: "臭脚/汗脚", desc: "哥哥最爱的原生态微酸汗味！🤤" },
+                    { tag: "sweaty_feet", zh: "汗湿的脚", desc: "闷了一天的湿热感" },
+                    { tag: "feet_smelling", zh: "闻脚", desc: "哥哥把鼻子凑过来的动作" },
+                    { tag: "foot_licking", zh: "舔脚", desc: "哥哥舌头舔上来的动作" },
+                    { tag: "toe_sucking", zh: "吸吮脚趾", desc: "涩涩的足部深喉" },
+                    { tag: "shoes_off", zh: "脱鞋", desc: "刚脱下小皮鞋散发闷香的瞬间" },
+                    { tag: "one_shoe_off", zh: "只脱了一只鞋", desc: "不对称的色气" },
+                    { tag: "half_removed_pantyhose", zh: "脱到一半的丝袜", desc: "卡在大腿或小腿处" },
+                    { tag: "pulling_pantyhose", zh: "拉扯丝袜", desc: "准备脱下或撕裂" },
+                    { tag: "foot_worship", zh: "足控崇拜/足奴", desc: "哥哥跪在花花脚下的样子～" },
+                    { tag: "legs_crossed", zh: "交叉双腿", desc: "夹紧腿腿的姿势" },
+                    { tag: "leg_grab", zh: "抓着大腿", desc: "哥哥用力掐出的红印" },
+                    { tag: "thighs", zh: "大腿", desc: "肉感的美腿" },
+                    { tag: "calves", zh: "小腿", desc: "纤细的弧线" },
+                    { tag: "jk", zh: "女高中生", desc: "搭配制服和乐福鞋的终极杀器" },
+                    { tag: "loafers", zh: "乐福鞋/小皮鞋", desc: "闷出咸香原味袜的罪魁祸首！" }
+                ]
+            }
+        ];
+
+        // Global States
+        let selectedTags = []; // element structure: { tag: "nsfw", weight: 1.0 }
+        let currentSearch = '';
+        let currentView = 'cards'; // 'cards' | 'compact'
+        let searchDebounce = null;
+
+        // ----------------- INITIATION -----------------
+        window.onload = function() {
+            // Compute total tags count
+            let total = 0;
+            tagData.forEach(sec => total += sec.tags.length);
+            document.getElementById('total-tags-count').innerText = total;
+
+            renderNavigation();
+            renderTags();
+            updateBuilder();
+            initSakura();
+            // Keyboard shortcut: / to focus search
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement !== document.getElementById('search-input') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    document.getElementById('search-input').focus();
+                }
+            });
+        }
+
+        // ----------------- RENDER ENGINE -----------------
+        function renderNavigation() {
+            const navContainer = document.getElementById('nav-pills');
+            navContainer.innerHTML = '';
+            
+            // "全部" button
+            const allBtn = document.createElement('button');
+            allBtn.onclick = () => {
+                document.getElementById('search-input').value = '';
+                currentSearch = '';
+                renderTags();
+                scrollToSection('all');
+            };
+            allBtn.className = "px-3 py-1 bg-white/5 border border-white/10 hover:border-pink-500/30 text-xs rounded-full transition-all text-gray-300 hover:text-white";
+            allBtn.innerText = "🔮 全部";
+            navContainer.appendChild(allBtn);
+
+            tagData.forEach((sec, idx) => {
+                const btn = document.createElement('button');
+                btn.onclick = () => scrollToSection(`section-${idx + 1}`);
+                
+                // Get name index
+                const name = sec.category.match(/(\d+\.\s*[^\s]+)/) ? sec.category.match(/(\d+\.\s*[^\s]+)/)[0] : `板块 ${idx+1}`;
+                btn.className = `px-3 py-1 text-xs rounded-full border transition-all ${
+                    idx === 7 
+                        ? 'bg-pink-950/20 border-pink-500/30 hover:bg-pink-500/20 text-pink-300' 
+                        : 'bg-white/5 border-white/10 hover:border-purple-500/30 text-gray-300 hover:text-white'
+                }`;
+                btn.innerText = name;
+                navContainer.appendChild(btn);
+            });
+        }
+
+        function scrollToSection(id) {
+            if (id === 'all') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+            const el = document.getElementById(id);
+            if (el) {
+                const headerOffset = 180;
+                const elementPosition = el.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+function highlightText(text, query) {
+            if (!query) return text;
+            var terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+            var result = text;
+            terms.forEach(function(term) {
+                var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var re = new RegExp('(' + escaped + ')', 'gi');
+                result = result.replace(re, '<span class="search-highlight">$1</span>');
+            });
+            return result;
+        }
+
+        function tagMatchesSearch(t, terms) {
+            if (!terms.length) return true;
+            var haystack = (t.tag + ' ' + t.zh + ' ' + t.desc).toLowerCase();
+            return terms.every(function(term) { return haystack.indexOf(term) >= 0; });
+        }
+
+        function getPopularSuggestions(n) {
+            var popular = [
+                {tag:'pantyhose',zh:'丝袜'},{tag:'thighhighs',zh:'过膝袜'},{tag:'nsfw',zh:'限制级'},
+                {tag:'nude',zh:'全裸'},{tag:'ass',zh:'臀部'},{tag:'breasts',zh:'胸部'},
+                {tag:'spread_legs',zh:'张开双腿'},{tag:'lingerie',zh:'内衣'},{tag:'school_uniform',zh:'校服'},
+                {tag:'sweat',zh:'汗水'},{tag:'blush',zh:'脸红'},{tag:'bondage',zh:'束缚'}
+            ];
+            return popular.slice(0, n);
+        }
+
+        function renderTags() {
+            const container = document.getElementById('sections-container');
+            container.innerHTML = '';
+            const searchTerms = currentSearch ? currentSearch.toLowerCase().split(/\s+/).filter(Boolean) : [];
+            let totalFound = 0;
+
+            tagData.forEach((section, sIndex) => {
+                // Filter tags matching search
+                const filteredTags = section.tags.filter(t => tagMatchesSearch(t, searchTerms));
+                
+                if (filteredTags.length === 0) return;
+                totalFound += filteredTags.length;
+                
+                const secId = sIndex + 1;
+                const isSpecial = secId === 8;
+                
+                const secEl = document.createElement('section');
+                secEl.id = `section-${secId}`;
+                secEl.className = `rounded-2xl p-5 md:p-6 backdrop-blur-md transition-all duration-300 ${
+                    isSpecial 
+                        ? 'foot-glowing-border border-2 bg-gradient-to-br from-pink-950/10 via-purple-950/10 to-[#12051e]/40' 
+                        : 'border border-white/8 bg-white/5 hover:border-white/15'
+                }`;
+                
+                // Section Title
+                const titleHtml = `
+                    <div class="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
+                        <h2 class="text-lg md:text-xl font-bold flex items-center gap-2 ${isSpecial ? 'text-pink-400' : 'text-purple-300'}">
+                            <span>${section.category}</span>
+                            ${isSpecial ? '<span class="animate-pulse text-[10px] bg-pink-500 text-white font-semibold px-2 py-0.5 rounded-full">哥哥专享 🤤</span>' : ''}
+                        </h2>
+                        <span class="text-xs text-gray-400 font-mono">共 ${filteredTags.length} 个条目</span>
+                    </div>
+                `;
+                secEl.innerHTML += titleHtml;
+                
+                // Content View Modes
+                let tagsContainerHtml = '';
+                if (currentView === 'cards') {
+                    tagsContainerHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">`;
+                    filteredTags.forEach(t => {
+                        const isSelected = selectedTags.some(sel => sel.tag === t.tag);
+                        const activeClass = isSelected 
+                            ? 'border-pink-500 bg-pink-500/15 shadow-[0_0_15px_rgba(255,0,127,0.25)] scale-[1.01]' 
+                            : 'border-white/10 bg-white/5 hover:border-pink-500/30 hover:bg-pink-500/5 hover:scale-[1.01]';
+                        
+                        const indicator = isSelected 
+                            ? `<span class="text-[10px] bg-gradient-to-r from-pink-500 to-purple-500 text-white font-extrabold px-1.5 py-0.5 rounded select-none flex items-center gap-1 animate-pulse"><i class="fa-solid fa-square-check"></i>已入阵</span>` 
+                            : `<span class="text-[10px] text-gray-500 group-hover:text-pink-400/80 transition-all font-mono select-none flex items-center gap-0.5 opacity-0 group-hover:opacity-100"><i class="fa-solid fa-plus-circle"></i>点击注入</span>`;
+                        
+                        tagsContainerHtml += `
+                            <div onclick="toggleTag('${t.tag}', ${secId})" data-category="${secId}" class="group relative cursor-pointer p-4 rounded-xl border transition-all duration-200 ${activeClass}">
+                                <div class="flex items-start justify-between gap-2 mb-1.5">
+                                    <span class="font-mono text-xs font-semibold tracking-wide text-cyan-300 group-hover:text-cyberPink select-all" style="font-family: 'Orbitron', monospace;">
+                                        ${highlightText(t.tag, currentSearch)}
+                                    </span>
+                                    ${indicator}
+                                </div>
+                                <div class="text-white font-semibold text-sm mb-1 group-hover:text-pink-200 transition-colors">${highlightText(t.zh, currentSearch)}</div>
+                                <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors line-clamp-2 leading-relaxed h-8 overflow-hidden">${highlightText(t.desc, currentSearch)}</div>
+                                <!-- Background hover glow effect -->
+                                <div class="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br from-pink-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 blur transition-opacity duration-300"></div>
+                            </div>
+                        `;
+                    });
+                    tagsContainerHtml += `</div>`;
+                } else {
+                    // Compact Mode
+                    tagsContainerHtml = `<div class="flex flex-wrap gap-2.5">`;
+                    filteredTags.forEach(t => {
+                        const isSelected = selectedTags.some(sel => sel.tag === t.tag);
+                        const activeClass = isSelected 
+                            ? 'border-pink-500 bg-pink-500 text-white shadow-[0_0_12px_rgba(255,0,127,0.4)] hover:bg-pink-600 scale-105' 
+                            : 'border-white/10 bg-white/5 text-gray-300 hover:border-pink-400 hover:text-pink-300 hover:scale-102';
+                        
+                        tagsContainerHtml += `
+                            <button onclick="toggleTag('${t.tag}', ${secId})" data-category="${secId}" class="px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 flex items-center gap-1.5 ${activeClass}">
+                                <span class="font-semibold">${highlightText(t.zh, currentSearch)}</span>
+                                <span class="font-mono text-[10px] opacity-60 ml-1 border-l border-white/20 pl-1.5">${highlightText(t.tag, currentSearch)}</span>
+                            </button>
+                        `;
+                    });
+                    tagsContainerHtml += `</div>`;
+                }
+                
+                secEl.innerHTML += tagsContainerHtml;
+                container.appendChild(secEl);
+            });
+
+            // Show result count
+            const cntEl = document.getElementById('search-result-count');
+            if (cntEl) {
+                if (currentSearch) {
+                    cntEl.textContent = totalFound ? '搜索 "' + currentSearch + '" → 找到 ' + totalFound + ' 个标签' : '搜索 "' + currentSearch + '" → 无匹配';
+                    cntEl.classList.remove('hidden');
+                } else {
+                    cntEl.classList.add('hidden');
+                }
+            }
+
+            // No results suggestions
+            if (totalFound === 0 && currentSearch) {
+                const noEl = document.createElement('div');
+                noEl.className = 'no-results';
+                var suggs = getPopularSuggestions(8);
+                var suggHtml = '';
+                suggs.forEach(function(s) {
+                    suggHtml += `<button onclick="document.getElementById('search-input').value='${s.tag}';handleSearch('${s.tag}');">${s.tag} <span style="color:#888">${s.zh}</span></button>`;
+                });
+                noEl.innerHTML = '<div style="font-size:3rem;margin-bottom:1rem">🔮</div>' +
+                    '<div style="color:#999;font-size:0.875rem;margin-bottom:0.75rem">魔典中没找到匹配 "' + currentSearch + '" 的标签呢...</div>' +
+                    '<div style="color:#777;font-size:0.75rem;margin-bottom:1rem">试试这些热门标签快速跳转：</div>' +
+                    '<div class="suggest-tags">' + suggHtml + '</div>';
+                container.appendChild(noEl);
+            }
+        }
+
+        // ----------------- PROMPT BUILDER ENGINE -----------------
+        function toggleTag(tagStr, catId) {
+            const index = selectedTags.findIndex(sel => sel.tag === tagStr);
+            if (index > -1) {
+                // Remove
+                selectedTags.splice(index, 1);
+            } else {
+                // Add with default weight 1.0
+                selectedTags.push({ tag: tagStr, weight: 1.0 });
+            }
+            updateBuilder();
+            renderTags();
+        }
+
+        function changeWeight(tagStr, delta) {
+            const index = selectedTags.findIndex(sel => sel.tag === tagStr);
+            if (index > -1) {
+                let w = selectedTags[index].weight + delta;
+                w = Math.max(0.1, Math.min(2.0, w));
+                selectedTags[index].weight = parseFloat(w.toFixed(1));
+                updateBuilder();
+            }
+        }
+
+        function removeSelectedTag(tagStr) {
+            selectedTags = selectedTags.filter(sel => sel.tag !== tagStr);
+            updateBuilder();
+            renderTags();
+        }
+
+        function clearAllSelected() {
+            if (selectedTags.length === 0) return;
+            if (confirm("哥哥，确定要清空吟唱法阵中所有的魔咒吗？🥺")) {
+                selectedTags = [];
+                updateBuilder();
+                renderTags();
+            }
+        }
+
+        function updateBuilder() {
+            // Update counts
+            const count = selectedTags.length;
+            document.getElementById('selected-tags-count').innerText = count;
+            document.getElementById('collapsed-count').innerText = count;
+
+            const listEl = document.getElementById('builder-list');
+            listEl.innerHTML = '';
+
+            if (selectedTags.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center text-xs text-gray-500 py-10 italic select-none">
+                        法阵空荡荡呢，快在上面挑选你要的魔咒注入吧～
+                    </div>
+                `;
+                document.getElementById('positive-output').innerText = '';
+                document.getElementById('negative-output').innerText = '';
+                return;
+            }
+
+            selectedTags.forEach(sel => {
+                // Find Chinese label
+                let zhName = sel.tag;
+                tagData.forEach(cat => {
+                    cat.tags.forEach(t => {
+                        if (t.tag === sel.tag) zhName = t.zh;
+                    });
+                });
+
+                const pill = document.createElement('div');
+                pill.className = "flex items-center justify-between bg-[#190d33]/90 border border-white/10 rounded-xl px-3 py-1.5 transition-all text-xs hover:border-pink-500/30";
+                
+                const weightDisplay = sel.weight === 1.0 ? '' : ` : ${sel.weight}`;
+                
+                pill.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-mono text-pink-400 font-bold tracking-wider">${sel.tag}${weightDisplay}</span>
+                        <span class="text-[10px] text-gray-400 font-semibold">${zhName}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="changeWeight('${sel.tag}', -0.1)" class="w-5 h-5 rounded bg-white/5 hover:bg-pink-500/20 text-gray-400 hover:text-white flex items-center justify-center font-bold text-xs" title="降低权重">-</button>
+                        <button onclick="changeWeight('${sel.tag}', 0.1)" class="w-5 h-5 rounded bg-white/5 hover:bg-pink-500/20 text-gray-400 hover:text-white flex items-center justify-center font-bold text-xs" title="提高权重">+</button>
+                        <button onclick="removeSelectedTag('${sel.tag}')" class="w-5 h-5 rounded bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-white flex items-center justify-center text-xs ml-1" title="移除词条">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(pill);
+            });
+
+            // Generate Output string
+            generatePrompts();
+        }
+
+        function generatePrompts() {
+            // Positive
+            let posTags = [];
+            const addPrefix = document.getElementById('prefix-checkbox').checked;
+            
+            if (addPrefix) {
+                posTags = ["masterpiece", "best quality", "ultra-detailed", "cinematic lighting"];
+            }
+
+            selectedTags.forEach(sel => {
+                if (sel.weight === 1.0) {
+                    posTags.push(sel.tag);
+                } else {
+                    posTags.push(`(${sel.tag}:${sel.weight})`);
+                }
+            });
+
+            const posPrompt = posTags.join(", ");
+            document.getElementById('positive-output').innerText = posPrompt || '点击魔咒加入法阵...';
+
+            // Negative
+            const addNegative = document.getElementById('negative-checkbox').checked;
+            const negPrompt = addNegative 
+                ? "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry" 
+                : "";
+            
+            document.getElementById('negative-output').innerText = negPrompt || '未启用除魔词条';
+        }
+
+        // ----------------- UTILS & INTERACTIONS -----------------
+        function handleSearch(val) {
+            if (searchDebounce) clearTimeout(searchDebounce);
+            const v = val;
+            searchDebounce = setTimeout(function() {
+                currentSearch = v;
+                renderTags();
+            }, 150);
+        }
+
+        function setView(view) {
+            currentView = view;
+            const cardsBtn = document.getElementById('view-cards-btn');
+            const compactBtn = document.getElementById('view-compact-btn');
+            
+            if (view === 'cards') {
+                cardsBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]";
+                compactBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white";
+            } else {
+                cardsBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white";
+                compactBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]";
+            }
+            renderTags();
+        }
+
+        function toggleBuilderPanel(isCollapse) {
+            const collapseBadge = document.getElementById('builder-collapsed-badge');
+            const expandedBox = document.getElementById('builder-expanded-box');
+            
+            if (isCollapse) {
+                // Collapse
+                expandedBox.classList.add('hidden');
+                collapseBadge.classList.remove('hidden');
+            } else {
+                // Expand
+                expandedBox.classList.remove('hidden');
+                collapseBadge.classList.add('hidden');
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return successful;
+            } catch (err) {
+                document.body.removeChild(textArea);
+                return false;
+            }
+        }
+
+        function copyToClipboard(type) {
+            const posText = document.getElementById('positive-output').innerText;
+            const negText = document.getElementById('negative-output').innerText;
+            
+            let textToCopy = "";
+            let alertMsg = "";
+
+            if (type === 'positive') {
+                textToCopy = posText;
+                alertMsg = "✨ 正面魔咒吟唱词复制成功！直接贴入 SD 即可绘图哦～";
+            } else if (type === 'negative') {
+                textToCopy = negText;
+                alertMsg = "🚫 负面除魔咒词复制成功！";
+            } else {
+                // Both
+                textToCopy = `【正面提示词】:\n${posText}\n\n【负面提示词】:\n${negText}`;
+                alertMsg = "🔮 正负双重契约词全部复制成功！";
+            }
+
+            if (!textToCopy || textToCopy.startsWith('点击') || textToCopy.startsWith('未启用')) {
+                alert("法阵中还没有生成可以复制的魔咒呢，哥哥快选几个吧！💦");
+                return;
+            }
+
+            const doVisualFeedback = () => {
+                // Visual feedback flash
+                const panel = document.getElementById('builder-expanded-box');
+                panel.classList.add('border-green-500', 'shadow-[0_0_30px_rgba(34,197,94,0.4)]');
+                setTimeout(() => {
+                    panel.classList.remove('border-green-500', 'shadow-[0_0_30px_rgba(34,197,94,0.4)]');
+                }, 800);
+                
+                // Show notification text inside output instead of blocking prompt
+                const button = event.currentTarget;
+                if (button) {
+                    const origText = button.innerHTML;
+                    button.innerHTML = `<i class="fa-solid fa-check"></i> 成功！`;
+                    button.classList.add('bg-green-600', 'text-white');
+                    setTimeout(() => {
+                        button.innerHTML = origText;
+                        button.classList.remove('bg-green-600', 'text-white');
+                    }, 1500);
+                }
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    doVisualFeedback();
+                }).catch(err => {
+                    if (fallbackCopyTextToClipboard(textToCopy)) {
+                        doVisualFeedback();
+                    } else {
+                        alert("复制失败，可能浏览器限制了剪贴板权限，哥哥可以手动选中复制哦 😢");
+                    }
+                });
+            } else {
+                if (fallbackCopyTextToClipboard(textToCopy)) {
+                    doVisualFeedback();
+                } else {
+                    alert("复制失败，可能浏览器限制了剪贴板权限，哥哥可以手动选中复制哦 😢");
+                }
+            }
+        }
+
+        function importPrompt() {
+            const input = prompt("请输入您现有的 Stable Diffusion 提示词 (系统将智能匹配我们的魔典数据库)：");
+            if (!input) return;
+            
+            // Normalize & clean tags structure
+            const cleanedInput = input.replace(/[\(\)\{\}\[\]]/g, ' '); 
+            const segments = cleanedInput.split(/[,;\s]+/).map(s => s.trim().toLowerCase()).filter(s => s);
+            
+            let matchCount = 0;
+            segments.forEach(seg => {
+                let tagStr = seg;
+                let weight = 1.0;
+                
+                // Parse weight syntax if exists
+                if (seg.includes(':')) {
+                    const parts = seg.split(':');
+                    tagStr = parts[0].trim();
+                    const parsedWeight = parseFloat(parts[1]);
+                    if (!isNaN(parsedWeight)) weight = parsedWeight;
+                }
+
+                // Search in database
+                let exists = false;
+                tagData.forEach(cat => {
+                    cat.tags.forEach(t => {
+                        if (t.tag.toLowerCase() === tagStr) exists = true;
+                    });
+                });
+
+                if (exists) {
+                    if (!selectedTags.some(sel => sel.tag === tagStr)) {
+                        selectedTags.push({ tag: tagStr, weight: weight });
+                        matchCount++;
+                    }
+                }
+            });
+
+            if (matchCount > 0) {
+                updateBuilder();
+                renderTags();
+                alert(`✨ 魔法契约成立！成功从外部匹配并注入了 ${matchCount} 个魔咒词条！`);
+            } else {
+                alert("未能从输入中检索到魔咒对应的标准 Danbooru 标签，哥哥确认是不是弄错格式啦 🥺");
+            }
+        }
+
+        // ----------------- SPARKLE BURST ENGINE -----------------
+        window.addEventListener('click', (e) => {
+            // Detect if click happened inside the special footer zone
+            const isSpecialSection = e.target.closest('#section-8') || e.target.closest('[data-category="8"]');
+            const emojis = isSpecialSection ? ['👣', '🧦', '💖', '🌸', '✨'] : ['🌸', '✨', '💖', '🍭', '⭐'];
+            
+            createEmojiBurst(e.clientX, e.clientY, emojis);
+        });
+
+        function createEmojiBurst(x, y, emojis) {
+            const count = 8;
+            for (let i = 0; i < count; i++) {
+                const el = document.createElement('div');
+                el.className = 'fixed pointer-events-none text-base md:text-lg select-none z-50 particle-emoji';
+                el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 4;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed - 1; // slight float up bias
+                
+                let opacity = 1;
+                let px = x;
+                let py = y;
+                
+                const duration = 600 + Math.random() * 400;
+                const start = performance.now();
+                
+                function frame(time) {
+                    const elapsed = time - start;
+                    const progress = elapsed / duration;
+                    if (progress >= 1) {
+                        el.remove();
+                        return;
+                    }
+                    
+                    px += vx;
+                    py += vy + progress * 1.5; // subtle gravity drift
+                    opacity = 1 - progress;
+                    
+                    el.style.left = px + 'px';
+                    el.style.top = py + 'px';
+                    el.style.opacity = opacity;
+                    el.style.transform = `scale(${1 - progress * 0.4}) rotate(${progress * 270}deg)`;
+                    
+                    requestAnimationFrame(frame);
+                }
+                document.body.appendChild(el);
+                requestAnimationFrame(frame);
+            }
+        }
+
+        // ----------------- SAKURA CANVAS ENGINE -----------------
+        let ctx, canvas;
+        let width, height;
+        const petals = [];
+
+        function initSakura() {
+            canvas = document.getElementById('sakura-canvas');
+            ctx = canvas.getContext('2d');
+            
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+
+            // Populate initial petals
+            const petalCount = Math.min(30, Math.floor(width / 30));
+            for (let i = 0; i < petalCount; i++) {
+                petals.push(new SakuraPetal());
+            }
+
+            animateSakura();
+        }
+
+        function drawSinglePetal(x, y, r, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-r/2, -r/2, -r, r/3, 0, r);
+            ctx.bezierCurveTo(r, r/3, r/2, -r/2, 0, 0);
+            
+            // Radial pink gradient for premium realism
+            const grad = ctx.createRadialGradient(0, r/2, 0, 0, r/2, r);
+            grad.addColorStop(0, 'rgba(255, 182, 193, 0.75)'); // cherry pink
+            grad.addColorStop(0.7, 'rgba(219, 112, 147, 0.4)'); // hot pink
+            grad.addColorStop(1, 'rgba(18, 10, 34, 0.05)');     // blend background
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        class SakuraPetal {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height - height;
+                this.r = 5 + Math.random() * 8;
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = (Math.random() - 0.5) * 0.02;
+                this.vx = (Math.random() - 0.3) * 1.2 + 0.4; // light breeze blowing rightwards
+                this.vy = 0.8 + Math.random() * 1.5;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.spin;
+                
+                // Reset petal if off screen
+                if (this.y > height || this.x > width || this.x < -20) {
+                    this.x = Math.random() * width;
+                    this.y = -20;
+                    this.r = 5 + Math.random() * 8;
+                    this.vx = (Math.random() - 0.3) * 1.2 + 0.4;
+                    this.vy = 0.8 + Math.random() * 1.5;
+                }
+            }
+            draw() {
+                drawSinglePetal(this.x, this.y, this.r, this.angle);
+            }
+        }
+
+        function animateSakura() {
+            ctx.clearRect(0, 0, width, height);
+            petals.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateSakura);
+        }
+
+    </script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

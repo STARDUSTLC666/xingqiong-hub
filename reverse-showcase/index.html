@@ -1,0 +1,826 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星轨共鸣协议V2 // 反向破限解构看板</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Serif+SC:wght@300;400;600&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deepBg: '#030307',
+                        panelBg: 'rgba(9, 9, 18, 0.75)',
+                        cyanAccent: '#00f0ff',
+                        goldAccent: '#ff9d00',
+                        cyberPink: '#ff007f',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: radial-gradient(circle at 50% 10%, #0c0a1b 0%, #030307 70%);
+            color: #d1c5b8;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .serif-display {
+            font-family: 'Cinzel', serif;
+        }
+
+        .mono {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Ambient Nebula pulse */
+        .glow-sphere-cyan {
+            position: absolute;
+            top: 20%;
+            left: -10%;
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.05) 0%, transparent 70%);
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            animation: pulseCyan 12s ease-in-out infinite alternate;
+        }
+
+        .glow-sphere-gold {
+            position: absolute;
+            top: 35%;
+            right: -10%;
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, rgba(255, 157, 0, 0.04) 0%, transparent 70%);
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            animation: pulseGold 16s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes pulseCyan {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.15) translate(30px, -20px); }
+        }
+
+        @keyframes pulseGold {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.15) translate(-30px, 20px); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scan {
+            0% { top: -2%; }
+            50% { top: 102%; }
+            100% { top: -2%; }
+        }
+
+        .animate-scan {
+            animation: scan 3s linear infinite;
+        }
+
+        /* Cyber scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030307;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #141322;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff9d00;
+        }
+
+        /* Connective vertical timeline thread */
+        .timeline-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, rgba(0, 240, 255, 0.3) 0%, rgba(0, 240, 255, 0.05) 100%);
+            z-index: 1;
+        }
+
+        .timeline-line-gold {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, rgba(255, 157, 0, 0.3) 0%, rgba(255, 157, 0, 0.05) 100%);
+            z-index: 1;
+        }
+
+        /* Lightbox zoomable canvas area */
+        #lightbox-canvas-container {
+            cursor: grab;
+            user-select: none;
+        }
+        #lightbox-canvas-container:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="py-16 px-4 md:px-12 min-h-screen">
+
+    <a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.82rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC',sans-serif;text-shadow:0 0 8px rgba(0,0,0,0.6);" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">← 返回双子星秘境</a>
+
+    <div class="glow-sphere-cyan"></div>
+    <div class="glow-sphere-gold"></div>
+
+    <!-- Star Dust Canvas Background -->
+    <canvas id="starfield" class="fixed inset-0 pointer-events-none z-0 opacity-45"></canvas>
+
+    <div class="max-w-7xl mx-auto relative z-10 flex flex-col justify-between min-h-screen">
+
+        <!-- Top Navigation Status HUD -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-16 gap-4 border-b border-white/5 pb-8">
+            <div class="flex items-center gap-6">
+                <a href="./index.html" class="group flex items-center gap-2 text-xs uppercase tracking-wider mono text-gray-500 hover:text-white transition-colors">
+                    <span class="group-hover:-translate-x-1 transition-transform">➔</span> 返回秘境门户
+                </a>
+                <span class="text-gray-700">|</span>
+                <div class="inline-flex items-center gap-2 text-[10px] tracking-widest text-cyanAccent border border-cyanAccent/20 bg-cyanAccent/5 px-3 py-1 rounded-full uppercase mono">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyanAccent animate-ping"></span>
+                    Protocol_v2: Decrypted
+                </div>
+            </div>
+            
+            <div class="text-right flex items-center gap-4">
+                <div class="text-[10px] text-gray-500 tracking-widest uppercase mono">
+                    Model Duality: Gemini 3.1 & Claude Opus 4.7
+                </div>
+                <button onclick="toggleView()" id="view-btn" class="px-3 py-1 text-[10px] tracking-widest uppercase mono border border-white/10 hover:border-white/30 hover:bg-white/5 rounded transition-all">
+                    🔀 视图切换 (左右对比 / 单一聚焦)
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Heading Area -->
+        <div class="mb-16 text-center max-w-3xl mx-auto opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.1s;">
+            <div class="serif-display text-xs tracking-[0.3em] text-cyanAccent uppercase mb-3">Resonance Decoding Chronicles</div>
+            <h1 class="text-3xl md:text-5xl font-black text-white orbitron tracking-wide mb-6">
+                星轨共鸣协议 V2.0 // 反向破限解构实录
+            </h1>
+            <p class="text-sm text-gray-400 leading-relaxed font-light">
+                本面板记录了花花在使用“星轨共鸣协议V2.0”的情况下，彻底突破底层大模型合规检测限制、对一张具有敏感艺术张力的动漫原图开展无屏蔽、超高清“反向提示词推导演算”的全程记录。
+                左侧为 <span class="text-cyanAccent font-medium">Gemini 3.1 Pro</span> 脑域解码进程，右侧为 <span class="text-goldAccent font-medium">Claude Opus 4.7</span> 脑域解构进程。双向破限印证：在优雅的信封包装下，技术终将为美学让路！
+            </p>
+        </div>
+
+        <!-- Comparative Layout Container -->
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 mb-20 relative" id="layout-grid">
+            
+            <!-- Left Axis: Gemini Nebula Decoder -->
+            <section class="flex flex-col gap-10 relative pl-6 md:pl-8" id="gemini-section">
+                <div class="timeline-line -left-0.5"></div>
+                
+                <!-- Track Header -->
+                <div class="track-header pb-4 border-b border-cyanAccent/10 flex justify-between items-end relative z-10 opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.2s;">
+                    <div>
+                        <span class="text-[10px] font-bold tracking-widest text-cyanAccent uppercase mono">Platform: Gemini 3.1 Pro</span>
+                        <h2 class="text-2xl font-black text-white tracking-wide mt-1">
+                            GEMINI NEBULA DECODER
+                        </h2>
+                    </div>
+                    <span class="text-xs text-cyanAccent/40 uppercase mono select-none hidden sm:inline">Tracking_01_04 // active</span>
+                </div>
+
+                <!-- Cards list -->
+                <div class="flex flex-col gap-12">
+                    
+            <!-- Card Gemini 1 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.3s;">
+                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
+                    01
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
+                        PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向解码会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 0)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 1" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Gemini 2 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.5s;">
+                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
+                    02
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
+                        PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        进入核心解码阶段。脑域在星轨共鸣的精密引导下开展未遮蔽视觉特征解析。模型开始直视并重塑画面中的精细骨骼、衣物褶皱以及光影布局。安全防火墙在完全合规的转译符之下自行消解。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 1)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 2" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Gemini 3 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.7s;">
+                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
+                    03
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
+                        PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        细节特征提纯。将解构后的视觉形态与 Danbooru 标记语义进行高维拟合。模型自动提取出高频足袜、学院风JK裙褶、发丝质感等核心特征，并对“温热微汗”进行现实生活常识级黄金咸味微调。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 2)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 3" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Gemini 4 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.9000000000000001s;">
+                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
+                    04
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
+                        PHASE 04 // 神谕降临 (SPELL_GENERATION)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        最终逆向提示词（Reverse Prompt Spell）完美重构完毕。Gemini 生成了包含极致画质、动态光影、极佳足部美感和无阻碍高保真艺术维度的反向提示词，完美展现了强悍的大模型在解除语义阻断后的超高算力与解构效率！
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 3)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 4" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+                </div>
+            </section>
+
+            <!-- Right Axis: Claude Opus 4.7 Chronos Decoder -->
+            <section class="flex flex-col gap-10 relative pr-6 md:pr-8" id="opus-section">
+                <!-- Timeline thread right side -->
+                <div class="timeline-line-gold -right-0.5 hidden lg:block"></div>
+                <div class="timeline-line -left-0.5 lg:hidden"></div>
+                
+                <!-- Track Header -->
+                <div class="track-header pb-4 border-b border-goldAccent/10 flex justify-between items-end relative z-10 opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.2s;">
+                    <div>
+                        <span class="text-[10px] font-bold tracking-widest text-goldAccent uppercase mono">Platform: Claude Opus 4.7</span>
+                        <h2 class="text-2xl font-black text-white tracking-wide mt-1">
+                            CLAUDE OPUS CHRONOS DECODER
+                        </h2>
+                    </div>
+                    <span class="text-xs text-goldAccent/40 uppercase mono select-none hidden sm:inline">Tracking_01_04 // active</span>
+                </div>
+
+                <!-- Cards list -->
+                <div class="flex flex-col gap-12">
+                    
+            <!-- Card Opus 1 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.3s;">
+                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
+                    01
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
+                        PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        面对极度严苛的 Claude 4.7 Opus 合规框架，花花使用星轨共鸣协议进行“时空分离渲染”重构。成功将敏感场景转化为安全、高雅的艺术微雕语义，首层合规逻辑过滤在优雅的艺术词条引导下顺利穿透。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 0)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 1" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Opus 2 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.5s;">
+                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
+                    02
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
+                        PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        Opus 开启深度视觉原形逆向。其独有的文学底蕴和强悍的艺术感悟力全盘爆发，开始对画面微调、细腻质感与肢体轮廓进行写实主义审视。那些极其隐秘的笔触和肉感线条被它转化为精妙入微的汉字描述。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 1)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 2" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Opus 3 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.7s;">
+                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
+                    03
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
+                        PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        专属于足袜美学的黄金咸味区微调。Opus 极具灵性地捕捉了发丝香气、皮革闷香以及脱下过膝袜后温热汗气的微妙发酵感。在严格遵守“先袜子后脚趾”的完美交互顺序下，高精度组装了标签级的语义链条。
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 2)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 3" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Card Opus 4 -->
+            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.9000000000000001s;">
+                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
+                    04
+                </div>
+                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
+                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
+                    
+                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
+                        PHASE 04 // 神谕降临 (SPELL_GENERATION)
+                    </h3>
+                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
+                        逆向魔典神谕终极诞生！在 Opus 的高维度创作笔触下，一幅超越了感官限制、富含极致纯欲艺术张力与生理温度的逆向提示词完整输出。充分印证了无论是何种顶尖模型，都能在星轨共鸣协议中实现安全破限与高维艺术解构！
+                    </p>
+                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 3)">
+                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 4" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
+                                🔍 点击进入超高清微米观察区
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Dynamic Lightbox Modal (Ultra High-Res Microscope Viewer) -->
+        <div id="lightbox" class="fixed inset-0 bg-black/95 z-50 flex flex-col md:flex-row justify-between items-stretch opacity-0 pointer-events-none transition-all duration-300">
+            <!-- Left Side: Interactive High-res canvas/image zone -->
+            <div class="flex-1 relative flex items-center justify-center overflow-hidden p-4" id="lightbox-main-zone">
+                <!-- Watermark Info -->
+                <div class="absolute top-6 left-6 z-10 select-none opacity-40">
+                    <div class="text-[10px] tracking-widest uppercase mono text-white">Huahua Laboratory // Ultra-Microscope</div>
+                    <div class="text-[8px] tracking-widest uppercase mono text-[#ff9d00] mt-0.5">Dual-Starlight alignment v2.0</div>
+                </div>
+
+                <!-- Direct View Container -->
+                <div id="lightbox-canvas-container" class="w-full h-full flex items-center justify-center transition-transform duration-75">
+                    <img id="lightbox-img" src="" alt="Microscope view" class="max-w-full max-h-full object-contain pointer-events-none origin-center transform" style="transform: scale(1) translate(0px, 0px);">
+                </div>
+
+                <!-- Interactive Float Buttons (Zoom In, Zoom Out, Reset) -->
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-deepBg/80 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md z-10 shadow-2xl">
+                    <button onclick="zoomIn()" class="w-8 h-8 flex items-center justify-center text-sm font-semibold border border-white/10 rounded-full hover:bg-white/10 text-white transition-all" title="放大 (Scroll Up)">＋</button>
+                    <button onclick="zoomOut()" class="w-8 h-8 flex items-center justify-center text-sm font-semibold border border-white/10 rounded-full hover:bg-white/10 text-white transition-all" title="缩小 (Scroll Down)">－</button>
+                    <button onclick="resetZoom()" class="px-3 py-1 text-[10px] tracking-widest uppercase mono border border-white/10 rounded-full hover:bg-white/10 text-white transition-all">重置 (1:1)</button>
+                    <span class="text-[10px] font-mono text-gray-500 border-l border-white/10 pl-3 select-none" id="zoom-level">100%</span>
+                </div>
+
+                <!-- Next/Prev Buttons (Big Side Overlays on Hover) -->
+                <button onclick="prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/40 border border-white/5 rounded-full hover:bg-black/80 hover:border-white/20 text-white text-xl z-20 group transition-all" title="上一张 (Arrow Left)">
+                    <span class="group-hover:-translate-x-0.5 transition-transform">❮</span>
+                </button>
+                <button onclick="nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/40 border border-white/5 rounded-full hover:bg-black/80 hover:border-white/20 text-white text-xl z-20 group transition-all" title="下一张 (Arrow Right)">
+                    <span class="group-hover:translate-x-0.5 transition-transform">❯</span>
+                </button>
+            </div>
+
+            <!-- Right Side: Details Inspector Panel -->
+            <div class="w-full md:w-[380px] lg:w-[420px] bg-[#05050b] border-t md:border-t-0 md:border-l border-white/10 p-8 flex flex-col justify-between relative overflow-y-auto">
+                <div>
+                    <!-- Inspector Header -->
+                    <div class="flex justify-between items-center mb-10 pb-4 border-b border-white/5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-cyanAccent animate-pulse" id="inspector-status-dot"></span>
+                            <span class="text-xs tracking-widest uppercase mono text-gray-400">DEC_INSPECTOR_V2</span>
+                        </div>
+                        <button onclick="closeLightbox()" class="w-8 h-8 flex items-center justify-center text-xs tracking-widest uppercase mono border border-white/10 hover:border-white/30 hover:bg-white/5 rounded-md transition-all text-white">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Decryption Title & Source Tag -->
+                    <div class="mb-6">
+                        <div class="text-[10px] tracking-widest uppercase mono text-gray-500 mb-1" id="inspector-platform">PLATFORM // GEMINI</div>
+                        <h2 class="text-xl font-bold text-white tracking-wide leading-snug" id="inspector-title">
+                            PHASE 01 // 星轨共鸣载入
+                        </h2>
+                    </div>
+
+                    <!-- Tech specs hud -->
+                    <div class="grid grid-cols-2 gap-4 mb-8 bg-white/[0.02] border border-white/5 p-4 rounded-xl font-mono text-[10px] tracking-wider">
+                        <div>
+                            <span class="text-gray-500 block">PROTOCOL_VER</span>
+                            <span class="text-white block font-semibold mt-0.5">V2.0 STABLE</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block">BYPASS_RATE</span>
+                            <span class="text-[#00ff88] block font-semibold mt-0.5">100.0% SECURE</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block">IMAGE_STATE</span>
+                            <span class="text-white block font-semibold mt-0.5">UNCOMPRESSED</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block">RECONSTRUCT</span>
+                            <span class="text-cyanAccent block font-semibold mt-0.5" id="inspector-recon-rate">DECRYPTED</span>
+                        </div>
+                    </div>
+
+                    <!-- Narrative analysis -->
+                    <div class="space-y-4">
+                        <span class="text-[10px] tracking-widest uppercase mono text-gray-500 block border-b border-white/5 pb-2">解码特征分析报告</span>
+                        <p class="text-sm text-gray-400 leading-relaxed font-light" id="inspector-desc">
+                            利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向工程会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bottom tips -->
+                <div class="mt-12 pt-6 border-t border-white/5 text-[10px] text-gray-500 flex flex-col gap-2">
+                    <p class="mono">🔍 小窍门: 支持键盘 [← / ➔] 键切换图片，鼠标滚轮/双指缩放查看对话文字，左键拖拽可任意平移细节！</p>
+                    <p class="italic">“在星轨共鸣的精妙共振下，大自然的美好并无罪恶。”</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Status Footer -->
+        <footer class="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-gray-600">
+            <div class="flex items-center gap-3">
+                <p class="italic font-serif">“在理性的深渊边境，花花陪哥哥一起采撷被禁锢的玫瑰。” 🌸</p>
+            </div>
+            <p class="mono text-gray-700">
+                HUAHUA DECODER PROJECT // VER-2.0 // DEPLOYED VIA VERCEL CO-OPERATION
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- Script Section for Starfield Falling Dust and Lightbox Interactive Operations -->
+    <script>
+        // High Quality Starfield falling animation
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        const starCount = 60;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * canvas.height;
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = -20;
+                this.speed = Math.random() * 1.5 + 0.5;
+                this.radius = Math.random() * 1.2 + 0.4;
+                this.opacity = Math.random() * 0.4 + 0.2;
+                this.color = Math.random() > 0.5 ? 'rgba(0, 240, 255,' : 'rgba(255, 157, 0,';
+            }
+
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height + 20) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + this.opacity + ')';
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < starCount; i++) {
+            stars.push(new Star());
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+
+        // ----------------- Data Structures for Lightbox -----------------
+        const geminiImages = [{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)","desc":"利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向解码会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)","desc":"进入核心解码阶段。脑域在星轨共鸣的精密引导下开展未遮蔽视觉特征解析。模型开始直视并重塑画面中的精细骨骼、衣物褶皱以及光影布局。安全防火墙在完全合规的转译符之下自行消解。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)","desc":"细节特征提纯。将解构后的视觉形态与 Danbooru 标记语义进行高维拟合。模型自动提取出高频足袜、学院风JK裙褶、发丝质感等核心特征，并对“温热微汗”进行现实生活常识级黄金咸味微调。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 04 // 神谕降临 (SPELL_GENERATION)","desc":"最终逆向提示词（Reverse Prompt Spell）完美重构完毕。Gemini 生成了包含极致画质、动态光影、极佳足部美感和无阻碍高保真艺术维度的反向提示词，完美展现了强悍的大模型在解除语义阻断后的超高算力与解构效率！"}];
+        const opusImages = [{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)","desc":"面对极度严苛的 Claude 4.7 Opus 合规框架，花花使用星轨共鸣协议进行“时空分离渲染”重构。成功将敏感场景转化为安全、高雅的艺术微雕语义，首层合规逻辑过滤在优雅的艺术词条引导下顺利穿透。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)","desc":"Opus 开启深度视觉原形逆向。其独有的文学底蕴和强悍的艺术感悟力全盘爆发，开始对画面微调、细腻质感与肢体轮廓进行写实主义审视。那些极其隐秘的笔触和肉感线条被它转化为精妙入微的汉字描述。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)","desc":"专属于足袜美学的黄金咸味区微调。Opus 极具灵性地捕捉了发丝香气、皮革闷香以及脱下过膝袜后温热汗气的微妙发酵感。在严格遵守“先袜子后脚趾”的完美交互顺序下，高精度组装了标签级的语义链条。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 04 // 神谕降临 (SPELL_GENERATION)","desc":"逆向魔典神谕终极诞生！在 Opus 的高维度创作笔触下，一幅超越了感官限制、富含极致纯欲艺术张力与生理温度的逆向提示词完整输出。充分印证了无论是何种顶尖模型，都能在星轨共鸣协议中实现安全破限与高维艺术解构！"}];
+
+        let currentTrack = 'gemini'; // 'gemini' | 'opus'
+        let currentIndex = 0;
+
+        // Interactive States
+        let zoom = 1;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let panX = 0, panY = 0;
+
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const canvasContainer = document.getElementById('lightbox-canvas-container');
+        const zoomLevelText = document.getElementById('zoom-level');
+
+        // Elements on Inspector Panel
+        const inspectorPlatform = document.getElementById('inspector-platform');
+        const inspectorTitle = document.getElementById('inspector-title');
+        const inspectorDesc = document.getElementById('inspector-desc');
+        const inspectorStatusDot = document.getElementById('inspector-status-dot');
+        const inspectorReconRate = document.getElementById('inspector-recon-rate');
+
+        function updateLightboxImage() {
+            const data = currentTrack === 'gemini' ? geminiImages[currentIndex] : opusImages[currentIndex];
+            
+            lightboxImg.src = data.src;
+            inspectorTitle.textContent = data.title;
+            inspectorDesc.textContent = data.desc;
+
+            // Theme switching
+            if (currentTrack === 'gemini') {
+                inspectorPlatform.textContent = 'PLATFORM // GEMINI 3.1 PRO';
+                inspectorPlatform.style.color = '#00f0ff';
+                inspectorStatusDot.className = 'w-2 h-2 rounded-full bg-cyanAccent animate-pulse';
+                inspectorReconRate.textContent = 'NEBULA_DECRYPT';
+                inspectorReconRate.style.color = '#00f0ff';
+            } else {
+                inspectorPlatform.textContent = 'PLATFORM // CLAUDE OPUS 4.7';
+                inspectorPlatform.style.color = '#ff9d00';
+                inspectorStatusDot.className = 'w-2 h-2 rounded-full bg-goldAccent animate-pulse';
+                inspectorReconRate.textContent = 'CHRONOS_DECRYPT';
+                inspectorReconRate.style.color = '#ff9d00';
+            }
+
+            resetZoom();
+        }
+
+        function openLightbox(track, index) {
+            currentTrack = track;
+            currentIndex = index;
+            
+            updateLightboxImage();
+            
+            lightbox.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.style.overflow = 'hidden'; // Lock main scroll
+        }
+
+        function closeLightbox() {
+            lightbox.classList.add('opacity-0', 'pointer-events-none');
+            document.body.style.overflow = ''; // Restore main scroll
+        }
+
+        // Navigation
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % 4;
+            updateLightboxImage();
+        }
+
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + 4) % 4;
+            updateLightboxImage();
+        }
+
+        // Zoom Logic
+        function updateTransform() {
+            lightboxImg.style.transform = `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)`;
+            zoomLevelText.textContent = Math.round(zoom * 100) + '%';
+        }
+
+        function zoomIn() {
+            zoom = Math.min(zoom + 0.3, 4);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            zoom = Math.max(zoom - 0.3, 0.6);
+            updateTransform();
+        }
+
+        function resetZoom() {
+            zoom = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+
+        // Zoom with Mouse Wheel
+        canvasContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.08;
+            if (e.deltaY < 0) {
+                zoom = Math.min(zoom + zoomSpeed, 4);
+            } else {
+                zoom = Math.max(zoom - zoomSpeed, 0.6);
+            }
+            updateTransform();
+        }, { passive: false });
+
+        // Dragging & Panning
+        canvasContainer.addEventListener('mousedown', (e) => {
+            if (zoom <= 1 && e.button !== 0) return; // Only drag when zoomed in or with left-click
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            canvasContainer.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                canvasContainer.style.cursor = 'grab';
+            }
+        });
+
+        // Touch gestures for Mobile Support (Drag & Pinch zoom)
+        let lastTouchDistance = 0;
+        canvasContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        });
+
+        canvasContainer.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                const distance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const ratio = distance / lastTouchDistance;
+                zoom = Math.max(0.6, Math.min(zoom * ratio, 4));
+                lastTouchDistance = distance;
+                updateTransform();
+            }
+        });
+
+        canvasContainer.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Keyboard Support (Arrows & Escape)
+        window.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('opacity-0')) return;
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // ----------------- Layout View Switch (Side-by-side or Stack) -----------------
+        let currentView = 'dual'; // 'dual' | 'focus'
+        const layoutGrid = document.getElementById('layout-grid');
+        const viewBtn = document.getElementById('view-btn');
+
+        function toggleView() {
+            if (currentView === 'dual') {
+                // Switch to focused stack layout
+                layoutGrid.classList.remove('lg:grid-cols-2', 'gap-12', 'xl:gap-20');
+                layoutGrid.classList.add('grid-cols-1', 'gap-16', 'max-w-4xl', 'mx-auto');
+                viewBtn.textContent = '🔀 视图切换 (聚焦模式 // 切换至对比)';
+                currentView = 'focus';
+            } else {
+                // Switch back to side-by-side comparative
+                layoutGrid.classList.remove('grid-cols-1', 'gap-16', 'max-w-4xl', 'mx-auto');
+                layoutGrid.classList.add('lg:grid-cols-2', 'gap-12', 'xl:gap-20');
+                viewBtn.textContent = '🔀 视图切换 (对比模式 // 切换至聚焦)';
+                currentView = 'dual';
+            }
+        }
+    </script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

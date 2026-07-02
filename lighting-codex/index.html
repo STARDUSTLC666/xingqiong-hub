@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lighting Codex · 双子星光影魔典</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* === CATEGORY NAV === */
+.cat-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
+.cat-btn {
+  padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+  background: rgba(232,168,96,0.04); border: 1px solid rgba(232,168,96,0.1); color: rgba(200,200,224,0.5);
+  font-family: inherit; letter-spacing: 0.03em;
+}
+.cat-btn:hover { border-color: rgba(232,168,96,0.3); color: #d0b880; }
+.cat-btn.active { background: rgba(232,168,96,0.15); border-color: #e8a860; color: #e8a860; }
+
+/* === LIGHTING GRID === */
+.light-card {
+  background: rgba(10,10,24,0.5); border: 1px solid rgba(255,215,150,0.06);
+  border-radius: 10px; padding: 0.8rem 1rem; cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column; gap: 0.3rem;
+}
+.light-card:hover { border-color: rgba(232,168,96,0.3); background: rgba(20,20,40,0.6); transform: translateY(-1px); }
+.light-card .l-en { font-size: 0.82rem; color: #d0b880; font-family: 'Consolas', monospace; }
+.light-card .l-cn { font-size: 0.7rem; color: rgba(200,200,224,0.4); }
+.light-card .l-cat { font-size: 0.6rem; color: rgba(200,200,224,0.25); margin-top: 0.2rem; }
+.light-card.copied { animation: copiedFlash 0.5s ease; }
+@keyframes copiedFlash { 0%{border-color:#e8a860;box-shadow:0 0 12px rgba(232,168,96,0.3)} 100%{border-color:rgba(255,215,150,0.06)} }
+
+/* === SANDBOX === */
+.sandbox-area { min-height: 80px; }
+#sandboxTags { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 2.2rem; align-items: flex-start; }
+.sandbox-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.25rem 0.6rem; border-radius: 16px; font-size: 0.75rem;
+  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2); color: #d0b880;
+  cursor: default;
+}
+.sandbox-chip .remove { cursor: pointer; font-size: 0.7rem; opacity: 0.5; margin-left: 0.1rem; }
+.sandbox-chip .remove:hover { opacity: 1; color: #e08080; }
+#sandboxPrompt { min-height: 50px; }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+
+  <header class="page-header fade-in">
+    <h1>✨ 双子星光影魔典</h1>
+    <p class="subtitle">LIGHTING CODEX · 二次元环境光影标签大全</p>
+  </header>
+
+  <!-- === INTRO === -->
+  <section class="panel fade-in d1">
+    <p class="text-muted" style="line-height:1.8;">
+      光影是二次元画面的灵魂。正确的环境光标签能让角色与场景融为一体，错误的光影标签会让画面看起来"贴图感"十足。
+      本魔典收录 <strong class="text-gold">80+ 种</strong> 高频环境光影标签，覆盖轮廓光、昏暗灯、自然光、室内光、特效光五大类。
+      点击任意标签即可复制英文标签名到剪贴板，拖入沙箱可组合生成复合光影 Prompt。
+    </p>
+  </section>
+
+  <!-- === CATEGORY NAV === -->
+  <div class="cat-nav fade-in d1" id="catNav">
+    <button class="cat-btn active" data-cat="all">全部 (80+)</button>
+    <button class="cat-btn" data-cat="rim">轮廓光 · Rim & Back</button>
+    <button class="cat-btn" data-cat="dim">昏暗灯 · Dim & Dark</button>
+    <button class="cat-btn" data-cat="natural">自然光 · Natural</button>
+    <button class="cat-btn" data-cat="indoor">室内光 · Indoor</button>
+    <button class="cat-btn" data-cat="fx">特效光 · FX</button>
+  </div>
+
+  <!-- === LIGHTING GRID === -->
+  <section class="gs-grid gs-grid-3 fade-in d2" id="lightGrid"></section>
+
+  <!-- === MAGIC SANDBOX === -->
+  <section class="panel fade-in d3 mt-2">
+    <div class="panel-title">🧪 提示词魔法沙箱</div>
+    <p class="text-muted mb-1">点击上方光影标签将它们加入沙箱，组合多个光影标签生成复合 Prompt。</p>
+    <div class="sandbox-area">
+      <div id="sandboxTags" style="margin-bottom:0.8rem;"></div>
+      <div id="sandboxPromptContainer" style="display:none;">
+        <h4 style="color:#e8a860;font-size:0.82rem;margin-bottom:0.4rem;">生成的复合 Prompt：</h4>
+        <pre id="sandboxPrompt" style="white-space:pre-wrap;word-break:break-word;"></pre>
+        <div class="flex-row mt-1">
+          <button class="btn btn-primary btn-sm" onclick="copySandbox()">📋 复制复合 Prompt</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSandbox()">✕ 清空沙箱</button>
+        </div>
+      </div>
+      <p id="sandboxEmpty" class="text-muted">沙箱空空如也…点击上方光影卡片填充它吧 ✨</p>
+    </div>
+  </section>
+
+  <!-- === USAGE GUIDE === -->
+  <section class="panel fade-in d4">
+    <div class="panel-title">📖 光影标签使用指南</div>
+    <div class="gs-grid gs-grid-2">
+      <div>
+        <h4 style="color:#e8a860;font-size:0.82rem;margin-bottom:0.5rem;">✅ 正确用法</h4>
+        <p class="text-muted" style="line-height:1.8;">
+          · 1-2 个主光源 + 1 个氛围光 = 最佳效果<br>
+          · <code>backlighting + rim lighting</code> → 轮廓光组合<br>
+          · <code>sunlight + god rays</code> → 自然光穿透<br>
+          · <code>cinematic lighting + volumetric</code> → 电影级<br>
+          · 先定光源方向，再选光影强度，最后补细节
+        </p>
+      </div>
+      <div>
+        <h4 style="color:#e08080;font-size:0.82rem;margin-bottom:0.5rem;">❌ 避雷指南</h4>
+        <p class="text-muted" style="line-height:1.8;">
+          · <code>sunlight + moonlight</code> → 光源矛盾<br>
+          · <code>bright + dim lighting</code> → 亮度冲突<br>
+          · <code>backlighting + frontal lighting</code> → 方向互斥<br>
+          · 不堆超过 4 个光影标签 → 污染画面<br>
+          · <code>lens flare + dark scene</code> → 不合逻辑
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === LIGHTING DATA: 80+ tags in 5 categories ===
+var LIGHTS = [
+  // RIM & BACK (轮廓光)
+  { en:'backlighting', cn:'逆光/背光', cat:'rim', desc:'光源在主体后方，形成发丝光效果' },
+  { en:'rim lighting', cn:'轮廓光/边缘光', cat:'rim', desc:'主体边缘有一圈亮光，突出轮廓' },
+  { en:'rim light', cn:'轮缘光', cat:'rim', desc:'rim lighting 的同义标签' },
+  { en:'edge lighting', cn:'边缘高光', cat:'rim', desc:'强调物体边缘的高光' },
+  { en:'hair light', cn:'发丝光', cat:'rim', desc:'专门照亮头发的背光' },
+  { en:'silhouette', cn:'剪影', cat:'rim', desc:'主体呈黑暗轮廓，背景明亮' },
+  { en:'contre-jour', cn:'逆光摄影', cat:'rim', desc:'法式逆光，镜头直对光源' },
+  { en:'strong backlight', cn:'强逆光', cat:'rim', desc:'强烈的背光效果' },
+  { en:'light rays from behind', cn:'后方光束', cat:'rim', desc:'从主体后方射来的光束' },
+  { en:'chromatic aberration rim', cn:'色差边缘光', cat:'rim', desc:'带色差的边缘光效' },
+
+  // DIM & DARK (昏暗光)
+  { en:'dim lighting', cn:'昏暗光线', cat:'dim', desc:'整体偏暗的环境照明' },
+  { en:'dark', cn:'黑暗', cat:'dim', desc:'极暗环境，几乎无光' },
+  { en:'darkness', cn:'漆黑', cat:'dim', desc:'浓厚黑暗氛围' },
+  { en:'low light', cn:'低光', cat:'dim', desc:'光线不足的环境' },
+  { en:'night', cn:'夜晚', cat:'dim', desc:'夜间场景' },
+  { en:'candlelight', cn:'烛光', cat:'dim', desc:'蜡烛照明的暖暗环境' },
+  { en:'moonlight', cn:'月光', cat:'dim', desc:'月亮照明的冷暗环境' },
+  { en:'twilight', cn:'暮光', cat:'dim', desc:'黄昏/黎明时的微弱光线' },
+  { en:'dusk', cn:'黄昏', cat:'dim', desc:'黄昏时分的柔和光线' },
+  { en:'dark room', cn:'暗室', cat:'dim', desc:'黑暗的室内空间' },
+  { en:'shadow', cn:'阴影', cat:'dim', desc:'强调阴影对比' },
+  { en:'silhouette lighting', cn:'剪影光', cat:'dim', desc:'剪影风格的光影处理' },
+  { en:'noir lighting', cn:'黑色电影光', cat:'dim', desc:'高对比黑白光影风格' },
+  { en:'crepuscular rays', cn:'云隙光/曙暮光条', cat:'dim', desc:'从云层缝隙射出的光柱' },
+
+  // NATURAL (自然光)
+  { en:'sunlight', cn:'阳光', cat:'natural', desc:'明亮的自然阳光' },
+  { en:'natural lighting', cn:'自然光照', cat:'natural', desc:'模拟真实自然光环境' },
+  { en:'golden hour', cn:'黄金时刻', cat:'natural', desc:'日出/日落时分的暖金色光线' },
+  { en:'blue hour', cn:'蓝色时刻', cat:'natural', desc:'日出前/日落后蓝调光线' },
+  { en:'morning light', cn:'晨光', cat:'natural', desc:'清晨柔和光线' },
+  { en:'afternoon light', cn:'午后光', cat:'natural', desc:'下午的明亮光线' },
+  { en:'sunset', cn:'日落', cat:'natural', desc:'日落时分的橙色光线' },
+  { en:'sunrise', cn:'日出', cat:'natural', desc:'日出时分的粉色光线' },
+  { en:'overcast', cn:'阴天', cat:'natural', desc:'多云天气的柔和漫射光' },
+  { en:'shade', cn:'树荫/阴影', cat:'natural', desc:'在阴影下的柔和光线' },
+  { en:'dappled light', cn:'斑驳光', cat:'natural', desc:'穿过树叶的斑驳光影' },
+  { en:'god rays', cn:'圣光/丁达尔光', cat:'natural', desc:'穿过缝隙的可见光束' },
+  { en:'tyndall effect', cn:'丁达尔效应', cat:'natural', desc:'光线在胶体中散射的现象' },
+  { en:'rainbow', cn:'彩虹', cat:'natural', desc:'雨后/水雾中的彩虹' },
+  { en:'light through window', cn:'窗外光', cat:'natural', desc:'从窗户射入的自然光' },
+  { en:'blinding light', cn:'眩目光', cat:'natural', desc:'刺眼的强光' },
+
+  // INDOOR (室内光)
+  { en:'indoor lighting', cn:'室内光', cat:'indoor', desc:'室内人造光源环境' },
+  { en:'studio lighting', cn:'影棚光', cat:'indoor', desc:'专业摄影棚照明' },
+  { en:'softbox lighting', cn:'柔光箱光', cat:'indoor', desc:'柔光箱打出的柔和均匀光' },
+  { en:'fluorescent light', cn:'荧光灯', cat:'indoor', desc:'冷白色荧光管照明' },
+  { en:'incandescent light', cn:'白炽灯', cat:'indoor', desc:'暖黄色钨丝灯光' },
+  { en:'warm lighting', cn:'暖光', cat:'indoor', desc:'温暖色调的照明' },
+  { en:'cold lighting', cn:'冷光', cat:'indoor', desc:'冷色调（蓝白）照明' },
+  { en:'stage lighting', cn:'舞台光', cat:'indoor', desc:'剧场/舞台聚光灯效果' },
+  { en:'spotlight', cn:'聚光灯', cat:'indoor', desc:'单一束集中光线' },
+  { en:'classroom lighting', cn:'教室灯光', cat:'indoor', desc:'典型教室荧光灯环境' },
+  { en:'ambient light', cn:'环境光', cat:'indoor', desc:'均匀散布的整体照明' },
+  { en:'overhead lighting', cn:'顶光', cat:'indoor', desc:'从头顶打来的光线' },
+  { en:'fairy lights', cn:'小灯串/仙女灯', cat:'indoor', desc:'装饰性小灯泡串' },
+  { en:'lantern light', cn:'灯笼光', cat:'indoor', desc:'纸灯笼/灯笼发出的暖光' },
+
+  // FX (特效光)
+  { en:'neon lights', cn:'霓虹灯', cat:'fx', desc:'彩色霓虹管灯光' },
+  { en:'cyberpunk lighting', cn:'赛博朋克光', cat:'fx', desc:'赛博朋克风的霓虹/蓝紫光' },
+  { en:'volumetric lighting', cn:'体积光', cat:'fx', desc:'可见的体积光柱效果' },
+  { en:'dramatic lighting', cn:'戏剧光', cat:'fx', desc:'高对比度戏剧化光影' },
+  { en:'cinematic lighting', cn:'电影光', cat:'fx', desc:'电影级光影质感' },
+  { en:'glowing', cn:'发光', cat:'fx', desc:'物体自发光效果' },
+  { en:'bioluminescence', cn:'生物荧光', cat:'fx', desc:'生物体自发光（萤火虫/深海）' },
+  { en:'magic circle glow', cn:'魔法阵光', cat:'fx', desc:'魔法阵发出的光芒' },
+  { en:'explosion light', cn:'爆炸光', cat:'fx', desc:'爆炸产生的强烈光线' },
+  { en:'fire light', cn:'火光', cat:'fx', desc:'火焰照明的跳动光线' },
+  { en:'lightning', cn:'闪电', cat:'fx', desc:'闪电瞬间的强烈光照' },
+  { en:'laser', cn:'激光', cat:'fx', desc:'激光束/激光效果' },
+  { en:'hologram', cn:'全息光', cat:'fx', desc:'全息投影的虚化光线' },
+  { en:'portal light', cn:'传送门光', cat:'fx', desc:'传送门/虫洞光芒' },
+  { en:'lens flare', cn:'镜头光晕', cat:'fx', desc:'镜头直对光源产生的光晕' },
+  { en:'sparkle', cn:'星光/闪烁', cat:'fx', desc:'细小光芒闪烁效果' },
+  { en:'bokeh', cn:'散景', cat:'fx', desc:'焦外虚化的圆形光斑' },
+  { en:'reflection light', cn:'反射光', cat:'fx', desc:'水面/镜面反射的光线' },
+  { en:'rainbow lighting', cn:'彩虹光', cat:'fx', desc:'多色渐变彩虹光效' },
+  { en:'glitch light', cn:'故障艺术光', cat:'fx', desc:'数字故障风的RGB分离光效' },
+  { en:'underwater lighting', cn:'水下光', cat:'fx', desc:'水底折射的波光效果' },
+  { en:'aurora', cn:'极光', cat:'fx', desc:'北极光/南极光效果' }
+];
+
+// === RENDER LIGHT GRID ===
+var grid = document.getElementById('lightGrid');
+var currentCat = 'all';
+
+function renderGrid(cat){
+  currentCat = cat;
+  var filtered = cat === 'all' ? LIGHTS : LIGHTS.filter(function(l){ return l.cat === cat; });
+  var html = '';
+  filtered.forEach(function(l){
+    html += '<div class="light-card" data-en="'+l.en+'" data-cat="'+l.cat+'" onclick="onLightClick(this,\''+l.en.replace(/'/g,"\\'")+'\')">';
+    html += '<span class="l-en">'+l.en+'</span>';
+    html += '<span class="l-cn">'+l.cn+'</span>';
+    html += '<span class="l-cat">'+l.desc+'</span>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  document.getElementById('catNav').querySelectorAll('.cat-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+}
+
+// === CAT NAV CLICKS ===
+document.getElementById('catNav').addEventListener('click', function(e){
+  if (e.target.classList.contains('cat-btn')) renderGrid(e.target.dataset.cat);
+});
+
+// === LIGHT CARD CLICK: COPY + ADD TO SANDBOX ===
+function onLightClick(el, tag){
+  gsCopy(tag);
+  el.classList.add('copied');
+  setTimeout(function(){ el.classList.remove('copied'); }, 500);
+  addToSandbox(tag);
+}
+
+// === SANDBOX LOGIC ===
+var sandboxTags = [];
+
+function addToSandbox(tag){
+  if (sandboxTags.indexOf(tag) >= 0) { gsToast('已在沙箱中'); return; }
+  sandboxTags.push(tag);
+  renderSandbox();
+}
+
+function removeFromSandbox(idx){
+  sandboxTags.splice(idx, 1);
+  renderSandbox();
+}
+
+function renderSandbox(){
+  var container = document.getElementById('sandboxTags');
+  var promptContainer = document.getElementById('sandboxPromptContainer');
+  var empty = document.getElementById('sandboxEmpty');
+  var prompt = document.getElementById('sandboxPrompt');
+
+  if (sandboxTags.length === 0){
+    container.innerHTML = '';
+    promptContainer.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  promptContainer.style.display = 'block';
+
+  // Render chips
+  var html = '';
+  sandboxTags.forEach(function(t, i){
+    html += '<span class="sandbox-chip">'+t+'<span class="remove" onclick="event.stopPropagation();removeFromSandbox('+i+')">✕</span></span>';
+  });
+  container.innerHTML = html;
+
+  // Generate composite prompt
+  var promptText = '1girl, ' + sandboxTags.join(', ') + ', high quality, detailed';
+  prompt.textContent = promptText;
+}
+
+function copySandbox(){
+  var text = document.getElementById('sandboxPrompt').textContent;
+  if (!text.trim()) return gsToast('沙箱为空');
+  gsCopy(text);
+}
+
+function clearSandbox(){
+  sandboxTags = [];
+  renderSandbox();
+  gsToast('沙箱已清空');
+}
+
+// === INIT ===
+renderGrid('all');
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

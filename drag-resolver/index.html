@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drag Resolver · 拖拽冲突排查</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* === DRAG TEST AREA === */
+.drag-test-box {
+  width: 100%;
+  min-height: 140px;
+  border: 2px dashed rgba(200,200,224,0.12);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: all 0.3s;
+  background: rgba(10,10,24,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.drag-test-box.highlight {
+  border-color: #e8a860;
+  background: rgba(232,168,96,0.05);
+  box-shadow: inset 0 0 40px rgba(232,168,96,0.06);
+}
+.drag-test-box p { color: rgba(200,200,224,0.35); font-size: 0.82rem; letter-spacing: 0.05em; }
+.drag-events-log {
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 0.72rem;
+  font-family: 'Consolas','Courier New',monospace;
+  color: rgba(200,200,224,0.45);
+  margin-top: 0.5rem;
+  line-height: 1.8;
+}
+.drag-events-log .event-line { padding: 0.1rem 0.4rem; border-radius: 4px; }
+.drag-events-log .event-line.enter { color: #78c878; }
+.drag-events-log .event-line.leave { color: #cc8080; }
+.drag-events-log .event-line.drop { color: #e8a860; }
+.drag-events-log .event-line.over { color: #8ca0dc; }
+
+/* === CONFLICT TABLE === */
+.conflict-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+.conflict-item {
+  background: rgba(16,16,36,0.5);
+  border: 1px solid rgba(255,215,150,0.06);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  transition: border-color 0.3s;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem 1rem;
+  align-items: start;
+}
+.conflict-item:hover { border-color: rgba(232,168,96,0.2); }
+.conflict-name {
+  font-family: 'Consolas','Courier New',monospace;
+  font-size: 0.88rem;
+  color: #e8a860;
+  grid-column: 1;
+}
+.conflict-severity {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+  align-self: start;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.sev-high { background:rgba(255,80,80,0.12); color:#e06060; border:1px solid rgba(255,80,80,0.2); }
+.sev-med  { background:rgba(232,168,96,0.1); color:#e0b860; border:1px solid rgba(232,168,96,0.2); }
+.sev-low  { background:rgba(120,200,120,0.08); color:#80c080; border:1px solid rgba(120,200,120,0.15); }
+.conflict-symptom {
+  font-size: 0.78rem;
+  color: rgba(200,200,224,0.5);
+  grid-column: 1;
+  line-height: 1.6;
+}
+.conflict-fix {
+  font-size: 0.76rem;
+  color: rgba(180,200,180,0.5);
+  grid-column: 1/-1;
+  background: rgba(10,10,24,0.3);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+.conflict-fix::before { content: '💡 '; }
+
+/* === SCAN ANIMATION === */
+.scan-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.04);
+  overflow: hidden;
+  margin: 1rem 0 0.5rem;
+  display: none;
+}
+.scan-progress .bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #e8a860, #f0d080);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.scan-log {
+  display: none;
+  font-family: 'Consolas','Courier New',monospace;
+  font-size: 0.7rem;
+  color: rgba(200,200,224,0.3);
+  max-height: 160px;
+  overflow-y: auto;
+  line-height: 1.8;
+  margin-top: 0.5rem;
+}
+.scan-result-badge {
+  display: none;
+  margin-top: 0.6rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+
+  <header class="page-header">
+    <h1>⚡ Drag Resolver</h1>
+    <p class="subtitle">ComfyUI 拖拽失效一键排查 · 冲突检测与修复方案</p>
+  </header>
+
+  <!-- DRAG TEST ZONE -->
+  <div class="panel fade-in">
+    <div class="panel-title">🧪 拖拽行为测试区</div>
+    <p class="text-muted mb-1">将任意文件拖入下方区域，观察浏览器原生拖拽事件是否正常触发（模拟 ComfyUI 行为诊断）</p>
+    <div class="drag-test-box" id="dragBox">
+      <span style="font-size:1.8rem;">🎯</span>
+      <p>Drop files here to test drag events</p>
+    </div>
+    <div class="drag-events-log" id="eventLog">
+      <span style="color:rgba(200,200,224,0.2);">等待拖拽事件...</span>
+    </div>
+  </div>
+
+  <!-- CONFLICT DB -->
+  <div class="panel fade-in d2">
+    <div class="panel-title">🔍 冲突插件数据库</div>
+    <div class="conflict-grid" id="conflictGrid"></div>
+  </div>
+
+  <!-- SIMULATED SCAN -->
+  <div class="panel fade-in d3">
+    <div class="panel-title">🛰️ 模拟文件系统扫描</div>
+    <p class="text-muted mb-1">
+      注意：纯前端演示，不会真的读取你的硬盘文件。模拟扫描 <code>ComfyUI/custom_nodes/</code> 目录下的已知冲突插件。
+    </p>
+    <div class="flex-row">
+      <button class="btn btn-primary" id="scanBtn">🔬 启动模拟扫描</button>
+      <span class="text-muted" id="scanStatus" style="margin-left:0.5rem;"></span>
+    </div>
+    <div class="scan-progress" id="scanProgress"><div class="bar" id="scanBar"></div></div>
+    <div class="scan-log" id="scanLog"></div>
+    <div class="scan-result-badge" id="scanResult"></div>
+  </div>
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // === DRAG TEST ===
+  const dragBox = document.getElementById('dragBox');
+  const eventLog = document.getElementById('eventLog');
+  const events = [];
+  function logEvent(type, msg) {
+    const t = new Date().toLocaleTimeString();
+    events.unshift(`<div class="event-line ${type}">[${t}] ${msg}</div>`);
+    if (events.length > 50) events.pop();
+    eventLog.innerHTML = events.join('');
+  }
+  eventLog.innerHTML = '';
+
+  dragBox.addEventListener('dragenter', e => { e.preventDefault(); dragBox.classList.add('highlight'); logEvent('enter','dragenter ✓ 拖入区域'); });
+  dragBox.addEventListener('dragover', e => { e.preventDefault(); logEvent('over','dragover — 悬停中'); });
+  dragBox.addEventListener('dragleave', () => { dragBox.classList.remove('highlight'); logEvent('leave','dragleave — 离开区域'); });
+  dragBox.addEventListener('drop', e => {
+    e.preventDefault();
+    dragBox.classList.remove('highlight');
+    const files = e.dataTransfer.files;
+    logEvent('drop',`drop ✓ 接收到 ${files.length} 个文件 (${Array.from(files).map(f=>f.name).join(', ')})`);
+  });
+
+  // === CONFLICT PLUGINS ===
+  const conflicts = [
+    {
+      name: 'pysssss-workflows',
+      severity: 'high', sevClass: 'sev-high',
+      symptom: '安装后 ComfyUI 完全无法拖入 PNG 工作流图片。该插件注册了自定义的 drop handler，与 ComfyUI 原生 handler 冲突，导致 drop 事件被拦截。',
+      fix: '在 custom_nodes/pysssss-workflows/ 下找到 __init__.py，注释掉 <code>addEventListener("drop",...)</code> 相关代码段；或直接禁用该插件。'
+    },
+    {
+      name: 'rgthree-comfy',
+      severity: 'high', sevClass: 'sev-high',
+      symptom: '拖拽 PNG 到画布时，浏览器弹出新标签页打开图片而非加载工作流。rgthree 的全局 drag&drop 监听器劫持了默认行为。',
+      fix: '在 rgthree 设置面板中关闭"Enable image drag import"选项；或更新到最新版本（>=v2.2.0 已修复此问题）。'
+    },
+    {
+      name: 'ComfyUI-Manager',
+      severity: 'med', sevClass: 'sev-med',
+      symptom: '部分版本中，Manager 的前端 JS 拦截了拖放事件，导致拖入的 workflow PNG 只在 Manager 面板中显示而非加载到画布。',
+      fix: '升级 ComfyUI-Manager 到最新版本。临时方案：使用"Load"按钮手动选择文件，跳过拖放。'
+    },
+    {
+      name: 'efficiency-nodes-comfyui',
+      severity: 'low', sevClass: 'sev-low',
+      symptom: '偶发性拖拽失效，通常只在打开多个浏览器标签页时出现。不是直接冲突，而是事件冒泡链被效率节点的 DOM 结构打断。',
+      fix: '刷新页面即可恢复。如频繁出现，检查是否有两个以上 ComfyUI 标签页同时打开。'
+    },
+    {
+      name: 'comfyui-workspace-manager',
+      severity: 'med', sevClass: 'sev-med',
+      symptom: '工作区管理插件的浮动面板覆盖在画布上方，拖入 PNG 时文件落入面板而非画布。面板的 z-index 高于画布导致事件被截获。',
+      fix: '关闭工作区管理面板或将其最小化后再拖放。建议在插件设置中调整面板默认显示状态。'
+    },
+    {
+      name: 'TiledDiffusion (WebUI 混用)',
+      severity: 'low', sevClass: 'sev-low',
+      symptom: '如果同时运行了 Stable Diffusion WebUI 和 ComfyUI，浏览器的某些全局扩展可能干扰 ComfyUI 页面的拖放事件。',
+      fix: '在独立的浏览器配置文件或无痕窗口中打开 ComfyUI；禁用可能干扰的浏览器扩展（如拖拽翻译、手势控制等）。'
+    },
+    {
+      name: 'comfyui-browser-extensions',
+      severity: 'med', sevClass: 'sev-med',
+      symptom: '浏览器安装了"超级拖拽"、"拖拽搜索"、"手势导航"等扩展时，这些扩展可能拦截 ComfyUI 页面上的拖放事件。',
+      fix: '将 ComfyUI 的 localhost 地址加入浏览器扩展的白名单；或在访问 ComfyUI 时暂时禁用相关扩展。'
+    },
+    {
+      name: 'WAS-Node-Suite',
+      severity: 'low', sevClass: 'sev-low',
+      symptom: 'WAS 套件在特定配置下会在页面上注入额外的 DOM 层，极少数情况下干扰拖放 target 的识别。仅在特定浏览器+操作系统组合中出现。',
+      fix: '更新 WAS-Node-Suite 到最新版本（>=v1.4）；如仍有问题，在 WAS Suite 设置中关闭"UI Enhancements"。'
+    }
+  ];
+
+  // === RENDER CONFLICTS ===
+  const conflictGrid = document.getElementById('conflictGrid');
+  conflictGrid.innerHTML = conflicts.map(c => `
+    <div class="conflict-item">
+      <div class="conflict-name">📦 ${c.name}</div>
+      <div class="conflict-severity ${c.sevClass}">${c.severity==='high'?'🔴 高风险':c.severity==='med'?'🟡 中等':'🟢 低风险'}</div>
+      <div class="conflict-symptom">${c.symptom}</div>
+      <div class="conflict-fix">${c.fix}</div>
+    </div>
+  `).join('');
+
+  // === SIMULATED SCAN ===
+  const scanBtn = document.getElementById('scanBtn');
+  const scanProgress = document.getElementById('scanProgress');
+  const scanBar = document.getElementById('scanBar');
+  const scanLog = document.getElementById('scanLog');
+  const scanStatus = document.getElementById('scanStatus');
+  const scanResult = document.getElementById('scanResult');
+  let scanning = false;
+
+  const fakeDirs = [
+    'ComfyUI/custom_nodes/ComfyUI-Manager/', 'ComfyUI/custom_nodes/pysssss-workflows/',
+    'ComfyUI/custom_nodes/rgthree-comfy/', 'ComfyUI/custom_nodes/efficiency-nodes-comfyui/',
+    'ComfyUI/custom_nodes/comfyui-workspace-manager/', 'ComfyUI/custom_nodes/WAS-Node-Suite/',
+    'ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus/', 'ComfyUI/custom_nodes/ComfyUI-KJNodes/',
+    'ComfyUI/custom_nodes/ComfyUI-AnimateDiff-Evolved/', 'ComfyUI/custom_nodes/ComfyUI-Impact-Pack/',
+    'ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale/', 'ComfyUI/custom_nodes/comfyui_controlnet_aux/',
+    'ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/', 'ComfyUI/custom_nodes/ComfyUI_TiledKSampler/',
+  ];
+
+  scanBtn.addEventListener('click', async () => {
+    if (scanning) return;
+    scanning = true;
+    scanBtn.disabled = true;
+    scanProgress.style.display = 'block';
+    scanLog.style.display = 'block';
+    scanResult.style.display = 'none';
+    scanBar.style.width = '0%';
+    scanLog.innerHTML = '';
+    scanStatus.textContent = '正在扫描...';
+
+    const foundConflicts = [];
+    const total = fakeDirs.length;
+
+    for (let i = 0; i < total; i++) {
+      await new Promise(r => setTimeout(r, 180 + Math.random() * 200));
+      const dir = fakeDirs[i];
+      const pct = Math.round(((i+1)/total)*100);
+      scanBar.style.width = pct + '%';
+      scanLog.innerHTML += `<div style="color:rgba(200,200,224,0.25);">📁 扫描 ${dir}</div>`;
+
+      // Check if this is a known conflict
+      const matched = conflicts.find(c => dir.toLowerCase().includes(c.name.toLowerCase().replace(/[^a-z0-9-]/g,'')));
+      if (matched) {
+        foundConflicts.push(matched);
+        scanLog.innerHTML += `<div style="color:#e8a860;margin-left:1rem;">⚠ 检测到冲突: ${matched.name}</div>`;
+      }
+      scanLog.scrollTop = scanLog.scrollHeight;
+    }
+
+    // Done
+    scanning = false;
+    scanBtn.disabled = false;
+    scanStatus.textContent = '扫描完成';
+    scanResult.style.display = 'block';
+    if (foundConflicts.length > 0) {
+      scanResult.className = 'scan-result-badge';
+      scanResult.style.background = 'rgba(232,168,96,0.1)';
+      scanResult.style.border = '1px solid rgba(232,168,96,0.25)';
+      scanResult.style.color = '#e8a860';
+      scanResult.textContent = `⚠ 检测到 ${foundConflicts.length} 个潜在冲突: ${foundConflicts.map(c=>c.name).join(' / ')}`;
+    } else {
+      scanResult.style.background = 'rgba(120,200,120,0.08)';
+      scanResult.style.border = '1px solid rgba(120,200,120,0.2)';
+      scanResult.style.color = '#80c080';
+      scanResult.textContent = '✅ 未检测到已知冲突插件，拖拽功能应正常工作';
+    }
+
+    setTimeout(() => { scanProgress.style.display = 'none'; scanStatus.textContent = ''; }, 2000);
+  });
+})();
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

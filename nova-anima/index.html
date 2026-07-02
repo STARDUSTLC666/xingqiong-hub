@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova Anima · 黄金起词手册</title>
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* === PAGE-SPECIFIC === */
+.slot-chain { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+.slot-node {
+  background: rgba(232,168,96,0.06); border: 1px solid rgba(232,168,96,0.15);
+  border-radius: 10px; padding: 0.5rem 0.8rem; font-size: 0.78rem;
+  color: #d0b880; text-align: center; cursor: pointer; transition: all 0.2s;
+  min-width: 70px;
+}
+.slot-node:hover { border-color: rgba(232,168,96,0.4); background: rgba(232,168,96,0.12); }
+.slot-node .slot-label { font-size: 0.6rem; color: rgba(200,200,224,0.3); display: block; }
+.slot-arrow { color: rgba(232,168,96,0.3); font-size: 1rem; }
+.slot-detail { display: none; }
+.slot-detail.show { display: block; }
+
+/* === SECTION HEADER === */
+.section-h { font-family: 'Noto Serif SC', serif; font-size: 0.95rem; color: #e8a860; margin: 1.5rem 0 0.8rem; letter-spacing: 0.03em; }
+
+/* === SLOT PANEL === */
+.slot-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
+.slot-tags .chip { cursor: default; }
+.slot-tags .chip.workbench { cursor: pointer; }
+
+/* === EXPRESSION GRID === */
+.expr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+
+/* === DUAL TEMPLATE === */
+.dual-card { background: rgba(232,168,96,0.04); border: 1px solid rgba(232,168,96,0.1); border-radius: 10px; padding: 1rem; }
+.dual-card h4 { font-size: 0.85rem; color: #e8a860; margin-bottom: 0.5rem; }
+.dual-card pre { font-size: 0.75rem; background: rgba(0,0,0,0.3); }
+
+/* === WORKBENCH === */
+.workbench-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 768px) { .workbench-row { grid-template-columns: 1fr; } }
+#promptOutput {
+  min-height: 100px; font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.82rem; line-height: 1.7; word-break: break-all;
+}
+
+/* === COLLAPSIBLE === */
+.collapsible-header {
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  user-select: none;
+}
+.collapsible-header::after { content: '▾'; font-size: 0.7rem; color: rgba(232,168,96,0.5); transition: transform 0.3s; }
+.collapsible-header.collapsed::after { transform: rotate(-90deg); }
+.collapsible-body { overflow: hidden; transition: max-height 0.3s; }
+.collapsible-body.hidden { max-height: 0 !important; }
+
+/* === BADGE === */
+.badge-slot {
+  display: inline-block; font-size: 0.6rem; padding: 0.1rem 0.4rem;
+  border-radius: 6px; background: rgba(232,168,96,0.15); color: #e8a860;
+  margin-right: 0.3rem; letter-spacing: 0.04em;
+}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+
+  <header class="page-header fade-in">
+    <h1>🌸 Nova Anima · 黄金起词手册</h1>
+    <p class="subtitle">ANIMA & NOVA ANIMA 2.0 · ULTIMATE PROMPT ENGINEERING GUIDE</p>
+  </header>
+
+  <!-- === GOLDEN 9-SLOT CHAIN === -->
+  <section class="panel fade-in d1">
+    <div class="panel-title">✦ 黄金九段式卡槽公式</div>
+    <p class="text-muted mb-1">点选下方卡槽查看详细说明与示例标签。Anima / Nova Anima 2.0 最优出图结构。</p>
+    <div class="slot-chain" id="slotChain">
+      <div class="slot-node" data-slot="subject"><span class="slot-label">①</span>Subject</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="action"><span class="slot-label">②</span>Action</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="clothing"><span class="slot-label">③</span>Clothing</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="expression"><span class="slot-label">④</span>Expression</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="pose"><span class="slot-label">⑤</span>Pose</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="lighting"><span class="slot-label">⑥</span>Lighting</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="background"><span class="slot-label">⑦</span>Background</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="quality"><span class="slot-label">⑧</span>Quality</div>
+      <span class="slot-arrow">→</span>
+      <div class="slot-node" data-slot="style"><span class="slot-label">⑨</span>Style</div>
+    </div>
+
+    <div id="slotDetails" style="margin-top:1rem;"></div>
+  </section>
+
+  <!-- === EXPRESSION GRAMMAR === -->
+  <section class="panel fade-in d2">
+    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+      ✦ 表情结构语法 · Expression Grammar
+    </div>
+    <div class="collapsible-body">
+      <div class="expr-grid" style="margin-top:1rem;">
+        <div>
+          <h4 class="section-h">👁️ 眼部表情</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="sparkling eyes">sparkling eyes · 星眸闪烁</span>
+            <span class="chip workbench" data-tag="half-closed eyes">half-closed eyes · 半闭眼</span>
+            <span class="chip workbench" data-tag="upturned eyes">upturned eyes · 上挑眼</span>
+            <span class="chip workbench" data-tag="downturned eyes">downturned eyes · 下垂眼</span>
+            <span class="chip workbench" data-tag="teary eyes">teary eyes · 含泪眼</span>
+            <span class="chip workbench" data-tag="glowing eyes">glowing eyes · 发光眼</span>
+            <span class="chip workbench" data-tag="empty eyes">empty eyes · 空洞眼</span>
+            <span class="chip workbench" data-tag="narrowed eyes">narrowed eyes · 眯眼</span>
+            <span class="chip workbench" data-tag="wide-eyed">wide-eyed · 睁大眼</span>
+            <span class="chip workbench" data-tag="sharingan">sharingan · 写轮眼</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">👄 嘴部表情</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="smile">smile · 微笑</span>
+            <span class="chip workbench" data-tag="open mouth">open mouth · 张口</span>
+            <span class="chip workbench" data-tag="grin">grin · 咧嘴笑</span>
+            <span class="chip workbench" data-tag="pout">pout · 嘟嘴</span>
+            <span class="chip workbench" data-tag="tongue out">tongue out · 吐舌</span>
+            <span class="chip workbench" data-tag="biting lip">biting lip · 咬唇</span>
+            <span class="chip workbench" data-tag=":3">:3 · 猫嘴</span>
+            <span class="chip workbench" data-tag="frown">frown · 皱眉嘴</span>
+            <span class="chip workbench" data-tag="fang">fang · 虎牙</span>
+            <span class="chip workbench" data-tag="saliva">saliva · 口水</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">😊 组合表情</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="embarrassed">embarrassed · 害羞</span>
+            <span class="chip workbench" data-tag="blush">blush · 脸红</span>
+            <span class="chip workbench" data-tag="angry">angry · 生气</span>
+            <span class="chip workbench" data-tag="sad">sad · 悲伤</span>
+            <span class="chip workbench" data-tag="surprised">surprised · 惊讶</span>
+            <span class="chip workbench" data-tag="sleepy">sleepy · 困倦</span>
+            <span class="chip workbench" data-tag="seductive smile">seductive smile · 魅惑笑</span>
+            <span class="chip workbench" data-tag="naughty face">naughty face · 调皮脸</span>
+            <span class="chip workbench" data-tag="ahegao">ahegao · 阿嘿颜</span>
+            <span class="chip workbench" data-tag="shy">shy · 腼腆</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">💧 表情细节增强</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="sweat">sweat · 汗珠</span>
+            <span class="chip workbench" data-tag="tears">tears · 眼泪</span>
+            <span class="chip workbench" data-tag="blush stickers">blush stickers · 腮红贴纸</span>
+            <span class="chip workbench" data-tag="nosebleed">nosebleed · 鼻血</span>
+            <span class="chip workbench" data-tag="vein">vein · 青筋</span>
+            <span class="chip workbench" data-tag="steam from ears">steam from ears · 耳冒蒸汽</span>
+            <span class="chip workbench" data-tag="facepalm">facepalm · 捂脸</span>
+            <span class="chip workbench" data-tag="eye twitch">eye twitch · 眼角抽搐</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- === CLOTHING GRAMMAR === -->
+  <section class="panel fade-in d3">
+    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+      ✦ 精奢衣服结构语法 · Luxury Clothing Grammar
+    </div>
+    <div class="collapsible-body">
+      <div class="gs-grid gs-grid-2" style="margin-top:1rem;">
+        <div>
+          <h4 class="section-h">👗 基础服装类型</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="school uniform">school uniform · 校服</span>
+            <span class="chip workbench" data-tag="sailor uniform">sailor uniform · 水手服</span>
+            <span class="chip workbench" data-tag="kimono">kimono · 和服</span>
+            <span class="chip workbench" data-tag="yukata">yukata · 浴衣</span>
+            <span class="chip workbench" data-tag="cheongsam">cheongsam · 旗袍</span>
+            <span class="chip workbench" data-tag="hanfu">hanfu · 汉服</span>
+            <span class="chip workbench" data-tag="maid uniform">maid uniform · 女仆装</span>
+            <span class="chip workbench" data-tag="suit">suit · 西装</span>
+            <span class="chip workbench" data-tag="dress">dress · 连衣裙</span>
+            <span class="chip workbench" data-tag="armor">armor · 铠甲</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">🎀 材质与质感</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="silk">silk · 丝绸</span>
+            <span class="chip workbench" data-tag="velvet">velvet · 天鹅绒</span>
+            <span class="chip workbench" data-tag="lace">lace · 蕾丝</span>
+            <span class="chip workbench" data-tag="latex">latex · 乳胶</span>
+            <span class="chip workbench" data-tag="leather">leather · 皮革</span>
+            <span class="chip workbench" data-tag="sheer fabric">sheer fabric · 薄纱</span>
+            <span class="chip workbench" data-tag="gold embroidery">gold embroidery · 金线刺绣</span>
+            <span class="chip workbench" data-tag="jewelry details">jewelry details · 珠宝细节</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">✨ 精奢配饰</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="choker">choker · 项圈</span>
+            <span class="chip workbench" data-tag="ribbon">ribbon · 蝴蝶结</span>
+            <span class="chip workbench" data-tag="hair ornament">hair ornament · 发饰</span>
+            <span class="chip workbench" data-tag="earrings">earrings · 耳环</span>
+            <span class="chip workbench" data-tag="bracelet">bracelet · 手镯</span>
+            <span class="chip workbench" data-tag="anklet">anklet · 脚链</span>
+            <span class="chip workbench" data-tag="collar">collar · 项圈</span>
+            <span class="chip workbench" data-tag="brooch">brooch · 胸针</span>
+            <span class="chip workbench" data-tag="garter">garter · 袜圈</span>
+            <span class="chip workbench" data-tag="hair ribbon">hair ribbon · 发带</span>
+          </div>
+        </div>
+        <div>
+          <h4 class="section-h">👠 鞋袜精配</h4>
+          <div class="slot-tags">
+            <span class="chip workbench" data-tag="thighhighs">thighhighs · 过膝袜</span>
+            <span class="chip workbench" data-tag="pantyhose">pantyhose · 连裤袜</span>
+            <span class="chip workbench" data-tag="knee boots">knee boots · 膝上靴</span>
+            <span class="chip workbench" data-tag="high heels">high heels · 高跟鞋</span>
+            <span class="chip workbench" data-tag="mary janes">mary janes · 玛丽珍鞋</span>
+            <span class="chip workbench" data-tag="loafers">loafers · 乐福鞋</span>
+            <span class="chip workbench" data-tag="geta">geta · 木屐</span>
+            <span class="chip workbench" data-tag="barefoot">barefoot · 赤脚</span>
+            <span class="chip workbench" data-tag="socks">socks · 短袜</span>
+            <span class="chip workbench" data-tag="legwear">legwear · 腿饰</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- === DUAL PERSON CONTROL === -->
+  <section class="panel fade-in d4">
+    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+      ✦ 双人控符神级模版 · Dual Character Templates
+    </div>
+    <div class="collapsible-body" style="margin-top:1rem;">
+      <p class="text-muted mb-1">使用 <code>1girl</code> + <code>1boy</code> / <code>2girls</code> 等组合标签精确控制双人场景。注意姿势与互动的互补性。</p>
+      <div class="gs-grid gs-grid-2">
+        <div class="dual-card">
+          <h4>模版 A · 情侣互动</h4>
+          <pre>1girl, 1boy, couple, holding hands,
+(specific girl description),
+(specific boy description),
+romantic atmosphere, soft lighting,
+looking at each other, blush,
+detailed clothing, masterpiece</pre>
+          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+        </div>
+        <div class="dual-card">
+          <h4>模版 B · 双女主角</h4>
+          <pre>2girls, best friends,
+(girl A: twin tails, school uniform, smile),
+(girl B: long hair, casual, blush),
+interacting, linking arms,
+detailed background, natural lighting,
+anime coloring, masterpiece</pre>
+          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+        </div>
+        <div class="dual-card">
+          <h4>模版 C · 对抗/对手</h4>
+          <pre>1girl, 1boy, rivals, facing each other,
+dynamic pose, action scene,
+(challenger: sword, determined expression),
+(opponent: dark armor, smirk),
+dramatic lighting, sparks,
+epic composition, masterpiece</pre>
+          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+        </div>
+        <div class="dual-card">
+          <h4>模版 D · 姐妹情深</h4>
+          <pre>2girls, sisters, onee-san x imouto,
+(older: mature, long hair, gentle smile),
+(younger: short, twin tails, energetic),
+hugging, cheek to cheek,
+warm lighting, sakura petals,
+heartwarming, masterpiece</pre>
+          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- === QUICK WORKBENCH === -->
+  <section class="panel fade-in d5">
+    <div class="panel-title">⚡ 一键极速起词工作台</div>
+    <p class="text-muted mb-1">在下方选择标签自动构建提示词。所有标签按九段式结构分层排列，点选即添加。</p>
+
+    <div class="workbench-row">
+      <div>
+        <div id="wbSlots"></div>
+      </div>
+      <div>
+        <textarea id="promptOutput" placeholder="选择标签后自动生成提示词…" readonly></textarea>
+        <div class="flex-row mt-1">
+          <button class="btn btn-primary btn-sm" onclick="copyWorkbench()">📋 复制提示词</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearWorkbench()">✕ 清空全部</button>
+          <button class="btn btn-ghost btn-sm" onclick="reorderWorkbench()">🔄 按卡槽重排</button>
+        </div>
+        <p class="text-muted mt-1" id="wbCount" style="font-size:0.7rem;">已选标签：0 个</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- === PRO TIPS === -->
+  <section class="panel fade-in d5">
+    <div class="panel-title">💡 Nova Anima 2.0 出图铁律</div>
+    <div class="gs-grid gs-grid-2">
+      <div>
+        <p class="text-muted" style="line-height:1.8;">
+          ✅ <code>CFG = 5</code> — 高于7会导致塑料皮肤<br>
+          ✅ <code>dpmpp_2m + karras</code> — 最优采样组合<br>
+          ✅ <code>Steps ≥ 30</code> — 低于25噪点明显<br>
+          ✅ <code>896×1152</code> — 竖版人像黄金比例<br>
+          ✅ 负向必写 <code>plastic skin</code>, <code>doll-like</code>, <code>CGI</code>
+        </p>
+      </div>
+      <div>
+        <p class="text-muted" style="line-height:1.8;">
+          ❌ 不用 Euler Ancestral — 脸千篇一律<br>
+          ❌ 不混 <code>photorealistic</code> + <code>anime</code><br>
+          ❌ 不堆超过 3 个风格标签 — 冲突<br>
+          ❌ 不在主体前堆大量背景 — 按卡槽顺<br>
+          ❌ 质量标签 <code>masterpiece</code> 必须放最后
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="../assets/gemini.js"></script>
+<script>
+// === SLOT DATA ===
+var SLOTS = {
+  subject: {
+    title: '① Subject · 主体',
+    desc: '定义画面核心对象：1girl / 1boy / 2girls / solo / animal 等。Anima 系列对主体数量敏感，精确指定可获得更好的构图。',
+    tags: ['1girl','1boy','2girls','2boys','solo','no humans','animal','monster girl','elf','cat girl','fox girl','demon girl','angel','robot girl','warrior','mage','princess','schoolgirl','office lady','nun','nurse']
+  },
+  action: {
+    title: '② Action · 动作',
+    desc: '主体在做什么。动词/动名词短语，决定画面的叙事张力。',
+    tags: ['sitting','standing','walking','running','lying down','floating','dancing','fighting','casting spell','holding object','reading','eating','drinking','sleeping','flying','swimming','kneeling','reaching out','looking back','leaning forward']
+  },
+  clothing: {
+    title: '③ Clothing · 服饰',
+    desc: '服装体系，是角色辨识度的核心。层次：内搭→外衣→配饰→鞋袜。',
+    tags: ['school uniform','sailor uniform','kimono','yukata','cheongsam','maid uniform','armor','suit','casual','dress','skirt','hoodie','sweater','bikini','swimsuit','lingerie','pajamas','china dress','military uniform','gothic']
+  },
+  expression: {
+    title: '④ Expression · 表情',
+    desc: '角色的情绪状态，决定画面感染力。建议从眼→嘴→组合→细节四层递进。',
+    tags: ['smile','blush','angry','sad','surprised','embarrassed','seductive smile','sparkling eyes','teary eyes','half-closed eyes','open mouth','tongue out',':3','fang','ahegao','shy','confident','serious','sleepy','pout']
+  },
+  pose: {
+    title: '⑤ Pose · 姿勢',
+    desc: '身体姿态与镜头关系。决定画面的视觉冲击力和构图。',
+    tags: ['dynamic pose','looking at viewer','looking away','from above','from below','close-up','full body','cowboy shot','profile','arms up','arms behind back','hand on hip','kneeling','spread legs','sitting on chair','straddling','pinup','fighting stance','arabesque','crossed legs']
+  },
+  lighting: {
+    title: '⑥ Lighting · 光影',
+    desc: '环境光线决定画面氛围。详见「双子星光影魔典」子站获取50+标签。',
+    tags: ['soft lighting','cinematic lighting','backlighting','rim lighting','sunlight','moonlight','golden hour','neon lights','candlelight','god rays','volumetric lighting','dramatic lighting','dim lighting','studio lighting','bioluminescence']
+  },
+  background: {
+    title: '⑦ Background · 背景',
+    desc: '场景环境。建议从大环境→小场景→前景元素的顺序添加。',
+    tags: ['outdoor','indoor','cityscape','nature','beach','forest','classroom','bedroom','rooftop','underwater','castle','temple','ruins','cherry blossoms','night sky','starry sky','rain','snow','sunset','meadow']
+  },
+  quality: {
+    title: '⑧ Quality · 品质',
+    desc: '画面质量标签。masterpiece 必须放在品质段最后，作为收束锚点。',
+    tags: ['masterpiece','best quality','high quality','absurdres','intricate details','sharp focus','highres','ultra detailed','8k','highly detailed background','finely detailed','beautiful detailed eyes']
+  },
+  style: {
+    title: '⑨ Style · 风格',
+    desc: '出图风格锚定。Anima 2.0 推荐不超过2个风格标签。',
+    tags: ['anime coloring','cel shading','hand-drawn','anime style','semi-realistic','watercolor style','oil painting style','manga style','illustration','ligne claire','digital painting','pastel','vivid colors','monochrome','sepia']
+  }
+};
+
+// === BUILD SLOT DETAILS ===
+(function buildDetails(){
+  var container = document.getElementById('slotDetails');
+  var html = '';
+  Object.keys(SLOTS).forEach(function(k){
+    var s = SLOTS[k];
+    html += '<div class="slot-detail" id="sd-'+k+'" style="background:rgba(10,10,24,0.4);border-radius:8px;padding:1rem;margin-top:0.5rem;">';
+    html += '<h4 style="color:#e8a860;font-size:0.9rem;margin-bottom:0.3rem;">'+s.title+'</h4>';
+    html += '<p style="font-size:0.75rem;color:rgba(200,200,224,0.45);margin-bottom:0.6rem;">'+s.desc+'</p>';
+    html += '<div class="slot-tags">';
+    s.tags.forEach(function(t){
+      html += '<span class="chip workbench" data-slot="'+k+'" data-tag="'+t+'">'+t+'</span>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+
+  // Click handlers for workbench chips
+  container.querySelectorAll('.chip.workbench').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      this.classList.toggle('active');
+      updateWorkbench();
+    });
+  });
+})();
+
+// Slot chain click
+var currentSlot = null;
+document.querySelectorAll('#slotChain .slot-node').forEach(function(node){
+  node.addEventListener('click', function(){
+    var slot = this.dataset.slot;
+    var detail = document.getElementById('sd-'+slot);
+    if (!detail) return;
+    var all = document.querySelectorAll('.slot-detail');
+    all.forEach(function(d){ d.classList.remove('show'); });
+    if (currentSlot === slot) {
+      currentSlot = null;
+    } else {
+      detail.classList.add('show');
+      currentSlot = slot;
+    }
+  });
+});
+
+// === WORKBENCH LOGIC ===
+var selectedTags = [];
+
+function updateWorkbench(){
+  selectedTags = [];
+  document.querySelectorAll('.chip.workbench.active').forEach(function(chip){
+    selectedTags.push({ slot: chip.dataset.slot, tag: chip.dataset.tag });
+  });
+  renderPrompt();
+  document.getElementById('wbCount').textContent = '已选标签：' + selectedTags.length + ' 个';
+}
+
+function renderPrompt(){
+  var slotOrder = ['subject','action','clothing','expression','pose','lighting','background','quality','style'];
+  var lines = [];
+  slotOrder.forEach(function(sk){
+    var tags = selectedTags.filter(function(t){ return t.slot === sk; }).map(function(t){ return t.tag; });
+    if (tags.length) lines.push(tags.join(', '));
+  });
+  document.getElementById('promptOutput').value = lines.join(',\n');
+}
+
+function copyWorkbench(){
+  var text = document.getElementById('promptOutput').value;
+  if (!text.trim()) return gsToast('请先选择标签');
+  gsCopy(text.replace(/\n/g, ', '));
+}
+
+function clearWorkbench(){
+  document.querySelectorAll('.chip.workbench.active').forEach(function(c){ c.classList.remove('active'); });
+  updateWorkbench();
+}
+
+function reorderWorkbench(){
+  renderPrompt();
+  gsToast('已按卡槽重排');
+}
+
+// === BUILD WORKBENCH SLOT SELECTOR ===
+(function buildWbSlots(){
+  var container = document.getElementById('wbSlots');
+  var slotOrder = ['subject','action','clothing','expression','pose','lighting','background','quality','style'];
+  var html = '';
+  slotOrder.forEach(function(k){
+    var s = SLOTS[k];
+    html += '<div style="margin-bottom:0.6rem;">';
+    html += '<p style="font-size:0.7rem;color:rgba(200,200,224,0.35);margin-bottom:0.25rem;">'+s.title+'</p>';
+    html += '<div class="slot-tags" style="max-height:80px;overflow-y:auto;">';
+    s.tags.forEach(function(t){
+      html += '<span class="chip workbench active-wb" data-slot="'+k+'" data-tag="'+t+'">'+t+'</span>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+
+  // Bind workbench slot chip clicks
+  container.querySelectorAll('.chip.workbench').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      this.classList.toggle('active');
+      // Sync with detail panel
+      var slot = this.dataset.slot;
+      var tag = this.dataset.tag;
+      var detailChip = document.querySelector('#slotDetails .chip.workbench[data-slot="'+slot+'"][data-tag="'+tag+'"]');
+      if (detailChip) detailChip.classList.toggle('active');
+      updateWorkbench();
+    });
+  });
+})();
+
+// === COLLAPSIBLE INIT ===
+document.querySelectorAll('.collapsible-header').forEach(function(h){
+  h.click(); // collapse all by default
+});
+</script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>

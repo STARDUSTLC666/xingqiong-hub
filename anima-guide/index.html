@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANIMA3 提示词生成模板 v3.0 详细解析与交互看板</title>
+  <style>
+    :root {
+      --bg-dark: #0b0d13;
+      --bg-sidebar: #111420;
+      --bg-card: #161a29;
+      --bg-input: #1b2133;
+      --border-color: rgba(255, 255, 255, 0.06);
+      --border-highlight: rgba(255, 71, 126, 0.25);
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #ff477e; /* Anima Pink */
+      --accent-gold: #c9a87c; /* Warm Gold */
+      --accent-cyan: #00f0ff;
+      --accent-success: #00e676;
+      --font-title: "Georgia", "Times New Roman", serif;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "Consolas", "Fira Code", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 优雅的侧边栏 */
+    aside {
+      width: 300px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-header h1 {
+      font-family: var(--font-title);
+      font-size: 20px;
+      color: var(--accent-gold);
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-header p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+    }
+
+    .menu-item {
+      display: block;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 2px solid transparent;
+    }
+
+    .menu-item:hover {
+      color: var(--text-main);
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .menu-item.active {
+      color: var(--accent);
+      background-color: rgba(255, 71, 126, 0.06);
+      border-left-color: var(--accent);
+    }
+
+    .menu-group-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin: 18px 0 8px 14px;
+      font-family: var(--font-mono);
+    }
+
+    /* 主体内容区 */
+    main {
+      margin-left: 300px;
+      flex: 1;
+      padding: 48px;
+      max-width: 1200px;
+      overflow-y: auto;
+    }
+
+    /* 文档排版规范 */
+    .section-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 36px;
+      border-radius: 4px;
+      margin-bottom: 40px;
+      transition: border-color 0.3s ease;
+    }
+
+    .section-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .section-card.highlight {
+      border: 1px solid var(--border-highlight);
+    }
+
+    h2 {
+      font-family: var(--font-title);
+      font-size: 26px;
+      color: var(--accent-gold);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    h2 .section-num {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      color: var(--accent);
+      background: rgba(255, 71, 126, 0.08);
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    h3 {
+      font-size: 18px;
+      color: var(--text-main);
+      margin: 24px 0 12px 0;
+      font-weight: 600;
+    }
+
+    p {
+      color: var(--text-main);
+      font-size: 15px;
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    p strong {
+      color: var(--accent-gold);
+    }
+
+    /* 骨架与结构展示 */
+    .slot-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 24px 0;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    .slot-box {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 140px;
+    }
+
+    .slot-box .slot-name {
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .slot-box .slot-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .slot-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* 精美表格 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.02);
+      border-bottom: 2px solid var(--border-color);
+      color: var(--accent-gold);
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 600;
+    }
+
+    td {
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      color: var(--text-main);
+      vertical-align: top;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    /* 代码块与标签展示 */
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: var(--accent-cyan);
+    }
+
+    pre {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 18px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    /* 特殊卡片 */
+    .info-callout {
+      border-left: 3px solid var(--accent);
+      background-color: rgba(255, 71, 126, 0.03);
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .info-callout p {
+      margin-bottom: 0;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .warning-callout {
+      border-left: 3px solid #ff9100;
+      background-color: rgba(255, 145, 0, 0.03);
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .warning-callout p {
+      margin-bottom: 0;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    /* 12大主题网格 */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 24px 0;
+    }
+
+    .theme-item {
+      background-color: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      padding: 24px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .theme-item:hover {
+      border-color: var(--accent-gold);
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .theme-item h4 {
+      font-family: var(--font-title);
+      font-size: 18px;
+      color: var(--accent-gold);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-tag-chain {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-cyan);
+      background-color: var(--bg-input);
+      padding: 10px;
+      border-radius: 3px;
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+
+    .theme-mood-chain {
+      font-size: 12px;
+      color: var(--accent);
+      margin: 8px 0;
+    }
+
+    .theme-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* 交互式标签词库 */
+    .explorer-container {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+
+    .explorer-toolbar {
+      padding: 20px;
+      background-color: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-size: 14px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255, 71, 126, 0.15);
+    }
+
+    .explorer-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .explorer-tab {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .explorer-tab:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .explorer-tab.active {
+      background-color: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .explorer-content {
+      padding: 24px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .tags-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .tag-badge {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+      position: relative;
+    }
+
+    .tag-badge:hover {
+      border-color: var(--accent-cyan);
+      background-color: rgba(0, 240, 255, 0.02);
+      transform: translateY(-1px);
+    }
+
+    .tag-badge .tag-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag-badge .tag-translation {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 吐司提示 */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--accent-success);
+      color: #0b0d13;
+      padding: 12px 20px;
+      border-radius: 3px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 230, 118, 0.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* 点题语 */
+    .ending-quote {
+      text-align: center;
+      margin-top: 60px;
+      padding-top: 40px;
+      border-top: 1px dashed var(--border-color);
+      color: var(--accent-gold);
+      font-family: var(--font-title);
+      font-style: italic;
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #252a3d;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #363d58;
+    }
+
+    /* 移动端/小屏幕自适应 */
+    @media (max-width: 992px) {
+      aside {
+        display: none;
+      }
+      main {
+        margin-left: 0;
+        padding: 24px;
+      }
+      .themes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 下载按钮样式 */
+    .download-btn {
+      transition: all 0.3s ease;
+    }
+    .download-btn:hover {
+      background-color: var(--accent-gold) !important;
+      color: #0b0d13 !important;
+      box-shadow: 0 0 15px rgba(201, 168, 124, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* 返回「双子星秘境门户」星轨回航悬浮按钮 (花花创意版) */
+    .back-portal-btn {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: inline-flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(6, 6, 14, 0.85);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(201, 168, 124, 0.35); /* 初始暖金边框 */
+      color: #e2e8f0;
+      padding: 11px 26px;
+      border-radius: 9999px;
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(201, 168, 124, 0.1);
+      text-decoration: none;
+      overflow: hidden;
+    }
+
+    .back-portal-btn:hover {
+      border-color: #ff477e; /* 悬浮切换为 Anima 粉 */
+      box-shadow: 0 0 35px rgba(255, 71, 126, 0.35), 0 0 15px rgba(0, 240, 255, 0.2);
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    /* 炫丽星云背景发光 */
+    .back-portal-btn .glow-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(201, 168, 124, 0.12) 0%, rgba(217, 70, 239, 0.08) 50%, rgba(6, 182, 212, 0.12) 100%);
+      opacity: 0.7;
+      transition: opacity 0.5s ease;
+      z-index: 1;
+    }
+
+    .back-portal-btn:hover .glow-bg {
+      opacity: 1;
+      background: linear-gradient(135deg, rgba(255, 71, 126, 0.18) 0%, rgba(217, 70, 239, 0.15) 50%, rgba(0, 240, 255, 0.18) 100%);
+    }
+
+    /* 星尘流光扫掠动画 */
+    @keyframes stardust-sweep {
+      0% { transform: translateX(-100%) skewX(-30deg); }
+      100% { transform: translateX(120%) skewX(-30deg); }
+    }
+
+    .back-portal-btn .stardust-shimmer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 150%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), rgba(255, 183, 197, 0.2), transparent);
+      transform: translateX(-100%) skewX(-30deg);
+      z-index: 2;
+    }
+
+    .back-portal-btn:hover .stardust-shimmer {
+      animation: stardust-sweep 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 星光牵引箭头 */
+    .back-portal-btn .star-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 3;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .back-portal-btn:hover .star-arrow {
+      transform: translateX(-5px);
+    }
+
+    .back-portal-btn .star-arrow svg {
+      stroke: #c9a87c;
+      transition: stroke 0.4s ease;
+    }
+
+    .back-portal-btn:hover .star-arrow svg {
+      stroke: #ff477e;
+    }
+
+    /* 旋转双子星轨 */
+    .back-portal-btn .gemini-orbit-wrapper {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+    }
+
+    .back-portal-btn .gemini-stars-svg {
+      width: 22px;
+      height: 22px;
+      transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .back-portal-btn:hover .gemini-stars-svg {
+      transform: rotate(360deg) scale(1.1);
+    }
+
+    /* 呼吸脉冲圈 */
+    .back-portal-btn .pulse-circle {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 1px dashed rgba(201, 168, 124, 0.4);
+      border-radius: 50%;
+      animation: rotate-dashed 8s linear infinite;
+      pointer-events: none;
+    }
+
+    .back-portal-btn:hover .pulse-circle {
+      border-color: rgba(255, 71, 126, 0.6);
+      animation: rotate-dashed 4s linear infinite;
+    }
+
+    @keyframes rotate-dashed {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 双子星定位光点 */
+    .back-portal-btn .gemini-ping-a {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ff477e;
+      box-shadow: 0 0 6px #ff477e;
+    }
+
+    .back-portal-btn .gemini-ping-b {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #00f0ff;
+      box-shadow: 0 0 6px #00f0ff;
+    }
+
+    /* 双排精致排版文字 */
+    .back-portal-btn .btn-text-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.1;
+      text-align: left;
+      z-index: 3;
+    }
+
+    .back-portal-btn .text-subtitle-en {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.3em;
+      color: rgba(201, 168, 124, 0.6);
+      text-transform: uppercase;
+      font-weight: 500;
+      transition: color 0.4s ease;
+    }
+
+    .back-portal-btn:hover .text-subtitle-en {
+      color: #00f0ff;
+    }
+
+    .back-portal-btn .text-title-zh {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      font-family: var(--font-title);
+      margin-top: 3px;
+      color: #e2e8f0;
+      transition: color 0.4s ease, text-shadow 0.4s ease;
+    }
+
+    .back-portal-btn:hover .text-title-zh {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255, 71, 126, 0.5), 0 0 2px rgba(255, 255, 255, 1);
+    }
+
+    @media (max-width: 992px) {
+      .back-portal-btn {
+        top: 16px;
+        right: 16px;
+        padding: 8px 20px;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 返回主页星轨回航悬浮按钮 -->
+  <a href="../index.html" class="back-portal-btn">
+    <!-- Starry Nebula Background Glow -->
+    <div class="glow-bg"></div>
+    
+    <!-- Stardust Shimmer Beam -->
+    <div class="stardust-shimmer"></div>
+    
+    <!-- Left Comit-like Arrow -->
+    <div class="star-arrow">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </div>
+
+    <!-- Rotating Gemini Orbit -->
+    <div class="gemini-orbit-wrapper">
+      <div class="pulse-circle"></div>
+      <svg class="gemini-stars-svg" viewBox="0 0 24 24" fill="none">
+        <!-- Main Gold Star -->
+        <path d="M12 4l2 5.5 5.5 1.5-4 4 1.5 5.5-5-3-5 3 1.5-5.5-4-4 5.5-1.5z" stroke="#c9a87c" stroke-width="1.5" fill="rgba(201, 168, 124, 0.1)"></path>
+        <!-- Pink Inner Star Core -->
+        <circle cx="12" cy="12" r="2.5" fill="#ff477e"></circle>
+      </svg>
+      <!-- Twin Orbiting Star Dots (Gemini Pin A & B) -->
+      <span class="gemini-ping-a"></span>
+      <span class="gemini-ping-b"></span>
+    </div>
+
+    <!-- Double-Line Exquisite Typography -->
+    <div class="btn-text-container">
+      <span class="text-subtitle-en">Cosmic Return</span>
+      <span class="text-title-zh">星轨回航 // 秘境门户</span>
+    </div>
+  </a>
+
+  <!-- 侧边栏菜单 -->
+  <aside>
+    <div class="sidebar-header">
+      <h1>ANIMA3 BOARD</h1>
+      <p>Prompt Template v3.0 Guide</p>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-group-title">模板框架</div>
+      <a href="#quick-start" class="menu-item active">00. 快速开始</a>
+      <a href="#role-protocol" class="menu-item">01 & 02. 角色与协议</a>
+      <a href="#conflict-table" class="menu-item">03.1. 防灾互斥表</a>
+      <a href="#slot-order" class="menu-item">04. 万物组装槽位</a>
+
+      <div class="menu-group-title">核心决策</div>
+      <a href="#decision-tree" class="menu-item">05. 组装决策树</a>
+      <a href="#clothing-engine" class="menu-item">08. 色情改造引擎</a>
+
+      <div class="menu-group-title">跨槽配方</div>
+      <a href="#special-theme" class="menu-item">14. 12大特异主题</a>
+      <a href="#hidden-art" class="menu-item">14.12. 隐奸五大美学</a>
+
+      <div class="menu-group-title">交互工具</div>
+      <a href="#tag-explorer" class="menu-item">标签库交互式检索</a>
+      <a href="#self-check" class="menu-item">03. 终期自检单</a>
+    </nav>
+  </aside>
+
+  <!-- 主体内容区 -->
+  <main>
+    
+    <!-- 顶栏介绍 -->
+    <div style="margin-bottom: 48px;">
+      <span style="font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase;">Anima3 深度解密手册</span>
+      <h1 style="font-family: var(--font-title); font-size: 40px; color: var(--accent-gold); margin-top: 8px; line-height: 1.1;">ANIMA3 提示词生成模板 v3.0 详细解析</h1>
+      <p style="color: var(--text-muted); font-size: 16px; margin-top: 12px; max-width: 800px;">
+        这是一套针对 <strong>Anima V1 / Anima3 2B 动漫大模型</strong> 定制的极硬核提示词生成体系。该模板由专业网友编写，基于 Qwen 语言中枢和大模型级语义解析特性打造，采用<b>高内聚、硬排他、自克制</b>的策略，旨在为使用者提供一个能够产生极致画质、杜绝肢体畸形与风格崩坏的高精度提示词组装说明书。
+      </p>
+    </div>
+
+    <!-- §0. 快速开始 -->
+    <section id="quick-start" class="section-card">
+      <h2><span class="section-num">§ 0</span> 快速开始：典型工作流与模板下载</h2>
+      <p>网友将这套模板设定为 <strong>“规则框架 + 标签库”</strong> 的物理化学反应。为了方便哥哥和他人随时随地线下部署使用，花花把原版模板文件也进行了挂载，可以直接一键下载：</p>
+      
+      <!-- 精美下载按钮 -->
+      <div style="margin: 16px 0 24px 0;">
+        <a href="./Anima_prompt_template.md" download="Anima_prompt_template.md" class="download-btn" style="display: inline-flex; align-items: center; gap: 8px; background-color: rgba(201, 168, 124, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); padding: 12px 24px; font-family: var(--font-sans); font-size: 14px; text-decoration: none; border-radius: 4px; font-weight: 600; box-shadow: 0 4px 12px rgba(201, 168, 124, 0.05);">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-top: -1px;">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+          </svg>
+          下载原版 ANIMA3 提示词生成模板 (.md)
+        </a>
+      </div>
+
+      <!-- 挂载说明 -->
+      <div style="background-color: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); padding: 20px; border-radius: 4px; margin-bottom: 24px;">
+        <h4 style="color: var(--accent-gold); font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.5 3a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3a.5.5 0 0 0-.5-.5z"/>
+          </svg>
+          模板使用指南 (How to Use)
+        </h4>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.6;">
+          点击上方按钮或右键另存上述 <code>.md</code> 文件到本地电脑，将其作为附件上传给任意一个大语言模型（如 Claude opus 4.7、GPT 5.5 或 Gemini 3.1 pro），并发送以下引导语，即可将大模型一键初始化为你的 <b>Anima 提示词生成器</b>：
+        </p>
+        <div style="background-color: var(--bg-input); border-left: 2px solid var(--accent-gold); padding: 12px 16px; font-size: 13px; color: var(--text-main); font-style: italic; line-height: 1.6;">
+          “我需要使用Anima这个热门动漫模型来生成动漫图片。请你仔细学习附件模版，切实掌握Anima模型的提示词编写规则，之后我会向你简单描述我想要图片的大致内容，你帮我按模版输出规范的Anima模型用提示词。”
+        </div>
+      </div>
+
+      <p>下面详细解析这个模板到底说了些啥。首先，解析这个模板的工作流：</p>
+      
+      <div style="background-color: var(--bg-input); padding: 24px; border-radius: 4px; border: 1px solid var(--border-color); margin: 20px 0;">
+        <h4 style="color: var(--accent); margin-bottom: 12px; font-size: 16px;">🔥 典型工作流 (Workflow)</h4>
+        <ol style="margin-left: 20px; font-size: 14px; line-height: 1.8;">
+          <li><strong>需求分析</strong>：审视画面主题与角色数量。</li>
+          <li><strong>匹配场景 (§5)</strong>：查阅 <b>决策树</b> 匹配具体场景类型（单人、双人正戏/前戏、多人、百合、特异）。</li>
+          <li><strong>提取骨架 (§4)</strong>：确定 <b>槽位填充顺序</b>、复杂度范围与数量控制。</li>
+          <li><strong>检索填装 (§6-13)</strong>：在各大分类标签库中翻阅、抓取相应 tag。</li>
+          <li><strong>防碰撞 (§3.1)</strong>：对照 <b>互斥冲突表</b>，物理剔除不可能同时存在的标签（如 forward + backward ）。</li>
+          <li><strong>最终验证 (§3)</strong>：对人数一致性、灯光禁令、重复堆叠等 6 项标准逐条打勾，通过后提交。</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- §1 & §2. 角色与协议 -->
+    <section id="role-protocol" class="section-card">
+      <h2><span class="section-num">§ 1 & 2</span> 角色定位与输出协议</h2>
+      <p>
+        网友对 AI 的行为设立了极其绝对的禁律。在此模板中，AI 被定位为 <strong>“提示词工程师”</strong>。
+        它<b>只做</b>具体的提示词组装转换，<b>绝对禁止</b>寒暄、markdown 代码框包裹、或者任何形式的自我对话。
+      </p>
+
+      <div class="warning-callout">
+        <p><strong>⚠️ 三大绝对禁令 (Forbidden Output)</strong></p>
+        <ul style="margin-left: 20px; font-size: 13px; margin-top: 8px; line-height: 1.6;">
+          <li><b>禁止写权重</b>：绝对禁止输出形如 <code>(tag:1.2)</code> 的语法。Anima3 模型不依赖权重括号，它通过<b>字段的前后顺序</b>来进行隐式权重分配。</li>
+          <li><b>禁止输出质量词与画师名</b>：如 <code>best quality</code>、<code>masterpiece</code>、<code>@artist</code>。后端脚本已自动拼装，AI 重复输出会导致画面污染。</li>
+          <li><b>绝对禁止光线/光影/色调标签</b>：如 <code>sunlight</code>、<code>backlighting</code>、<code>rim light</code>、<code>warm lighting</code> 等。因为该模型的 Lora 中已内置极高精度的高清光影系统，前端再手动堆砌光影词会导致画面过爆、杂光乱飚（车辆车祸级翻车）。仅允许 <code>rain/snow/fog/steam</code> 等物理天气描写。</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-top: 32px;">自然语言补充协议 (Natural Language Rule)</h3>
+      <p>
+        Anima3 底层采用 <strong>Qwen 通义千问 3 Base (LLM)</strong> 作为文本编码器，这意味着它能够完美听懂
+        复杂语法、代词指代和主从句逻辑。
+      </p>
+      <p>
+        网友设定：<b>在遇到 tag 无法准确描述的情况（如多人动作归属、极复杂空间构图、分镜或时间对比）时，必须在 Prompt 最末尾、所有标签之后，用 1-2 句简洁的英文自然语言短句进行交代。</b>
+      </p>
+      <pre><code>[基础 tags], [场景 tags], [画面细节 tags], girl sitting on boy's lap facing him</code></pre>
+    </section>
+
+    <!-- §3.1. 冲突互斥表 -->
+    <section id="conflict-table" class="section-card">
+      <h2><span class="section-num">§ 3.1</span> 互斥与畸形防雷矩阵</h2>
+      <p>
+        为了解决大模型作图常犯的“鬼手”、“前后不分”、“一件衣服两个裤脚”等痛点，网友总结出了非常完善的
+        <strong>防物理冲突矩阵</strong>。在组装 Prompt 时，同一身体部位的描述标签<b>绝对禁止堆叠超过2个</b>，且必须通过下表排除互斥：
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>分类</th>
+            <th>互斥标签对 (无法共存)</th>
+            <th>物理或逻辑矛盾原因</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>视角互斥</strong></td>
+            <td><code>from front</code> × <code>from behind</code><br><code>from above</code> × <code>from below</code><br><code>looking at viewer</code> × <code>facing away</code><br><code>pov</code> × <code>full body</code></td>
+            <td>POV (第一人称) 视角物理上绝对不可能看到自己全身 (Full Body)。其余皆为空间方位物理矛盾。</td>
+          </tr>
+          <tr>
+            <td><strong>身份互斥</strong></td>
+            <td><code>solo</code> × <code>hetero / 1boy / yuri</code><br><code>sleeping / unconscious</code> × <code>looking at viewer</code><br><code>blindfold</code> × <code>heart-shaped pupils / rolling eyes</code></td>
+            <td>单人 (Solo) 不存在互动；闭眼/无意识者不可能直视观众；蒙着眼睛看不到眼部特效。</td>
+          </tr>
+          <tr>
+            <td><strong>服装互斥</strong></td>
+            <td><code>completely nude</code> × 任何具体服装标签<br><code>pantyhose</code> × <code>barefoot</code><br><code>blindfold</code> × <code>glasses</code><br>内衣套装 × <code>no panties / bottomless</code></td>
+            <td>丝袜不可能光脚 (除非 torn)；内衣套装 (如 lace lingerie) 自动包含内裤，若想暴露，必须拆分为单件 (如 <code>cat bra + no panties</code>)。<br><em>*注：外衣/制服（如 maid outfit）与 no panties 完美兼容。</em></td>
+          </tr>
+          <tr>
+            <td><strong>身体过度渲染<br>(防畸形铁律)</strong></td>
+            <td><code>spread toes</code> × <code>toe scrunch / curling</code><br><code>spread fingers</code> × <code>clenched fist</code><br><code>bouncing breasts</code> × <code>breasts squeeze</code><br>足部整体堆叠超过 3 个描述词</td>
+            <td>舒展与蜷缩/握拳/并拢物理互斥。<br>胸部弹跳与强力挤压动态互斥。<br><b>局部堆叠细节过多会导致大模型发疯，生成极度恶心的多指、六趾畸形！</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- §4. 槽位组装逻辑 -->
+    <section id="slot-order" class="section-card">
+      <h2><span class="section-num">§ 4</span> 万物组装槽位：10 槽金字塔</h2>
+      <p>
+        网友指出：<b>靠前的槽位在模型中权重极高。必须严格按照十个槽位的顺序填充标签，层层向后，依次沉淀。</b>
+      </p>
+
+      <div class="slot-flow">
+        <div class="slot-box">
+          <span class="slot-name">01. 人数/性别</span>
+          <span class="slot-desc">count/gender</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">02. IP/系列</span>
+          <span class="slot-desc">character/series</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">03. 角色外貌</span>
+          <span class="slot-desc">appearance</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">04. 服装与状态</span>
+          <span class="slot-desc">clothing/state</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">05. 姿势与动作</span>
+          <span class="slot-desc">pose/action/sex</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">06. 表情与反应</span>
+          <span class="slot-desc">expression/reaction</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">07. 镜头与景别</span>
+          <span class="slot-desc">camera/shot</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">08. 场所环境</span>
+          <span class="slot-desc">scene/environment</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box">
+          <span class="slot-name">09. 质感与基调</span>
+          <span class="slot-desc">detail/mood</span>
+        </div>
+        <div class="slot-arrow">→</div>
+        <div class="slot-box" style="border-color: var(--accent);">
+          <span class="slot-name">10. 自然语言</span>
+          <span class="slot-desc">natural language</span>
+        </div>
+      </div>
+
+      <div class="info-callout">
+        <p><strong>💡 跨槽位风格一致性铁律</strong>：服装、场景、基调绝对不能跨世界观冲突。古风必配古风（hanfu + ancient shrine + 诗意水墨），赛博必配赛博（latex bodysuit + cyberpunk city + 故障艺术）。不要让巫女突兀地站在赛博机甲城，也不要让反重力胶衣女仆站在古代禅寺里！</p>
+      </div>
+    </section>
+
+    <!-- §5. 组装决策树 -->
+    <section id="decision-tree" class="section-card">
+      <h2><span class="section-num">§ 5</span> 场景组装决策树</h2>
+      <p>
+        不同的画面题材，其槽位侧重点和相机镜头的选择各不相同。网友提炼出了以下场景组装策略，以便使用者一键定位：
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>场景类型</th>
+            <th>槽位重点</th>
+            <th>镜头/角度推荐</th>
+            <th>表情与氛围控制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>单人展示/诱惑</strong></td>
+            <td>服装 (1-2件) + 姿态互动 (1)</td>
+            <td><code>cowboy shot</code> (经典牛仔中景)</td>
+            <td>Lv1-Lv2 (Blush, 害羞、挑逗，不可过载)</td>
+          </tr>
+          <tr>
+            <td><strong>双人前戏 (口/足/乳)</strong></td>
+            <td>服装状态 (半脱) + 姿态技法 (如 <code>deepthroat</code> / <code>foot on penis</code>)</td>
+            <td>
+              口交：<code>pov, from above</code><br>
+              足交：<code>from side, feet focus</code><br>
+              乳交：<code>close-up, breast focus</code>
+            </td>
+            <td>伴随深入动作，情绪由羞涩向高潮过渡 (Lv2-Lv3)</td>
+          </tr>
+          <tr>
+            <td><strong>双人正戏 (交配)</strong></td>
+            <td>体位变体维度 + 表情/反应 + 液体</td>
+            <td>
+              传教士：<code>from above</code> (俯视)<br>
+              后入：<code>from behind, top-down bottom-up</code><br>
+              骑乘：<code>from below</code> (仰视)
+            </td>
+            <td>Lv2-Lv3，冲刺阶段进入 Lv3-Lv4。必须搭配身体高潮反应。</td>
+          </tr>
+          <tr>
+            <td><strong>多人/群交</strong></td>
+            <td>精确人数 <code>Xboys</code> + 角色单独外貌归属 + 极端液体 (<code>bukkake</code> / <code>cum bath</code>)</td>
+            <td><code>from above, full body</code> (鸟瞰全身，包围感)</td>
+            <td>女方 Lv3-Lv4，高潮、失神、彻底坏掉 (Ahegao, Mind Break)</td>
+          </tr>
+          <tr>
+            <td><strong>百合</strong></td>
+            <td>互动姿态 (<code>tribadism, scissoring</code>, 纯躯体摩擦或双阳具)</td>
+            <td><code>from side</code> / <code>from above</code></td>
+            <td>重在温和亲密与平等互动，Lv1-Lv2 情感流动</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- §8. 色情改造引擎 -->
+    <section id="clothing-engine" class="section-card">
+      <h2><span class="section-num">§ 8</span> 色情改造引擎与反差搭配</h2>
+      <p>
+        在服装设计方面，网友总结的核心公式是：<strong>“原正经服装 × 色情改造维度 = 极致反差冲击”</strong>。
+        同一件衣服，经过以下七种方式改造，效果千差万别：
+      </p>
+
+      <div class="themes-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 24px;">
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">1. 透明化 (See-through)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">正经衣服材质替换为透明薄纱或汗湿透视。<code>see-through shirt, wet, nipples visible</code>。</p>
+        </div>
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">2. 裁剪/缩短化 (Cropped)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">高剪裁、极致缩短、超高开衩。<code>crop top, micro skirt, highleg leotard</code>。</p>
+        </div>
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">3. 镂空/开口化 (Cutout)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">精确定向开洞，大玩色气泄露。<code>cleavage cutout, underboob, crotch cutout</code>。</p>
+        </div>
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">4. 破损化 (Torn)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">制造“暴力拉扯、战斗破坏”或“匆忙撕裂”感。<code>torn school uniform, torn pantyhose</code>。</p>
+        </div>
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">5. 胶衣化 (Latex)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">用高度反光、全贴合的第二层皮肤包裹身体。<code>latex bodysuit, shiny, skintight, second skin</code>。</p>
+        </div>
+        <div style="background: rgba(255, 71, 126, 0.03); border: 1px solid var(--border-color); padding: 15px; border-radius: 4px;">
+          <h5 style="color: var(--accent); margin-bottom: 8px; font-size: 14px;">6. 裸露简化 (Naked + Acc)</h5>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">一丝不挂，却保留标志性外衣或头饰。<code>completely nude, police hat, maid headdress</code>。</p>
+        </div>
+      </div>
+
+      <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color);">
+        <h4 style="color: var(--accent-gold); font-size: 15px; margin-bottom: 10px;">🛡️ 经典职业改造实例（法典精髓）</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          网友精选了数个<b>经受过实战跑图跑爆、极其稳定</b>的特调组合：
+        </p>
+        <ul style="margin-left: 20px; font-size: 13px; color: var(--text-main); line-height: 1.8;">
+          <li><strong>女警 (12种方向)</strong>：最强为弹弓泳衣流：<code>slingshot swimsuit, police hat, o-ring, micro shorts, open fly, no panties</code></li>
+          <li><strong>修女 (8种方向)</strong>：弹弓/逆兔亵渎流：<code>nun, reverse bunnysuit, see-through leotard, crotchless, cross necklace</code></li>
+          <li><strong>护士 (13种方向)</strong>：透明雨衣流：<code>clear transparent raincoat, glossy pvc, erotic nurse uniform underneath, deep v-neckline</code></li>
+          <li><strong>巫女 (8种方向)</strong>：弹弓巫女流：<code>slingshot swimsuit, miko outfit, detached sleeves, white thighhighs, sideboob</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- §14. 12大特异主题 -->
+    <section id="special-theme" class="section-card">
+      <h2><span class="section-num">§ 14</span> 12 大特异主题深度配方</h2>
+      <p>
+        有些场景是需要协调多个槽位的特殊“化学药剂”。网友在模板中直接总结了这 <strong>12 大特异主题的专属配方</strong>：
+      </p>
+
+      <div class="themes-grid">
+        
+        <!-- NTR -->
+        <div class="theme-item">
+          <h4>NTR 偷情</h4>
+          <div class="theme-tag-chain">split screen / from outside / talking on phone, sex / suspicious</div>
+          <div class="theme-mood-chain">guilty pleasure → netorare → corrupted → despair</div>
+          <p class="theme-desc">核心不是体位多刺激，而是“关系背叛与偷情窥视”的呈现。通过电话（通话中被干）、窗外窥视、分屏来达到精神上的双重折磨。</p>
+        </div>
+
+        <!-- BDSM -->
+        <div class="theme-item">
+          <h4>束缚 BDSM</h4>
+          <div class="theme-tag-chain">shibari / bound / tied up / ropes / handcuffs / ball gag / rope marks</div>
+          <div class="theme-mood-chain">bound → restrained → gagged → crying → mind break</div>
+          <p class="theme-desc">剥夺人身自由的耻辱艺术。<b>绳痕与勒痕（rope marks, skindentation）</b>是体现真实感的核心细节，没有它们就没有灵魂。</p>
+        </div>
+
+        <!-- RBQ -->
+        <div class="theme-item">
+          <h4>RBQ 物化</h4>
+          <div class="theme-tag-chain">human toilet / urinal / glory hole / bukkake / tally marks / barcode tattoo</div>
+          <div class="theme-mood-chain">objectification → used goods → cumdump → broken in</div>
+          <p class="theme-desc">人沦为物，全身沾满过载的体液（精液浴、精液池），被打上商品条形码（barcode tattoo）或计数器正字（tally marks），呈现被使用过后的残骸感。</p>
+        </div>
+
+        <!-- 男娘/Futa -->
+        <div class="theme-item">
+          <h4>男娘 & Futa</h4>
+          <div class="theme-tag-chain">otoko no ko, femboy, small penis / futanari, huge penis, large breasts</div>
+          <div class="theme-mood-chain">男娘: shy → reluctant → ahegao | Futa: confident → dominant → smug</div>
+          <p class="theme-desc">男娘核心在“男性身体+女性化外观+被侵犯的倒错感”，而扶她则是“大乳女体+高耸性器+绝对征服感”。两者绝不能混用标签。</p>
+        </div>
+
+        <!-- 触手异种 -->
+        <div class="theme-item">
+          <h4>触手异种</h4>
+          <div class="theme-tag-chain">tentacles, tentacle sex / bestiality, canine penis, knot / oviposition, egg</div>
+          <div class="theme-mood-chain">surprised → scared → overwhelmed → egg laying</div>
+          <p class="theme-desc">人类被绝对非人的怪异之物侵犯、寄生。核心在力量和体型极度不对等，最常产卵（oviposition）。</p>
+        </div>
+
+        <!-- 宠物调教 -->
+        <div class="theme-item">
+          <h4>宠物调教</h4>
+          <div class="theme-tag-chain">collar / leash / tail plug / crawling / eating from bowl / obedient</div>
+          <div class="theme-mood-chain">collar on → leash attached → crawling → obedient → tail wag</div>
+          <p class="theme-desc">剥夺人格，彻底动物化。跪趴在地上、像狗一样吃盆里的食、戴着项圈尾巴摇尾乞怜。存在主人与宠物的绝对依属和信任纽带。</p>
+        </div>
+
+        <!-- 胁迫 -->
+        <div class="theme-item">
+          <h4>胁迫 coercion</h4>
+          <div class="theme-tag-chain">blackmail / power imbalance / secret, hidden camera / can't refuse / reluctant</div>
+          <div class="theme-mood-chain">threat → scared → forced → tears → given up → obedient</div>
+          <p class="theme-desc">并非单纯暴力，而是利用弱点、秘密、欠债、职场高低等权力依附，逼迫女方抗拒却不得不顺从的痛苦内心折磨。</p>
+        </div>
+
+        <!-- 偷窥/展示 -->
+        <div class="theme-item">
+          <h4>偷窥 & 展示</h4>
+          <div class="theme-tag-chain">peeping, through window / hidden camera, viewfinder / selfie, webcam</div>
+          <div class="theme-mood-chain">watching → hidden → unaware → caught → embarrassed</div>
+          <p class="theme-desc">单向窥视。偷窥重点在于女方“不知情（unaware）”，而展示（Exhibitionism）则是为了寻找刺激故意直播/拍照。</p>
+        </div>
+
+        <!-- 事后 -->
+        <div class="theme-item">
+          <h4>事后 aftermath</h4>
+          <div class="theme-tag-chain">after sex, exhausted / cuddling / cumdrip, cum on sheets / used condom</div>
+          <div class="theme-mood-chain">heavy breathing → afterglow → exhausted → cuddling → peaceful</div>
+          <p class="theme-desc">暴风雨结束后的极致空虚或温存。满床的凌乱、流淌在被单上的精液、丢弃在床下的避孕套，在清晨的柔光里散发着疲惫的余温。</p>
+        </div>
+
+        <!-- 另类日常 -->
+        <div class="theme-item">
+          <h4>另类日常</h4>
+          <div class="theme-tag-chain">naked apron, cooking / daily routine, egg vibrator inserted / comfortable, natural</div>
+          <div class="theme-mood-chain">daily routine → casual → secret → normal on surface</div>
+          <p class="theme-desc">将色情融入骨血，当做理所应当的日常。做饭洗衣服打扫卫生时全裸（naked housework），或者打着游戏却正在被女方骑乘榨干。</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- §14.12. 隐奸五大美学 -->
+    <section id="hidden-art" class="section-card highlight">
+      <h2><span class="section-num">§ 14.12</span> 隐奸：极致遮挡与脑补美学</h2>
+      <p>
+        这是整个模板最闪耀、最硬核的<b>“遮挡美学”</b>。网友设定：<b>隐奸不追求肉体的直接展露，而是利用精细的画面裁剪、遮挡和体液等强力线索，来诱导观众脑补一出无比荒淫交配的大戏。</b>这非常考验画面的构图控制，以下是网友总结的五大经典流派：
+      </p>
+
+      <div style="margin: 24px 0;">
+        <h4 style="color: var(--accent); font-family: var(--font-title); font-size: 18px; margin-bottom: 12px;">🎭 隐奸五大遮挡流派 (Five Erotic Censorship Forms)</h4>
+        
+        <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h5 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 6px;">1. 画面外裁剪 (Out-of-frame Crop)</h5>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+            使用 <code>head out of frame</code> 或 <code>lower body only</code>。画面绝对不出现女方的脸，只展现她悬空的腿、蜷曲的脚趾（toe scrunch）、大腿根上拉出的精液丝（cum string）和顺着白皙脚背滴落的淫液。极强的神秘感和匿名玩物感。
+          </p>
+        </div>
+
+        <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h5 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 6px;">2. 上下分裂 (Under-table Splitting)</h5>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+            使用 <code>upper body normal, smile, table / under table, no panties, sex from behind</code>。上半身在餐桌上保持极度正经、温柔端庄地用餐、微笑、聊天社交；而在饭桌之下（Under table），私密部位已经被扒光，正在遭受狂暴而贪婪的后入交配。<b>反差背德天花板。</b>
+          </p>
+        </div>
+
+        <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h5 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 6px;">3. 介质遮挡 (Medium Obstruction)</h5>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+            使用 <code>frosted glass</code>（磨砂玻璃）、<code>under covers</code>（厚重被褥下）、<code>shower curtain</code>（浴帘）。透过半透明的磨砂玻璃，只能看到隆起的乳房压在玻璃上、朦胧晃动的人影与水汽，以及配合有节奏的动线剪影。
+          </p>
+        </div>
+
+        <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h5 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 6px;">4. 伪媒介视角 (UI Screenshot / Viewfinder)</h5>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+            使用 <code>fake screenshot</code>、<code>viewfinder, recording</code>。通过伪造的聊天界面、手机录制界面或DV相机的红点UI遮挡，只留出剧烈喘息、潮红锁骨或湿红舌头等身体特写，暗示这是一份手机里非法录制的秘密性爱差分。
+          </p>
+        </div>
+
+        <div style="background-color: var(--bg-input); padding: 20px; border-radius: 4px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h5 style="color: var(--accent-cyan); font-size: 14px; margin-bottom: 6px;">5. 暗示性构图 (Suggestive Composition)</h5>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 0;">
+            使用 <code>view between legs</code> / <code>implied sex</code>。绝对不画直接的插入点，而是通过男方精壮的腿部和双手紧捏女方小蛮腰，在特定的荷兰角度下，由女方张嘴和失神翻白眼来暗示体内的巨物正在进行深喉或极速摩擦。
+          </p>
+        </div>
+      </div>
+
+      <div class="warning-callout" style="border-left-color: var(--accent-cyan);">
+        <p><strong>🚫 隐奸的五大铁律禁忌</strong></p>
+        <ul style="margin-left: 20px; font-size: 13px; margin-top: 8px; line-height: 1.6;">
+          <li><b>不要画脸</b>：要想达到匿名神圣感，<code>head out of frame</code> 是最粗暴最有效的秘密。</li>
+          <li><b>上半身不要破防</b>：上下分裂时，上半身<b>绝对禁止</b>出现 <code>blush</code>、<code>heavy breathing</code>。必须伪装得波澜不惊！</li>
+          <li><b>液体才是铁证</b>：不画交合处，必须用 <code>pussy juice trail</code>、<code>cum drip</code>、<code>cum string</code> 这些残留体液作为交配正在发生的最强铁证。</li>
+          <li><b>不要用 peeping</b>：隐奸不等于偷窥。隐奸是全息模糊，连观众自己也被剥夺了看清的权力，不要使用 chikan 或 peeping。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 交互式标签词库 -->
+    <section id="tag-explorer" class="section-card">
+      <h2><span class="section-num">⚓</span> Anima3 交互式标签词库检索器</h2>
+      <p>为了方便哥哥日常跑图、拼写检查，花花贴心地将网友在各章节中推荐的超高频标准 Danbooru 标签整理成了下面这个 <strong>可检索、一键点击复制</strong> 的词库，哥哥可以随时通过分类或直接搜索查找，然后<b>点击卡片直接复制 tag 到剪贴板</b>哦！</p>
+      
+      <div class="explorer-container">
+        <div class="explorer-toolbar">
+          <div class="search-wrapper">
+            <input type="text" id="tag-search" class="search-input" placeholder="输入中文或英文关键词进行实时检索，例如：socks, 裸, eye..." oninput="filterTags()">
+          </div>
+          <div class="explorer-tabs" id="category-tabs">
+            <button class="explorer-tab active" onclick="switchCategory('all')">全库标签</button>
+            <button class="explorer-tab" onclick="switchCategory('body')">人数体型/私处</button>
+            <button class="explorer-tab" onclick="switchCategory('hair-eye')">头发/眼睛/面部</button>
+            <button class="explorer-tab" onclick="switchCategory('clothing')">服装/材质/改造</button>
+            <button class="explorer-tab" onclick="switchCategory('action')">姿态动作/前戏正戏</button>
+            <button class="explorer-tab" onclick="switchCategory('expression')">表情/身体反应/体液</button>
+            <button class="explorer-tab" onclick="switchCategory('camera')">景别/视角/POV</button>
+            <button class="explorer-tab" onclick="switchCategory('scene')">场景/细节道具</button>
+            <button class="explorer-tab" onclick="switchCategory('mood')">质感/运动/特效</button>
+          </div>
+        </div>
+        
+        <div class="explorer-content">
+          <div class="tags-grid" id="tags-grid-container">
+            <!-- 动态生成 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- §3. 终期自检单 -->
+    <section id="self-check" class="section-card">
+      <h2><span class="section-num">§ 3</span> 终期自检单：防灾打勾列表</h2>
+      <p>提示词组装完成后，提交前必须核对以下列表。任何一项不符合都会导致画质崩塌，使用者必须具备克制力，逐项打勾自检：</p>
+      
+      <table style="font-size: 13px;">
+        <thead>
+          <tr>
+            <th style="width: 50px;">序号</th>
+            <th>检查维度</th>
+            <th>物理通过标准 (通过打勾)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>01</strong></td>
+            <td><strong>人数一致性校验</strong></td>
+            <td><code>count/gender</code> 的格式描述是否与实际角色数完全一致。杜绝同时出现 <code>1girl, 2girls</code> 等互相指代人数混乱。</td>
+          </tr>
+          <tr>
+            <td><strong>02</strong></td>
+            <td><strong>互斥剔除</strong></td>
+            <td>再次确认：无视角矛盾、身份矛盾、服装矛盾（completely nude 下无任何衣服）、动作矛盾。</td>
+          </tr>
+          <tr>
+            <td><strong>03</strong></td>
+            <td><strong>无重复堆叠</strong></td>
+            <td>同一英文 tag 是否仅出现一次。强调某个要素应该靠<b>调整字段到槽位最前面</b>来增加隐式权重，而不是靠刷两遍。</td>
+          </tr>
+          <tr>
+            <td><strong>04</strong></td>
+            <td><strong>场景物理兼容性</strong></td>
+            <td>动作与场景环境是否兼容。例如：水中（underwater）时女方嘴里不能叼着燃烧的香烟（cigarette），在操场上不能躺在床上。</td>
+          </tr>
+          <tr>
+            <td><strong>05</strong></td>
+            <td><strong>光影与色调禁令</strong></td>
+            <td>再次人工过一遍 Prompt，剔除所有 <code>backlighting</code>、<code>rim light</code>、<code>warm/cool glow</code>。<b>让 Lora 接管一切光线渲染！</b></td>
+          </tr>
+          <tr>
+            <td><strong>06</strong></td>
+            <td><strong>词汇总数控制</strong></td>
+            <td>总词数控制在合理范围：简单场景 16-30 个词；标准交配场景 22-38 个词；复杂场景 30-48 个词。多余无意义词必须精简。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 点题诗词（古风背德） -->
+    <div class="ending-quote">
+      🌸 妾身玉履生幽香，愿倾足底微澜，解郎君长夜之渴 🌸
+    </div>
+
+  </main>
+
+  <!-- 吐司提示 -->
+  <div class="toast" id="copy-toast">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+    </svg>
+    已成功复制标签到剪贴板！
+  </div>
+
+  <script>
+    // 菜单滚动监听与高亮
+    const menuItems = document.querySelectorAll('.menu-item');
+    const sections = document.querySelectorAll('section');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (pageYOffset >= (sectionTop - 150)) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      menuItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('href').slice(1) === current) {
+          item.classList.add('active');
+        }
+      });
+    });
+
+    // 标签库数据源
+    const tagData = [
+      // 人数/体型
+      { code: "1girl, solo", trans: "一女, 单人", cat: "body" },
+      { code: "1girl, 1boy, hetero", trans: "一男一女, 异性", cat: "body" },
+      { code: "2girls, yuri", trans: "两女, 百合", cat: "body" },
+      { code: "otoko no ko, femboy, trap", trans: "男娘/伪娘", cat: "body" },
+      { code: "futanari", trans: "扶她", cat: "body" },
+      { code: "height difference, size difference", trans: "身高差/体型差", cat: "body" },
+      { code: "slim, slender", trans: "苗条/纤细", cat: "body" },
+      { code: "petite", trans: "娇小", cat: "body" },
+      { code: "curvy, voluptuous figure", trans: "丰满有致/凹凸有致", cat: "body" },
+      { code: "large breasts", trans: "巨乳/大乳", cat: "body" },
+      { code: "flat breasts, loli", trans: "贫乳/平胸/萝莉", cat: "body" },
+      { code: "thick thighs", trans: "肉感大腿", cat: "body" },
+      { code: "long legs", trans: "修长美腿", cat: "body" },
+      { code: "barefoot, soles, toes", trans: "光脚/脚底/脚趾", cat: "body" },
+      { code: "cleavage, sideboob, underboob", trans: "乳沟/侧乳/下乳", cat: "body" },
+      { code: "inner thigh, thigh gap", trans: "大腿内侧/大腿缝", cat: "body" },
+      { code: "pussy, puffy pussy", trans: "小穴/肉缝", cat: "body" },
+      { code: "cleft of venus, clitoris", trans: "维纳斯裂缝/阴蒂", cat: "body" },
+      
+      // 头部特征
+      { code: "long hair, short hair", trans: "长发/短发", cat: "hair-eye" },
+      { code: "white hair / silver hair", trans: "白发/银发", cat: "hair-eye" },
+      { code: "black hair, blonde hair", trans: "黑发/金发", cat: "hair-eye" },
+      { code: "twin tails, ponytail", trans: "双马尾/单马尾", cat: "hair-eye" },
+      { code: "messy hair, disheveled hair", trans: "散乱的发丝/凌乱发型", cat: "hair-eye" },
+      { code: "ahoge", trans: "呆毛", cat: "hair-eye" },
+      { code: "blue eyes, red eyes, golden eyes", trans: "蓝瞳/红瞳/金瞳", cat: "hair-eye" },
+      { code: "heart-shaped pupils", trans: "爱心瞳 (高潮发情)", cat: "hair-eye" },
+      { code: "spiral eyes, @_@, empty eyes", trans: "螺旋眼/晕厥眼/失神空洞眼", cat: "hair-eye" },
+      { code: "rolling eyes", trans: "翻白眼 (极限高潮)", cat: "hair-eye" },
+      { code: "blindfold", trans: "眼罩/蒙眼", cat: "hair-eye" },
+      
+      // 服装与材质
+      { code: "lace bra, panties, thong", trans: "蕾丝文胸/内裤/丁字裤", cat: "clothing" },
+      { code: "lace lingerie, corset, garter belt", trans: "蕾丝情趣内衣/束腰/吊带袜", cat: "clothing" },
+      { code: "school uniform, sailor uniform", trans: "校服/水手服", cat: "clothing" },
+      { code: "office lady, pencil skirt", trans: "OL装/一步裙", cat: "clothing" },
+      { code: "french maid, maid headdress", trans: "法式女仆装/女仆发带", cat: "clothing" },
+      { code: "bunny girl, bunny ears", trans: "兔女郎装/兔耳", cat: "clothing" },
+      { code: "latex bodysuit, shiny, second skin", trans: "高光紧身胶衣/第二皮肤", cat: "clothing" },
+      { code: "kimono, miko outfit, cheongsam", trans: "和服/巫女服/旗袍", cat: "clothing" },
+      { code: "black pantyhose, black thighhighs", trans: "黑色连裤袜/黑过膝袜", cat: "clothing" },
+      { code: "high heels, stiletto heels", trans: "高跟鞋/细高跟鞋", cat: "clothing" },
+      { code: "see-through, sheer, transparent", trans: "完全透视/薄纱/透明材质", cat: "clothing" },
+      { code: "off shoulder, strap slip", trans: "露肩/肩带滑落 (挑逗)", cat: "clothing" },
+      { code: "shirt lift, skirt lift", trans: "撩起衬衫/撩起裙子 (自己)", cat: "clothing" },
+      { code: "partially undressed, half-dressed", trans: "半脱衣物/身体半裸", cat: "clothing" },
+      { code: "completely nude", trans: "完全裸体", cat: "clothing" },
+      { code: "torn clothes, ripped stockings", trans: "破损衣服/撕裂的丝袜", cat: "clothing" },
+      { code: "wet clothes, see-through", trans: "湿透的衣物/激凸透视", cat: "clothing" },
+      { code: "naked apron", trans: "裸体围裙", cat: "clothing" },
+      
+      // 姿态动作
+      { code: "leaning forward, body leaning forward", trans: "身体前倾 (增强视觉张力)", cat: "action" },
+      { code: "bent over, bending over", trans: "弯腰撅屁股 (性感姿态)", cat: "action" },
+      { code: "presenting, presenting crotch/ass", trans: "主动展示私处/臀部 (臣服)", cat: "action" },
+      { code: "spread legs, m legs", trans: "开腿/M字开腿 (极度诱惑)", cat: "action" },
+      { code: "kneeling, on all fours", trans: "下跪/四肢爬行 (训服)", cat: "action" },
+      { code: "fingering, masturbation", trans: "手指抠穴/自慰", cat: "action" },
+      { code: "vibrator, transparent dildo", trans: "震动棒/透明假阳具 (玩具)", cat: "action" },
+      { code: "talking on phone, sex", trans: "一边打电话一边交配 (NTR/暴露)", cat: "action" },
+      { code: "blowjob, deepthroat, gagging", trans: "口交/深喉/窒息呕吐感", cat: "action" },
+      { code: "footjob, soles squeezing", trans: "足交/双足挤压几把", cat: "action" },
+      { code: "paizuri, breasts squeeze together", trans: "乳交/大乳挤压摩擦", cat: "action" },
+      { code: "chikan, groping, can't move", trans: "痴汉/揉乳摸臀/电车无法动弹", cat: "action" },
+      { code: "missionary, boy on top", trans: "传教士/男压女 (经典体位)", cat: "action" },
+      { code: "standing sex, against wall", trans: "站立性爱/压墙后入", cat: "action" },
+      { code: "sitting on lap, upright straddle", trans: "坐位性爱/跨坐在膝盖上", cat: "action" },
+      { code: "sex from behind, doggystyle", trans: "后入位/狗刨式交配", cat: "action" },
+      { code: "carrying, suspended congress", trans: "火车便当/悬空抱起正面交配", cat: "action" },
+      { code: "mating press, male fully covers female", trans: "种付/男方全身压住侵犯", cat: "action" },
+      { code: "cowgirl position, girl on top", trans: "骑乘位/女在上主导榨取", cat: "action" },
+      { code: "sleeping, closed eyes, zzz", trans: "睡眠/无意识 (睡奸体位)", cat: "action" },
+      { code: "hypnosis, spiral eyes, zombie pose", trans: "催眠/空眼/僵尸站姿 (催眠play)", cat: "action" },
+      { code: "facesitting, sitting on face", trans: "坐脸play (Femdom女帝)", cat: "action" },
+      { code: "pegging, strap-on", trans: "女反攻后入/假阳具绑带", cat: "action" },
+      { code: "strangling, asphyxiation, rough sex", trans: "扼喉/窒息/粗暴猛烈性爱 (过激)", cat: "action" },
+      { code: "spitroast, 2boys, group sex", trans: "前后夹击/2男前后同入 (多人)", cat: "action" },
+      { code: "triple penetration, 3boys", trans: "三穴同入/3男轮奸 (极深RBQ)", cat: "action" },
+      { code: "tribadism, scissoring, pussy to pussy", trans: "磨镜/百合私处纯磨擦 (百合)", cat: "action" },
+      
+      // 表情与液体
+      { code: "moaning, panting, heavy breathing", trans: "呻吟/喘息/粗重急促的呼吸", cat: "expression" },
+      { code: "blush, full-face blush", trans: "潮红/全脸大爆红", cat: "expression" },
+      { code: "shy, embarrassed, ashamed", trans: "害羞/内疚羞耻/面部遮挡", cat: "expression" },
+      { code: "ahegao, tongue out, drooling", trans: "阿黑颜/吐舌头/流口水 (失神)", cat: "expression" },
+      { code: "fucked silly, mind break", trans: "彻底坏掉/精神崩溃 (极限高潮)", cat: "expression" },
+      { code: "orgasm, arched back, toes curling", trans: "高潮反应/反弓腰/脚趾抓地", cat: "expression" },
+      { code: "squirting, female ejaculation", trans: "潮喷/爱液喷射 (高潮狂涌)", cat: "expression" },
+      { code: "pussy juice, pussy juice pool", trans: "爱液/小穴水汪汪流出", cat: "expression" },
+      { code: "precum, cum inside, creampie", trans: "前列腺液/体内射精/内射灌满", cat: "expression" },
+      { code: "cum overflow, cum drip, cum string", trans: "精液漫出/精液滴落/浓稠拉丝", cat: "expression" },
+      { code: "used condom, many used condoms", trans: "已用避孕套/满地避孕套 (事后)", cat: "expression" },
+      { code: "rope marks, red marks, skindentation", trans: "勒痕/红印/绳缚痕迹 (真实细节)", cat: "expression" },
+      { code: "hickey, bite marks", trans: "吻痕/咬痕", cat: "expression" },
+      { code: "slap mark, red ass", trans: "击打掌印/拍红的屁股 (打屁股)", cat: "expression" },
+      { code: "body writing, tally marks", trans: "身体写字/计数正字 (调教)", cat: "expression" },
+      
+      // 摄影镜头
+      { code: "extreme close-up", trans: "极致特写 (局部细节)", cat: "camera" },
+      { code: "close-up, face focus", trans: "面部特写/脸部聚焦", cat: "camera" },
+      { code: "upper body, bust shot", trans: "半身照/胸像 (诱惑)", cat: "camera" },
+      { code: "cowboy shot", trans: "牛仔镜头 (胯以上最常用中景)", cat: "camera" },
+      { code: "full body, full shot", trans: "全身照 (展示服装与体位)", cat: "camera" },
+      { code: "wide shot", trans: "广角镜头/全景 (多人、大场景)", cat: "camera" },
+      { code: "from front, front view", trans: "正面视角", cat: "camera" },
+      { code: "from side, profile", trans: "侧面视角 (体现插入深度)", cat: "camera" },
+      { code: "from behind, back view", trans: "背面视角 (臀部/后入特化)", cat: "camera" },
+      { code: "from above, top-down view", trans: "俯视角度 (传教士压迫)", cat: "camera" },
+      { code: "from below, low angle", trans: "仰视角度 (骑乘/坐脸)", cat: "camera" },
+      { code: "pov, pov hands, pov crotch", trans: "男方视角/双手入镜/第一人称胯部", cat: "camera" },
+      { code: "female pov, head out of frame", trans: "女方视角 (看不到头，匿名的色气)", cat: "camera" },
+      { code: "foreshortening", trans: "透视缩短 (巨大化鸡巴/脚部拉近)", cat: "camera" },
+      { code: "split screen", trans: "分屏画面 (左正常右交配NTR天花板)", cat: "camera" },
+      { code: "before and after, 2koma", trans: "事前vs事后对比/两格漫画差分", cat: "camera" },
+      
+      // 场景环境
+      { code: "bedroom, on bed, bed sheet", trans: "卧室/床上/床单 (安全私密)", cat: "scene" },
+      { code: "bathroom, shower, bathtub, steam", trans: "浴室/花洒下/浴缸/蒸汽 (湿滑)", cat: "scene" },
+      { code: "love hotel, hotel room", trans: "情趣酒店/宾馆大床 (出轨/事后)", cat: "scene" },
+      { code: "dungeon, stone wall, chains", trans: "地牢/石墙/镣铐铁链 (束缚调教)", cat: "scene" },
+      { code: "couch, sofa", trans: "客厅沙发 (半私密匆忙激情)", cat: "scene" },
+      { code: "kitchen, counter", trans: "厨房/灶台 (日常裸体围裙)", cat: "scene" },
+      { code: "office, desk, office chair", trans: "办公室/办公桌底/转椅 (加班胁迫)", cat: "scene" },
+      { code: "train, crowded train, handrail", trans: "电车/挤爆的电车/拉手 (痴汉)", cat: "scene" },
+      { code: "classroom, school desk", trans: "教室/学生课桌 (校园禁忌)", cat: "scene" },
+      { code: "fitting room, curtain, mirror", trans: "商场试衣间/布帘/试衣镜", cat: "scene" },
+      { code: "park, park bench, outdoors", trans: "公园长椅/户外 (大露特露)", cat: "scene" },
+      { code: "onsen, steam, wooden bath", trans: "温泉/桑拿热汽/木桶浴", cat: "scene" },
+      { code: "against window, glass, city view", trans: "在窗边贴着玻璃/城市夜景 (窗外偷窥)", cat: "scene" },
+      { code: "rain, snow, fog, steam", trans: "下雨/下雪/大雾/物理蒸汽 (可用环境)", cat: "scene" },
+      { code: "dark room, dim lighting", trans: "小黑屋/昏暗环境 (夜里幽密)", cat: "scene" },
+      { code: "used condom on floor, scattered clothes", trans: "满地的衣物/扔在床底的避孕套", cat: "scene" },
+      
+      // 质感与特效
+      { code: "ink splash, watercolor texture", trans: "写意水墨泼墨/水彩质感 (古风极高档)", cat: "mood" },
+      { code: "comic-style, halftone dots", trans: "漫画风/网点纸纹理 (差分必备)", cat: "mood" },
+      { code: "sketch, lineart", trans: "素描风/线性草稿", cat: "mood" },
+      { code: "film grain, vintage film grain", trans: "老电影胶片颗粒感 (偷拍记录真实感)", cat: "mood" },
+      { code: "motion lines, speed lines", trans: "漫画式运动抽插线/速度线 (激烈活塞)", cat: "mood" },
+      { code: "motion blur", trans: "摄像级颤抖模糊 (高潮抽搐残影)", cat: "mood" },
+      { code: "depth of field, shallow depth of field, bokeh", trans: "景深虚化背景/光斑 (浪漫特写)", cat: "mood" },
+      { code: "silhouette, backlit silhouette", trans: "背光剪影 (磨砂玻璃/神秘遮挡)", cat: "mood" },
+      { code: "lens flare, bloom", trans: "镜头逆光光晕/强光高亮溢出", cat: "mood" },
+      { code: "digital glitch effects, VHS distortion", trans: "数字故障艺术/CRT录像带噪点 (偷拍催眠)", cat: "mood" },
+      { code: "cinematic, dramatic tension", trans: "电影级构图/戏剧性张力 (氛围高档)", cat: "mood" },
+      { code: "ethereal, dreamlike", trans: "空灵/像梦境一般 (失神高潮)", cat: "mood" },
+      { code: "dark atmosphere, suspenseful", trans: "暗黑压抑/悬疑紧张 (胁迫过激)", cat: "mood" }
+    ];
+
+    let currentCategory = 'all';
+
+    function renderTags(tags) {
+      const container = document.getElementById('tags-grid-container');
+      container.innerHTML = '';
+      
+      if (tags.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px 0;">未能找到匹配的标签...</div>';
+        return;
+      }
+
+      tags.forEach(tag => {
+        const div = document.createElement('div');
+        div.className = 'tag-badge';
+        div.onclick = () => copyTag(tag.code);
+        
+        div.innerHTML = `
+          <span class="tag-code" title="${tag.code}">${tag.code}</span>
+          <span class="tag-translation">${tag.trans}</span>
+        `;
+        
+        container.appendChild(div);
+      });
+    }
+
+    function switchCategory(cat) {
+      currentCategory = cat;
+      const tabs = document.querySelectorAll('.explorer-tab');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      filterTags();
+    }
+
+    function filterTags() {
+      const query = document.getElementById('tag-search').value.toLowerCase().trim();
+      let filtered = tagData;
+      
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(tag => tag.cat === currentCategory);
+      }
+      
+      if (query) {
+        filtered = filtered.filter(tag => 
+          tag.code.toLowerCase().includes(query) || 
+          tag.trans.toLowerCase().includes(query)
+        );
+      }
+      
+      renderTags(filtered);
+    }
+
+    function copyTag(text) {
+      // 创建临时 textarea 来复制
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      
+      // 显示 Toast 提示
+      const toast = document.getElementById('copy-toast');
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    // 初始化加载
+    renderTags(tagData);
+  </script>
+<script src="../assets/gate-guide.js"></script>
+</body>
+</html>
