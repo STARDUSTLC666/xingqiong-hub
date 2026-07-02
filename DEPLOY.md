@@ -1,10 +1,6 @@
 ﻿# GitHub Pages 部署说明
 
-当前仓库使用 GitHub Pages 的分支发布模式：
-
-```text
-Settings → Pages → Deploy from a branch → main / root
-```
+当前仓库使用 GitHub Actions 发布到 GitHub Pages。
 
 网页地址：
 
@@ -23,4 +19,4 @@ git commit -m "Update Xingqiong Hub"
 git push
 ```
 
-推送后 GitHub Pages 会自动重新构建。
+推送后 `.github/workflows/pages.yml` 会自动发布 `_site` artifact 到 GitHub Pages。

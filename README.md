@@ -1,4 +1,4 @@
-﻿# 星穹枢庭 · Gemini Sanctuary
+# 星穹枢庭 · Gemini Sanctuary
 
 这是「星穹枢庭」的 GitHub Pages 静态网页版本。
 
@@ -12,6 +12,14 @@ https://stardustlc666.github.io/xingqiong-hub/
 - 星门说明
 - Prompt / ComfyUI / Nova Anima / 标签资料
 - 本地工具入口说明
+
+## 在线部署
+
+本仓库使用 GitHub Actions 发布到 GitHub Pages。
+
+在线地址：
+
+https://stardustlc666.github.io/xingqiong-hub/
 
 ## 本地预览
 
