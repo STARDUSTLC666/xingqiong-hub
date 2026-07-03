@@ -1684,11 +1684,51 @@ async function checkAndSend(){
   }
 }
 
+function getComfyBaseUrl(){
+  return bridgeAvailable ? BRIDGE_URL : document.getElementById('comfyUrl').value.trim();
+}
+
+function buildComfyViewUrl(img){
+  const base = getComfyBaseUrl();
+  const qs = 'filename=' + encodeURIComponent(img.filename)
+    + '&subfolder=' + encodeURIComponent(img.subfolder || '')
+    + '&type=' + encodeURIComponent(img.type || 'output')
+    + '&t=' + Date.now();
+  return base + '/view?' + qs;
+}
+
+function findOutputImage(entry){
+  if(!entry || !entry.outputs) return null;
+  if(entry.outputs['9'] && entry.outputs['9'].images && entry.outputs['9'].images.length>0){
+    return entry.outputs['9'].images[0];
+  }
+  for(const nodeId of Object.keys(entry.outputs)){
+    const out = entry.outputs[nodeId];
+    if(out && out.images && out.images.length>0) return out.images[0];
+  }
+  return null;
+}
+
+function renderOutputImage(out, promptId, img){
+  const imgUrl = buildComfyViewUrl(img);
+  out.innerHTML = '<div style="text-align:center">'
+    + '<div id="imageLoadingHint" style="font-size:0.75rem;color:rgba(212,212,232,0.45);padding:0.7rem">图片已生成，正在载入预览...</div>'
+    + '<img src="'+imgUrl+'" alt="生成结果" style="display:none;max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" '
+    + 'onload="this.style.display=\'block\';var h=document.getElementById(\'imageLoadingHint\');if(h)h.style.display=\'none\';" '
+    + 'onerror="var h=document.getElementById(\'imageLoadingHint\');if(h){h.style.display=\'block\';h.innerHTML=\'图片已生成，但网页预览载入失败。请点下面按钮打开 ComfyUI WebUI 或检查桥接 /view。\';}">'
+    + '<div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.7rem">'
+    + '<a class="btn btn-ghost btn-sm" href="'+imgUrl+'" target="_blank" rel="noreferrer">🖼 打开原图</a>'
+    + '<button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 打开 ComfyUI</button>'
+    + '</div>'
+    + '<div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-top:0.5rem">文件：'+img.filename+' · prompt_id: '+promptId+'</div>'
+    + '</div>';
+}
+
 // 轮询出图结果
 async function pollResult(promptId){
   if(pollTimer) clearInterval(pollTimer);
   let attempts = 0;
-  const maxAttempts = 60; // 最多等3分钟
+  const maxAttempts = 200; // 最多等10分钟，高清精修会比较慢
 
   pollTimer = setInterval(async()=>{
     attempts++;
@@ -1712,15 +1752,11 @@ async function pollResult(promptId){
       }
 
       // Check if outputs are available
-      if(entry.outputs && entry.outputs['9'] && entry.outputs['9'].images && entry.outputs['9'].images.length>0){
+      const img = findOutputImage(entry);
+      if(img){
         clearInterval(pollTimer);
         pollTimer = null;
-        const img = entry.outputs['9'].images[0];
-        const imgUrl = document.getElementById('comfyUrl').value.trim()+'/view?filename='+encodeURIComponent(img.filename)+'&subfolder='+encodeURIComponent(img.subfolder||'')+'&type='+encodeURIComponent(img.type||'output');
-        out.innerHTML = '<div style="text-align:center">'+
-          '<img src="'+imgUrl+'" alt="生成结果" style="max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" onload="this.style.display=\'block\';this.previousElementSibling.style.display=\'none\'">'+
-          '<div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-top:0.5rem">prompt_id: '+promptId+'</div>'+
-          '</div>';
+        renderOutputImage(out, promptId, img);
         toast('✓ 出图完成！');
       }else if(entry.status && entry.status.status_str === 'error'){
         clearInterval(pollTimer);
@@ -1740,7 +1776,7 @@ async function pollResult(promptId){
 function showPollTimeout(out,promptId){
   clearInterval(pollTimer);
   pollTimer = null;
-  out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c0a040;font-size:0.8rem">⏳ 生成超时，可能在排队。<br><span style="font-size:0.68rem;color:rgba(212,212,232,0.3)">打开 ComfyUI WebUI 查看进度</span></div>';
+  out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c0a040;font-size:0.8rem">⏳ 网页等待超时，但任务可能仍在 ComfyUI 里跑。<br><span style="font-size:0.68rem;color:rgba(212,212,232,0.3)">高清精修很慢时请打开 ComfyUI WebUI 查看。</span><div style="margin-top:0.8rem"><button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 打开 ComfyUI</button></div></div>';
 }
 
 // === TOAST ===
