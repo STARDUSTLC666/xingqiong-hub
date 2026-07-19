@@ -75,7 +75,7 @@
           </div>
           <dl class="hero__facts" aria-label="站点概览">
             <div><dt>14</dt><dd>公开档案</dd></div>
-            <div><dt>2</dt><dd>创作路径</dd></div>
+            <div><dt>5</dt><dd>新手路线</dd></div>
             <div><dt>∞</dt><dd>持续更新</dd></div>
           </dl>
         </div>
@@ -96,10 +96,10 @@
       <div class="page-width">
         <div class="section-heading section-heading--workflow">
           <div>
-            <p class="section-kicker">CREATIVE ROUTES</p>
-            <h2 id="workflow-title">从灵感到成稿</h2>
+            <p class="section-kicker">BEGINNER ROUTES</p>
+            <h2 id="workflow-title">第一次来，从这里开始</h2>
           </div>
-          <p>先选择创作方向，再沿着清晰步骤进入对应档案。</p>
+          <p>不用先看懂全部工具。选择你现在手里有什么，再按顺序完成每一步。</p>
         </div>
 
         <div class="workflow__controls">
@@ -115,14 +115,62 @@
             </button>
           </div>
 
-          <div class="workflow__summary">
-            <p id="workflowDescription">从角色与画面意图出发，逐步建立结构、光影和完整表达。</p>
-            <a id="workflowStart" href="nova-anima/index.html">从第一步开始 <i data-lucide="arrow-up-right"></i></a>
-          </div>
+          <p class="workflow__promise"><i data-lucide="route"></i><span>每一步只做一件事，并写清楚做到什么算完成。</span></p>
         </div>
 
-        <div class="workflow-track" id="workflowPanel" role="tabpanel" aria-live="polite">
-          <div id="workflowTrack"></div>
+        <div class="beginner-flow" id="workflowPanel" role="tabpanel" aria-labelledby="standardMode">
+          <aside class="workflow-sidebar" aria-label="路线选择和提示词草稿">
+            <div class="goal-picker">
+              <p class="workflow-label"><span>01</span>你现在手里有什么？</p>
+              <div class="goal-switch" id="goalSwitch" role="group" aria-label="选择当前情况"></div>
+            </div>
+
+            <div class="route-brief">
+              <p id="workflowDescription">完全没有提示词，只有一个模糊的画面想法。</p>
+              <div class="workflow-prep">
+                <strong>开始前先想好</strong>
+                <ul id="workflowPrep"></ul>
+              </div>
+            </div>
+          </aside>
+
+          <div class="workflow-main">
+            <div class="workflow-progress">
+              <p class="workflow-label"><span>02</span>按顺序完成</p>
+              <div class="workflow-progress__meter">
+                <span id="workflowProgressText" role="status" aria-live="polite" aria-atomic="true">0 / 4 已完成</span>
+                <span class="workflow-progress__bar" id="workflowProgressBar" role="progressbar" aria-label="工作流完成进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><span id="workflowProgressFill"></span></span>
+              </div>
+            </div>
+            <ol class="workflow-track" id="workflowTrack"></ol>
+            <div class="workflow-finish" id="workflowFinish">
+              <i data-lucide="flag"></i>
+              <div>
+                <strong>最后怎么用？</strong>
+                <p>把整理好的草稿复制到你常用的图像生成工具。第一次先少放词，确认主体正确后再逐步增加细节。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="draft-tool" id="workflowDraft">
+            <div class="draft-tool__heading">
+              <div>
+                <small>自动保存在本机浏览器</small>
+                <h3>我的提示词草稿</h3>
+              </div>
+              <i data-lucide="notebook-pen"></i>
+            </div>
+            <label class="sr-only" for="draftInput">我的提示词草稿</label>
+            <textarea id="draftInput" rows="9" placeholder="先写一句中文想法。每完成一步，再把页面复制出的结果粘贴到这里。"></textarea>
+            <div class="draft-tool__footer">
+              <span id="draftCount">0 字</span>
+              <div class="draft-tool__actions">
+                <button id="clearDraft" type="button" aria-label="清空草稿" title="清空草稿" disabled><i data-lucide="trash-2"></i></button>
+                <button class="draft-tool__copy" id="copyDraft" type="button" disabled><i data-lucide="copy"></i><span>复制草稿</span></button>
+              </div>
+            </div>
+            <p class="draft-tool__status" id="draftStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+          </div>
         </div>
       </div>
     </section>
@@ -166,7 +214,7 @@
             <button class="archive-filter" data-filter="protocol" type="button" aria-pressed="false">协议</button>
           </div>
 
-          <p class="archive-count" id="resultCount" aria-live="polite">10 份档案</p>
+          <p class="archive-count" id="resultCount" aria-live="polite">7 份档案</p>
         </div>
 
         <div class="archive-grid" id="archiveGrid"></div>
@@ -208,12 +256,12 @@
     </div>
   </footer>
 
-  <dialog class="adult-dialog" id="adultDialog" aria-labelledby="adult-dialog-title">
+  <dialog class="adult-dialog" id="adultDialog" aria-labelledby="adult-dialog-title" aria-describedby="adult-dialog-description">
     <form method="dialog">
       <span class="adult-dialog__icon" aria-hidden="true"><i data-lucide="badge-alert"></i></span>
       <p class="section-kicker">CONTENT NOTICE</p>
       <h2 id="adult-dialog-title">成人向创作档案</h2>
-      <p>该路径包含成人向标签、词库与创作过程记录。继续前请确认你已年满 18 岁。</p>
+      <p id="adult-dialog-description">该路径包含成人向标签、词库与创作过程记录。继续前请确认你已年满 18 岁。</p>
       <div class="adult-dialog__actions">
         <button class="button button--quiet" value="cancel" type="submit">返回</button>
         <button class="button button--primary" id="confirmAdult" value="confirm" type="submit">已满 18 岁，继续</button>

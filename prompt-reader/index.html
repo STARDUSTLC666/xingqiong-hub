@@ -52,6 +52,16 @@
 }
 .meta-row span { background: rgba(232,168,96,0.06); padding: 0.2rem 0.6rem; border-radius: 6px; }
 
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+.result-actions .btn {
+  min-height: 44px;
+}
+
 .prompt-block { margin-bottom: 0.8rem; }
 .prompt-block .label {
   font-size: 0.72rem;
@@ -108,6 +118,15 @@
   padding: 2rem;
   color: rgba(200,200,224,0.2);
   font-size: 0.85rem;
+}
+.metadata-empty {
+  padding: 0.9rem 1rem;
+  border: 1px dashed rgba(232,168,96,0.16);
+  border-radius: 10px;
+  color: rgba(200,200,224,0.52);
+  background: rgba(232,168,96,0.035);
+  font-size: 0.8rem;
+  line-height: 1.65;
 }
 </style>
 </head>
@@ -302,6 +321,14 @@
   });
   fileInput.addEventListener('change', () => handleFiles(fileInput.files));
   clearBtn.addEventListener('click', () => { allResults = []; renderAll(); fileCount.textContent = '尚未选择文件'; });
+  resultsDiv.addEventListener('click', event => {
+    const button = event.target.closest('[data-copy-index]');
+    if (!button) return;
+    const result = allResults[Number(button.dataset.copyIndex)];
+    if (!result) return;
+    const text = buildCopyText(result, button.dataset.copyKind);
+    if (text) gsCopy(text);
+  });
 
   // === PARSE PNG CHUNKS ===
   function parsePNGChunks(buffer) {
@@ -430,6 +457,18 @@
           <span>💾 ${r.size}</span>
           <span>🏷️ ${r.type}</span>
         </div>
+        ${hasReadableMetadata(r) ? `
+        <div class="result-actions" aria-label="${esc(r.name)} 复制选项">
+          <button class="btn btn-primary btn-sm" type="button" data-copy-index="${i}" data-copy-kind="all">📋 复制全部</button>
+          ${r.positive ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="positive">复制正向</button>` : ''}
+          ${r.negative ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="negative">复制负向</button>` : ''}
+          ${r.params ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="params">复制参数</button>` : ''}
+          ${r.workflow ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="workflow">复制工作流</button>` : ''}
+          ${hasRawOnly(r) ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="raw">复制原始数据</button>` : ''}
+        </div>` : `
+        <div class="metadata-empty">
+          未发现可读取的生成元数据。这通常是普通截图或导出时已清除参数；请回到首页按“无元数据时再做视觉反推”继续。
+        </div>`}
         ${r.positive ? `
         <div class="prompt-block pos">
           <div class="label">✨ Positive Prompt</div>
@@ -464,6 +503,53 @@
     `).join('');
   }
 
+  /** 判断结果中是否存在可以复制的提示词、参数或原始元数据。 */
+  function hasReadableMetadata(result) {
+    return Boolean(
+      result.positive
+      || result.negative
+      || result.params
+      || result.workflow
+      || Object.keys(result.chunks).length
+    );
+  }
+
+  /** 判断当前结果是否只剩下尚未分类的原始元数据块。 */
+  function hasRawOnly(result) {
+    return Object.keys(result.chunks).length > 0
+      && !result.positive
+      && !result.negative
+      && !result.params
+      && !result.workflow;
+  }
+
+  /** 按按钮类型生成清晰分段的复制文本，长工作流也无需手工框选。 */
+  function buildCopyText(result, kind) {
+    const raw = Object.entries(result.chunks)
+      .map(([key, values]) => key + ': ' + values.join('\n'))
+      .join('\n');
+    const singleValues = {
+      positive: result.positive,
+      negative: result.negative,
+      params: result.params,
+      workflow: result.workflow,
+      raw
+    };
+
+    if (kind !== 'all') {
+      return singleValues[kind] || '';
+    }
+
+    const sections = ['文件: ' + result.name];
+    if (result.positive) sections.push('Positive Prompt:\n' + result.positive);
+    if (result.negative) sections.push('Negative Prompt:\n' + result.negative);
+    if (result.params) sections.push('Parameters:\n' + result.params);
+    if (result.workflow) sections.push('Workflow JSON:\n' + result.workflow);
+    if (hasRawOnly(result) && raw) sections.push('Raw Metadata:\n' + raw);
+    return sections.join('\n\n');
+  }
+
+  /** 转义文件名和元数据，避免动态结果写入 HTML 结构。 */
   function esc(s) {
     const div = document.createElement('div');
     div.textContent = s;
