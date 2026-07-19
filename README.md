@@ -1,56 +1,43 @@
 # 星穹枢庭 · Gemini Sanctuary
 
-这是「星穹枢庭」的 GitHub Pages 静态网页版本。
+「星穹枢庭」是一个部署在 GitHub Pages 上的个人创作档案站，用于公开整理提示词、视觉实验与生成式创作方法。
 
-在线网页：
-
-https://stardustlc666.github.io/xingqiong-hub/
-
-它适合部署为公开网页备份，用来保存：
-
-- 星门首页
-- 星门说明
-- Prompt / ComfyUI / Nova Anima / 标签资料
-- 本地工具入口说明
-
-## 在线部署
-
-本仓库使用 GitHub Actions 发布到 GitHub Pages。
-
-在线地址：
+公网地址：
 
 https://stardustlc666.github.io/xingqiong-hub/
+
+## 站点内容
+
+- 常规创作路线：起词、结构、光影与系统校准
+- 成人向创作路线：查词、分类、权重组合与过程复盘
+- 14 份可直接从公网浏览的手册、提示词、标签、工具与协议档案
+- Three.js 动态主视觉、真实项目预览和完整响应式布局
+
+## 公网发布
+
+本站通过 GitHub Pages 的分支发布模式上线：
+
+- Source：`Deploy from a branch`
+- Branch：`main`
+- Folder：`/ (root)`
+
+推送到 `main` 后，GitHub Pages 会自动构建并更新公网网页。仓库不依赖自定义 GitHub Actions 发布工作流。
+
+完整的更新、验证和可选自定义域名步骤见 [DEPLOY.md](DEPLOY.md)。
 
 ## 本地预览
 
-在本目录打开 PowerShell：
+发布前可在仓库目录启动一个静态文件服务：
 
 ```powershell
+Set-Location 'E:\Codex\github-pages\xingqiong-hub'
 py -3 -m http.server 18446 --bind 127.0.0.1
 ```
 
-然后访问：
+浏览器访问：
 
 ```text
 http://127.0.0.1:18446/
 ```
 
-## 公网网页调用本地工具
-
-可以，但有前提：网页只是控制台，真正的工具仍然运行在你的电脑上。
-
-- 你自己电脑打开 GitHub Pages 网页时，页面可以尝试连接 `http://127.0.0.1:*` 的本地服务。
-- 桥接启动按钮通过本机已注册的协议工作，例如 `qiqi-bridge://start`、`qiqi-wd://start`。
-- 如果本地服务没启动、协议没注册、浏览器拦截本地网络请求，对应工具就不会生效。
-- 别人打开这个网页时，只会连接他们自己的 `127.0.0.1`，不会连到你的电脑。
-
-## 注意
-
-这是静态网页版本。页面本身可以公网访问，但这些能力仍然只在你自己的电脑上有效：
-
-- `127.0.0.1` 本地服务
-- WD Tagger 后端
-- ComfyUI 本地后端
-- 自定义协议桥接按钮，例如 `qiqi-bridge://start`
-
-如果别人打开公网网页，这些本地工具按钮不会连接到你的电脑。
+本地预览只用于开发检查，公网访问不依赖这项服务。

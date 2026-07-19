@@ -10,3 +10,9 @@ logs/
 node_modules/
 .vscode/
 .idea/
+
+# 本地视觉源文件与截图中间件，公网仅发布压缩后的精选 WebP。
+assets/home-hero-v2.png
+assets/home-hero-v2.webp
+assets/featured/*.png
+assets/og-cover.png

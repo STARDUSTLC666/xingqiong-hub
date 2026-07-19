@@ -1,0 +1,6 @@
+# 第三方压缩包保持字节一致，并从源码差异检查中排除。
+assets/vendor/*.js -text -diff
+
+# 发布图片按二进制资产处理。
+assets/featured/*.webp -text -diff
+assets/*.jpg -text -diff
