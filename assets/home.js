@@ -314,11 +314,15 @@ const elements = {
   workflowProgressBar: document.getElementById("workflowProgressBar"),
   workflowProgressFill: document.getElementById("workflowProgressFill"),
   workflowFinish: document.getElementById("workflowFinish"),
+  workflowDraft: document.getElementById("workflowDraft"),
+  draftToggle: document.getElementById("draftToggle"),
+  draftToolBody: document.getElementById("draftToolBody"),
   draftInput: document.getElementById("draftInput"),
   draftCount: document.getElementById("draftCount"),
   draftStatus: document.getElementById("draftStatus"),
   clearDraft: document.getElementById("clearDraft"),
   copyDraft: document.getElementById("copyDraft"),
+  resetWorkflow: document.getElementById("resetWorkflow"),
   featuredGrid: document.getElementById("featuredGrid"),
   searchInput: document.getElementById("searchInput"),
   clearSearch: document.getElementById("clearSearch"),
@@ -333,6 +337,7 @@ const archiveBySlug = Object.fromEntries(ARCHIVES.map((archive) => [archive.slug
 let storageHealthy = true;
 let adultAcknowledgedInMemory = false;
 let draftSaveTimer = 0;
+let expandedStepId = null;
 let workflowState = loadWorkflowState();
 
 /** 为指定模式创建一份可独立使用的新手工作流默认状态。 */
@@ -491,6 +496,30 @@ function updateWorkflowProgress() {
   elements.workflowTrack.querySelectorAll(".workflow-step").forEach((item) => {
     item.classList.toggle("is-complete", completed.has(item.dataset.stepId));
   });
+  elements.workflowFinish.classList.toggle("is-complete", total > 0 && count === total);
+}
+
+/** 展开指定步骤并收起其余步骤；传入空值时全部收起。 */
+function setExpandedStep(stepId, shouldFocus = false) {
+  expandedStepId = stepId;
+
+  elements.workflowTrack.querySelectorAll(".workflow-step").forEach((item) => {
+    const expanded = item.dataset.stepId === stepId;
+    const trigger = item.querySelector(".workflow-step__header");
+    const body = item.querySelector(".workflow-step__body");
+
+    item.classList.toggle("is-expanded", expanded);
+    trigger?.setAttribute("aria-expanded", String(expanded));
+    if (body) {
+      body.hidden = !expanded;
+    }
+  });
+
+  if (shouldFocus && stepId) {
+    elements.workflowTrack
+      .querySelector(`.workflow-step[data-step-id="${CSS.escape(stepId)}"] .workflow-step__header`)
+      ?.focus({ preventScroll: true });
+  }
 }
 
 /** 保存单个步骤的勾选状态并立即刷新进度。 */
@@ -508,6 +537,17 @@ function setStepCompleted(stepId, completed) {
   modeState.completedByGoal[goalId] = Array.from(completedIds);
   saveWorkflowState();
   updateWorkflowProgress();
+
+  const { config } = getCurrentGoal();
+  if (!completed) {
+    setExpandedStep(stepId);
+    return;
+  }
+
+  const nextStep = config.steps.find((step) => !completedIds.has(step.id));
+  if (nextStep) {
+    setExpandedStep(nextStep.id, true);
+  }
 }
 
 /** 渲染“你现在手里有什么”目标按钮，并支持随时切换路线。 */
@@ -562,10 +602,12 @@ function appendStepDetail(list, term, content, modifier) {
 function createWorkflowStep(step, index, completedIds) {
   const tool = getStepTool(step);
   const item = document.createElement("li");
-  const header = document.createElement("div");
+  const header = document.createElement("button");
   const iconBox = document.createElement("span");
   const icon = document.createElement("i");
   const copy = document.createElement("div");
+  const chevron = document.createElement("i");
+  const body = document.createElement("div");
   const details = document.createElement("dl");
   const footer = document.createElement("div");
   const checkLabel = document.createElement("label");
@@ -573,14 +615,20 @@ function createWorkflowStep(step, index, completedIds) {
   const link = document.createElement("a");
   const linkIcon = document.createElement("i");
   const checkId = "workflow-check-" + state.mode + "-" + getCurrentGoal().goalId + "-" + step.id;
+  const bodyId = "workflow-step-body-" + state.mode + "-" + getCurrentGoal().goalId + "-" + step.id;
   const isComplete = completedIds.has(step.id);
+  const isExpanded = expandedStepId === step.id;
 
   item.className = "workflow-step";
   item.dataset.stepId = step.id;
   item.style.setProperty("--step-accent", tool.accent);
   item.classList.toggle("is-complete", isComplete);
+  item.classList.toggle("is-expanded", isExpanded);
 
+  header.type = "button";
   header.className = "workflow-step__header";
+  header.setAttribute("aria-expanded", String(isExpanded));
+  header.setAttribute("aria-controls", bodyId);
   iconBox.className = "workflow-step__icon";
   icon.dataset.lucide = tool.icon;
   iconBox.append(icon);
@@ -592,9 +640,18 @@ function createWorkflowStep(step, index, completedIds) {
   header.append(
     createTextElement("span", "workflow-step__number", String(index + 1).padStart(2, "0")),
     iconBox,
-    copy
+    copy,
+    chevron
   );
+  chevron.dataset.lucide = "chevron-down";
+  chevron.className = "workflow-step__chevron";
+  header.addEventListener("click", () => {
+    setExpandedStep(item.classList.contains("is-expanded") ? null : step.id);
+  });
 
+  body.id = bodyId;
+  body.className = "workflow-step__body";
+  body.hidden = !isExpanded;
   details.className = "workflow-step__details";
   appendStepDetail(details, "这一步做什么", step.task);
   appendStepDetail(details, "做到什么算完成", step.done);
@@ -618,7 +675,8 @@ function createWorkflowStep(step, index, completedIds) {
   linkIcon.dataset.lucide = "arrow-up-right";
   footer.append(checkLabel, link);
 
-  item.append(header, details, footer);
+  body.append(details, footer);
+  item.append(header, body);
   return item;
 }
 
@@ -627,6 +685,12 @@ function renderWorkflow() {
   const { config } = getCurrentGoal();
   const completedIds = getCompletedStepIds();
   const fragment = document.createDocumentFragment();
+
+  if (!config.steps.some((step) => step.id === expandedStepId)) {
+    expandedStepId = config.steps.find((step) => !completedIds.has(step.id))?.id
+      || config.steps.at(-1)?.id
+      || null;
+  }
 
   renderGoalSwitch();
   elements.workflowDescription.textContent = config.description;
@@ -665,6 +729,33 @@ function renderFeatured() {
   }).join("");
 
   refreshIcons();
+  initializeFeaturedTilt();
+}
+
+/** 给精选档案增加轻量 3D 倾斜；触控和减少动态设备保持静态。 */
+function initializeFeaturedTilt() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)").matches) {
+    return;
+  }
+
+  elements.featuredGrid.querySelectorAll(".featured-item").forEach((card) => {
+    card.addEventListener("pointermove", (event) => {
+      const rectangle = card.getBoundingClientRect();
+      const x = (event.clientX - rectangle.left) / rectangle.width;
+      const y = (event.clientY - rectangle.top) / rectangle.height;
+      card.style.setProperty("--tilt-x", `${((0.5 - y) * 5).toFixed(2)}deg`);
+      card.style.setProperty("--tilt-y", `${((x - 0.5) * 6).toFixed(2)}deg`);
+      card.style.setProperty("--shine-x", `${(x * 100).toFixed(1)}%`);
+      card.style.setProperty("--shine-y", `${(y * 100).toFixed(1)}%`);
+    }, { passive: true });
+
+    card.addEventListener("pointerleave", () => {
+      card.style.removeProperty("--tilt-x");
+      card.style.removeProperty("--tilt-y");
+      card.style.removeProperty("--shine-x");
+      card.style.removeProperty("--shine-y");
+    });
+  });
 }
 
 /** 在草稿区播报保存、复制或清空结果。 */
@@ -698,9 +789,9 @@ function scheduleDraftSave() {
   window.clearTimeout(draftSaveTimer);
   draftSaveTimer = window.setTimeout(() => {
     const saved = saveWorkflowState();
-    setDraftStatus(saved
-      ? "已自动保存在本机浏览器。"
-      : "当前为临时草稿，关闭页面前请先复制。");
+    if (!saved) {
+      setDraftStatus("当前为临时草稿，关闭页面前请先复制。");
+    }
   }, 200);
 }
 
@@ -708,7 +799,6 @@ function scheduleDraftSave() {
 function handleDraftInput() {
   workflowState[state.mode].draft = elements.draftInput.value;
   updateDraftMeta();
-  setDraftStatus("正在保存…");
   scheduleDraftSave();
 }
 
@@ -779,6 +869,49 @@ function clearCurrentDraft() {
   elements.draftInput.focus();
 }
 
+/** 折叠或展开草稿面板，手机上作为紧凑抽屉使用。 */
+function setDraftCollapsed(collapsed) {
+  elements.workflowDraft.classList.toggle("is-collapsed", collapsed);
+  elements.draftToggle.setAttribute("aria-expanded", String(!collapsed));
+  elements.draftToggle.setAttribute("aria-label", collapsed ? "展开提示词草稿" : "收起提示词草稿");
+  elements.draftToolBody.hidden = collapsed;
+}
+
+/** 经确认后清空当前模式草稿和当前路线进度，其他路线保持不变。 */
+function resetCurrentWorkflow() {
+  const { goalId } = getCurrentGoal();
+  const hasProgress = getCompletedStepIds().size > 0;
+  const hasDraft = Boolean(elements.draftInput.value.trim());
+
+  if (!hasProgress && !hasDraft) {
+    setDraftStatus("这条路线已经是全新的。");
+    return;
+  }
+
+  const confirmed = window.confirm("开始一次新创作会清空当前草稿与这条路线的步骤进度。其他路线和模式不会改变。继续吗？");
+  if (!confirmed) {
+    setDraftStatus("已保留当前创作。");
+    return;
+  }
+
+  window.clearTimeout(draftSaveTimer);
+  workflowState[state.mode].draft = "";
+  workflowState[state.mode].completedByGoal[goalId] = [];
+  elements.draftInput.value = "";
+  expandedStepId = null;
+  saveWorkflowState();
+  renderWorkflow();
+  updateDraftMeta();
+  setDraftCollapsed(false);
+  setDraftStatus("已开始一次新创作。");
+  elements.draftInput.focus();
+}
+
+/** 同步搜索清空按钮状态，避免与浏览器原生清除控件重复。 */
+function updateSearchClearState() {
+  elements.clearSearch.disabled = elements.searchInput.value.length === 0;
+}
+
 /** 根据当前模式、分类和关键词判断一份档案是否显示。 */
 function archiveMatches(archive, query) {
   const matchesMode = archive.mode === state.mode;
@@ -791,6 +924,8 @@ function archiveMatches(archive, query) {
 function renderArchives() {
   const query = elements.searchInput.value.trim().toLowerCase();
   const filtered = ARCHIVES.filter((archive) => archiveMatches(archive, query));
+
+  updateSearchClearState();
 
   elements.archiveGrid.innerHTML = filtered.map((archive, index) => `
     <a class="archive-card" href="${escapeHtml(archive.href)}" style="--archive-accent:${escapeHtml(archive.accent)};--archive-delay:${Math.min(index * 28, 220)}ms">
@@ -855,6 +990,7 @@ function setMode(mode) {
 
   renderWorkflow();
   showDraftForCurrentMode();
+  setDraftCollapsed(window.innerWidth <= 760 && !elements.draftInput.value.trim());
   renderFeatured();
   setFilter("all");
 }
@@ -893,6 +1029,13 @@ function requestMode(mode) {
       elements.adultDialog.showModal();
       return;
     }
+
+    const confirmed = window.confirm("该路径包含成人向创作档案。请确认你已年满 18 岁并希望继续。");
+    if (!confirmed) {
+      elements.modeButtons.find((button) => button.dataset.mode === state.mode)?.focus();
+      return;
+    }
+    rememberAdultAcknowledgement();
   }
 
   setMode(mode);
@@ -940,7 +1083,16 @@ function initializeHome() {
   elements.draftInput.addEventListener("input", handleDraftInput);
   elements.copyDraft.addEventListener("click", copyCurrentDraft);
   elements.clearDraft.addEventListener("click", clearCurrentDraft);
-  window.addEventListener("beforeunload", flushDraftSave);
+  elements.resetWorkflow.addEventListener("click", resetCurrentWorkflow);
+  elements.draftToggle.addEventListener("click", () => {
+    setDraftCollapsed(elements.draftToggle.getAttribute("aria-expanded") === "true");
+  });
+  window.addEventListener("pagehide", flushDraftSave);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      flushDraftSave();
+    }
+  });
 
   elements.menuToggle.addEventListener("click", () => {
     setMobileMenu(elements.menuToggle.getAttribute("aria-expanded") !== "true");
@@ -954,7 +1106,7 @@ function initializeHome() {
     }
   });
   window.addEventListener("resize", () => {
-    if (window.innerWidth > 760) {
+    if (window.innerWidth > 760 && elements.mainNav.classList.contains("is-open")) {
       setMobileMenu(false);
     }
   });

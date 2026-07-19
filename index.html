@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="no-js">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#0a0b0b">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#171c33">
   <meta name="description" content="星穹枢庭：记录提示词、视觉实验与生成式创作方法的个人创作档案。">
   <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/">
   <meta property="og:type" content="website">
@@ -17,6 +17,8 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <title>星穹枢庭 · Personal Creative Archive</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>document.documentElement.classList.replace("no-js", "js");</script>
   <link rel="stylesheet" href="assets/home.css">
   <script src="assets/vendor/lucide.min.js" defer></script>
   <script src="assets/home.js" defer></script>
@@ -42,7 +44,7 @@
       </nav>
 
       <div class="header-actions">
-        <a class="header-link" href="https://github.com/STARDUSTLC666/xingqiong-hub" target="_blank" rel="noreferrer">
+        <a class="header-link" href="https://github.com/STARDUSTLC666/xingqiong-hub" target="_blank" rel="noreferrer" aria-label="在 GitHub 查看星穹枢庭仓库">
           <i data-lucide="code-2"></i>
           <span>GitHub</span>
         </a>
@@ -92,6 +94,22 @@
       </a>
     </section>
 
+    <noscript>
+      <section class="noscript-fallback" aria-labelledby="noscript-title">
+        <div class="page-width">
+          <p class="section-kicker">PUBLIC ARCHIVE</p>
+          <h2 id="noscript-title">无需脚本也能打开档案</h2>
+          <p>互动路线和筛选需要 JavaScript；下面的核心档案仍可直接访问。</p>
+          <div class="noscript-fallback__links">
+            <a href="krea2/index.html">Krea2 提示词工匠</a>
+            <a href="lighting-codex/index.html">双子星光影魔典</a>
+            <a href="prompt-reader/index.html">Prompt Reader</a>
+            <a href="drag-resolver/index.html">Drag Resolver</a>
+          </div>
+        </div>
+      </section>
+    </noscript>
+
     <section class="workflow section-band" id="workflow" aria-labelledby="workflow-title">
       <div class="page-width">
         <div class="section-heading section-heading--workflow">
@@ -100,6 +118,12 @@
             <h2 id="workflow-title">第一次来，从这里开始</h2>
           </div>
           <p>不用先看懂全部工具。选择你现在手里有什么，再按顺序完成每一步。</p>
+        </div>
+
+        <div class="workflow-orbit" aria-hidden="true">
+          <span class="workflow-orbit__ring workflow-orbit__ring--one"></span>
+          <span class="workflow-orbit__ring workflow-orbit__ring--two"></span>
+          <span class="workflow-orbit__core"></span>
         </div>
 
         <div class="workflow__controls">
@@ -153,23 +177,29 @@
           </div>
 
           <div class="draft-tool" id="workflowDraft">
-            <div class="draft-tool__heading">
-              <div>
+            <button class="draft-tool__toggle" id="draftToggle" type="button" aria-expanded="true" aria-controls="draftToolBody">
+              <span>
                 <small>自动保存在本机浏览器</small>
-                <h3>我的提示词草稿</h3>
+                <strong>我的提示词草稿</strong>
+              </span>
+              <span class="draft-tool__toggle-icons" aria-hidden="true">
+                <i data-lucide="notebook-pen"></i>
+                <i data-lucide="chevron-down"></i>
+              </span>
+            </button>
+            <div class="draft-tool__body" id="draftToolBody">
+              <label class="sr-only" for="draftInput">我的提示词草稿</label>
+              <textarea id="draftInput" rows="9" placeholder="先写一句中文想法。每完成一步，再把页面复制出的结果粘贴到这里。"></textarea>
+              <div class="draft-tool__footer">
+                <span id="draftCount">0 字</span>
+                <div class="draft-tool__actions">
+                  <button id="clearDraft" type="button" aria-label="清空草稿" title="清空草稿" disabled><i data-lucide="trash-2"></i></button>
+                  <button class="draft-tool__copy" id="copyDraft" type="button" disabled><i data-lucide="copy"></i><span>复制草稿</span></button>
+                </div>
               </div>
-              <i data-lucide="notebook-pen"></i>
+              <button class="draft-tool__reset" id="resetWorkflow" type="button"><i data-lucide="rotate-ccw"></i><span>开始一次新创作</span></button>
+              <p class="draft-tool__status" id="draftStatus" role="status" aria-live="polite" aria-atomic="true"></p>
             </div>
-            <label class="sr-only" for="draftInput">我的提示词草稿</label>
-            <textarea id="draftInput" rows="9" placeholder="先写一句中文想法。每完成一步，再把页面复制出的结果粘贴到这里。"></textarea>
-            <div class="draft-tool__footer">
-              <span id="draftCount">0 字</span>
-              <div class="draft-tool__actions">
-                <button id="clearDraft" type="button" aria-label="清空草稿" title="清空草稿" disabled><i data-lucide="trash-2"></i></button>
-                <button class="draft-tool__copy" id="copyDraft" type="button" disabled><i data-lucide="copy"></i><span>复制草稿</span></button>
-              </div>
-            </div>
-            <p class="draft-tool__status" id="draftStatus" role="status" aria-live="polite" aria-atomic="true"></p>
           </div>
         </div>
       </div>
@@ -199,11 +229,12 @@
         </div>
 
         <div class="archive-toolbar" aria-label="档案搜索和筛选">
-          <label class="search-field">
+          <div class="search-field">
+            <label class="sr-only" for="searchInput">搜索公开档案</label>
             <i data-lucide="search"></i>
-            <input id="searchInput" type="search" autocomplete="off" placeholder="搜索名称、用途或关键词" aria-label="搜索公开档案">
-            <button id="clearSearch" type="button" aria-label="清空搜索" title="清空搜索"><i data-lucide="x"></i></button>
-          </label>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="搜索名称、用途或关键词">
+            <button id="clearSearch" type="button" aria-label="清空搜索" title="清空搜索" disabled><i data-lucide="x"></i></button>
+          </div>
 
           <div class="archive-filters" role="group" aria-label="档案类型筛选">
             <button class="archive-filter is-active" data-filter="all" type="button" aria-pressed="true">全部</button>

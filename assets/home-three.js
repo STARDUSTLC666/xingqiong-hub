@@ -1,6 +1,8 @@
 import * as THREE from "./vendor/three.module.min.js";
 
 const canvas = document.getElementById("heroScene");
+const TARGET_FRAME_INTERVAL_MS = 1000 / 30;
+const FRAME_INTERVAL_TOLERANCE_MS = 1;
 
 /** WebGL 不可用时隐藏装饰画布，让图片与正文自然接管首屏。 */
 function hideCanvas(targetCanvas, message) {
@@ -39,7 +41,7 @@ function createParticleField(isCompact) {
 
   for (let index = 0; index < particleCount; index += 1) {
     const offset = index * 3;
-    const radius = 2.4 + Math.pow(random(), 0.7) * 7.6;
+    const radius = 2.2 + Math.pow(random(), 0.7) * 8.1;
     const angle = random() * Math.PI * 2;
     const height = (random() - 0.5) * 7.2;
 
@@ -62,7 +64,7 @@ function createParticleField(isCompact) {
     size: isCompact ? 0.035 : 0.03,
     sizeAttenuation: true,
     transparent: true,
-    opacity: isCompact ? 0.48 : 0.58,
+    opacity: isCompact ? 0.5 : 0.64,
     vertexColors: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
@@ -222,32 +224,31 @@ function createArchiveCore() {
       blending: THREE.AdditiveBlending
     });
     glow = new THREE.Sprite(glowMaterial);
-    glow.scale.set(2.45, 2.45, 1);
+    glow.scale.set(3.1, 3.1, 1);
     glow.renderOrder = -3;
     group.add(glow);
   }
 
-  const coreGeometry = new THREE.OctahedronGeometry(0.34, 2);
+  const coreGeometry = new THREE.SphereGeometry(0.48, 24, 16);
   const coreMaterial = new THREE.MeshPhongMaterial({
-    color: "#b97b39",
-    emissive: "#dca454",
-    emissiveIntensity: 0.7,
+    color: "#d59a43",
+    emissive: "#e6ad57",
+    emissiveIntensity: 0.74,
     specular: "#fff0c2",
-    shininess: 96,
-    flatShading: true,
+    shininess: 110,
     transparent: true,
-    opacity: 0.82,
+    opacity: 0.98,
     depthWrite: false
   });
   const core = new THREE.Mesh(coreGeometry, coreMaterial);
   core.renderOrder = 2;
   group.add(core);
 
-  const facetGeometry = new THREE.IcosahedronGeometry(0.48, 1);
+  const facetGeometry = new THREE.IcosahedronGeometry(0.68, 1);
   const facetMaterial = new THREE.MeshBasicMaterial({
     color: "#f8dfaa",
     transparent: true,
-    opacity: 0.52,
+    opacity: 0.46,
     wireframe: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
@@ -255,7 +256,22 @@ function createArchiveCore() {
   const facetShell = new THREE.Mesh(facetGeometry, facetMaterial);
   group.add(facetShell);
 
-  const globeGeometry = new THREE.SphereGeometry(0.7, 16, 9);
+  const glassGeometry = new THREE.IcosahedronGeometry(0.82, 2);
+  const glassMaterial = new THREE.MeshPhongMaterial({
+    color: "#b9d5df",
+    specular: "#ffffff",
+    shininess: 120,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  const glassShell = new THREE.Mesh(glassGeometry, glassMaterial);
+  glassShell.scale.set(1, 1.08, 0.9);
+  group.add(glassShell);
+
+  const globeGeometry = new THREE.SphereGeometry(0.88, 18, 10);
   const globeMaterial = new THREE.MeshBasicMaterial({
     color: "#7fbcc5",
     transparent: true,
@@ -273,9 +289,9 @@ function createArchiveCore() {
   detailLayer.add(structuralFrame);
 
   const energyRings = [
-    createEnergyRing(0.78, "#e2b46c", 0.46, { x: 1.18, y: 0.12, z: 0.22 }),
-    createEnergyRing(0.84, "#76bac5", 0.35, { x: 0.35, y: 1.02, z: -0.42 }),
-    createEnergyRing(0.9, "#cf8599", 0.24, { x: -0.52, y: 0.4, z: 0.76 })
+    createEnergyRing(0.96, "#e2b46c", 0.5, { x: 1.18, y: 0.12, z: 0.22 }),
+    createEnergyRing(1.04, "#76bac5", 0.36, { x: 0.35, y: 1.02, z: -0.42 }),
+    createEnergyRing(1.12, "#cf8599", 0.26, { x: -0.52, y: 0.4, z: 0.76 })
   ];
   group.add(...energyRings, detailLayer);
 
@@ -290,6 +306,7 @@ function createArchiveCore() {
     group,
     core,
     facetShell,
+    glassShell,
     coordinateGlobe,
     structuralFrame,
     energyRings,
@@ -304,9 +321,9 @@ function createOrbitalSystem() {
   const tracks = [];
   const orbiterGeometry = new THREE.SphereGeometry(0.055, 10, 10);
   const trackOptions = [
-    { radiusX: 2.35, radiusY: 0.76, depth: 0.18, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.34, phase: 0.2, speed: 0.34 },
-    { radiusX: 1.78, radiusY: 1.08, depth: 0.12, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.3, phase: 2.4, speed: -0.27 },
-    { radiusX: 1.24, radiusY: 1.5, depth: 0.15, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#ca8198", opacity: 0.22, phase: 4.3, speed: 0.22 }
+    { radiusX: 2.65, radiusY: 0.82, depth: 0.2, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.42, phase: 0.2, speed: 0.34 },
+    { radiusX: 2.05, radiusY: 1.22, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.27 },
+    { radiusX: 1.45, radiusY: 1.72, depth: 0.17, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#ca8198", opacity: 0.27, phase: 4.3, speed: 0.22 }
   ];
 
   for (const options of trackOptions) {
@@ -464,14 +481,14 @@ function initializeHeroScene(targetCanvas) {
       rebuildParticles(isCompact);
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isCompact ? 1.25 : 1.75));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isCompact ? 1.25 : 1.5));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.position.z = isCompact ? 9.7 : 8.8;
     camera.updateProjectionMatrix();
 
-    orbitalSystem.root.position.set(isCompact ? 1.15 : 2.15, isCompact ? 2.2 : 0.08, -0.4);
-    orbitalSystem.root.scale.setScalar(isCompact ? 0.64 : 1);
+    orbitalSystem.root.position.set(isCompact ? 1.08 : 2.35, isCompact ? 2.05 : 0.06, -0.36);
+    orbitalSystem.root.scale.setScalar(isCompact ? 0.72 : 1.12);
     orbitalSystem.detailLayer.visible = !isCompact;
     renderCurrentFrame();
   }
@@ -486,9 +503,23 @@ function initializeHeroScene(targetCanvas) {
     state.elapsed += deltaSeconds;
     const time = state.elapsed;
 
-    state.pointerCurrent.lerp(state.pointerTarget, 0.045);
+    const pointerLerpFactor = deltaSeconds > 0
+      ? 1 - Math.pow(1 - 0.045, deltaSeconds * 60)
+      : 0.045;
+    state.pointerCurrent.lerp(state.pointerTarget, pointerLerpFactor);
+    const heroRectangle = host.getBoundingClientRect();
+    const scrollProgress = THREE.MathUtils.clamp(
+      -heroRectangle.top / Math.max(1, heroRectangle.height),
+      0,
+      1
+    );
+    const baseScale = state.compact ? 0.72 : 1.12;
+    orbitalSystem.root.position.y = (state.compact ? 2.05 : 0.06) + scrollProgress * 0.16;
+    orbitalSystem.root.position.z = -0.36 - scrollProgress * 0.9;
+    orbitalSystem.root.scale.setScalar(baseScale * (1 - scrollProgress * 0.1));
     orbitalSystem.root.rotation.x = -0.05 + state.pointerCurrent.y * 0.075;
     orbitalSystem.root.rotation.y = Math.sin(time * 0.17) * 0.04 + state.pointerCurrent.x * 0.09;
+    orbitalSystem.root.rotation.z = scrollProgress * 0.12;
     particles.rotation.y = time * 0.006 + state.pointerCurrent.x * 0.018;
     particles.rotation.x = -0.08 + state.pointerCurrent.y * 0.012;
 
@@ -507,6 +538,8 @@ function initializeHeroScene(targetCanvas) {
     orbitalSystem.core.rotation.y += deltaSeconds * 0.19;
     orbitalSystem.facetShell.rotation.x -= deltaSeconds * 0.08;
     orbitalSystem.facetShell.rotation.y += deltaSeconds * 0.13;
+    orbitalSystem.glassShell.rotation.x += deltaSeconds * 0.035;
+    orbitalSystem.glassShell.rotation.y -= deltaSeconds * 0.055;
     orbitalSystem.coordinateGlobe.rotation.y += deltaSeconds * 0.045;
     orbitalSystem.coordinateGlobe.rotation.z -= deltaSeconds * 0.025;
     orbitalSystem.structuralFrame.rotation.y += deltaSeconds * 0.035;
@@ -529,8 +562,18 @@ function initializeHeroScene(targetCanvas) {
       return;
     }
 
+    const elapsedMilliseconds = state.lastTimestamp ? timestamp - state.lastTimestamp : 0;
+
+    if (
+      state.lastTimestamp
+      && elapsedMilliseconds < TARGET_FRAME_INTERVAL_MS - FRAME_INTERVAL_TOLERANCE_MS
+    ) {
+      state.frameId = window.requestAnimationFrame(animate);
+      return;
+    }
+
     const deltaSeconds = state.lastTimestamp
-      ? Math.min((timestamp - state.lastTimestamp) / 1000, 0.05)
+      ? Math.min(elapsedMilliseconds / 1000, 0.05)
       : 0;
     state.lastTimestamp = timestamp;
 
@@ -589,6 +632,28 @@ function initializeHeroScene(targetCanvas) {
   /** 页面切到后台时立即停帧，回到前台后按条件恢复。 */
   function handleVisibilityChange() {
     state.pageVisible = !document.hidden;
+    synchronizeAnimation();
+  }
+
+  /** 进入往返缓存时只暂停；真正离开页面时才释放 GPU 资源。 */
+  function handlePageHide(event) {
+    if (event.persisted) {
+      state.pageVisible = false;
+      synchronizeAnimation();
+      return;
+    }
+
+    disposeScene();
+  }
+
+  /** 从往返缓存恢复后重新同步尺寸、可见性和动画状态。 */
+  function handlePageShow(event) {
+    if (!event.persisted || state.failed) {
+      return;
+    }
+
+    state.pageVisible = !document.hidden;
+    handleResize();
     synchronizeAnimation();
   }
 
@@ -657,7 +722,7 @@ function initializeHeroScene(targetCanvas) {
     writable: false
   });
 
-  /** 解绑监听并释放 GPU 资源，供页面进入往返缓存或关闭时调用。 */
+  /** 解绑监听并释放 GPU 资源，仅供页面真正离开或关闭时调用。 */
   function disposeScene() {
     if (state.frameId) {
       window.cancelAnimationFrame(state.frameId);
@@ -668,6 +733,8 @@ function initializeHeroScene(targetCanvas) {
     resizeObserver?.disconnect();
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("resize", handleResize);
+    window.removeEventListener("pagehide", handlePageHide);
+    window.removeEventListener("pageshow", handlePageShow);
     host.removeEventListener("pointermove", handlePointerMove);
     host.removeEventListener("pointerleave", handlePointerLeave);
     targetCanvas.removeEventListener("webglcontextlost", handleContextLost);
@@ -683,7 +750,8 @@ function initializeHeroScene(targetCanvas) {
 
   document.addEventListener("visibilitychange", handleVisibilityChange);
   window.addEventListener("resize", handleResize, { passive: true });
-  window.addEventListener("pagehide", disposeScene, { once: true });
+  window.addEventListener("pagehide", handlePageHide);
+  window.addEventListener("pageshow", handlePageShow);
   host.addEventListener("pointermove", handlePointerMove, { passive: true });
   host.addEventListener("pointerleave", handlePointerLeave, { passive: true });
   targetCanvas.addEventListener("webglcontextlost", handleContextLost, false);
