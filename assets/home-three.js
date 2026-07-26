@@ -545,6 +545,24 @@ function initializeHeroScene(targetCanvas) {
   const mobileQuery = window.matchMedia("(max-width: 767px), (pointer: coarse)");
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const renderingContext = createRenderingContext(targetCanvas, mobileQuery.matches);
+
+  // 与 sanctuary.js 共用同一个显式开关，读的是同一个 localStorage 键。
+  const MOTION_KEY = "xingqiong-motion";
+
+  /** 系统偏好之外允许访客只为本站打开动效，默认仍然跟随系统。 */
+  function prefersStatic() {
+    let override = null;
+    try {
+      override = localStorage.getItem(MOTION_KEY);
+    } catch {
+      override = null;
+    }
+
+    if (override === "on") return false;
+    if (override === "off") return true;
+    return motionQuery.matches;
+  }
+
   let renderer;
 
   if (!renderingContext) {
@@ -591,7 +609,7 @@ function initializeHeroScene(targetCanvas) {
     ready: false,
     inViewport: true,
     pageVisible: !document.hidden,
-    reducedMotion: motionQuery.matches,
+    reducedMotion: prefersStatic(),
     frameId: 0,
     lastTimestamp: 0,
     elapsed: 0,
@@ -827,7 +845,7 @@ function initializeHeroScene(targetCanvas) {
 
   /** 响应系统减少动态效果设置，并在静止模式下保留完整构图。 */
   function handleMotionPreferenceChange(event) {
-    state.reducedMotion = event.matches;
+    state.reducedMotion = prefersStatic();
     state.pointerTarget.set(0, 0);
     state.pointerCurrent.set(0, 0);
     updateScene(0);
@@ -907,6 +925,7 @@ function initializeHeroScene(targetCanvas) {
     host.removeEventListener("pointerleave", handlePointerLeave);
     targetCanvas.removeEventListener("webglcontextlost", handleContextLost);
     motionQuery.removeEventListener?.("change", handleMotionPreferenceChange);
+    window.removeEventListener("xq:motionchange", handleMotionPreferenceChange);
     mobileQuery.removeEventListener?.("change", handleMobilePreferenceChange);
     scene.traverse(disposeSceneNode);
     renderer.dispose();
@@ -924,6 +943,8 @@ function initializeHeroScene(targetCanvas) {
   host.addEventListener("pointerleave", handlePointerLeave, { passive: true });
   targetCanvas.addEventListener("webglcontextlost", handleContextLost, false);
   motionQuery.addEventListener?.("change", handleMotionPreferenceChange);
+  // 站点内的显式动效开关也要即时生效，不必刷新页面。
+  window.addEventListener("xq:motionchange", handleMotionPreferenceChange);
   mobileQuery.addEventListener?.("change", handleMobilePreferenceChange);
 
   if ("IntersectionObserver" in window) {

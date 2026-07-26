@@ -62,8 +62,40 @@
     return node;
   }
 
+  /* ------------------------------------------------------------ 动效偏好 */
+  /* 系统的 prefers-reduced-motion 之外再留一个显式开关。
+     很多人只是关掉了 Windows 的「动画效果」来省性能，并非需要规避前庭不适，
+     完全冻结主视觉对他们是过度服从；但默认仍然尊重系统设置，只有本人
+     主动打开才恢复动效。 */
+  const MOTION_KEY = "xingqiong-motion";
+
+  function motionOverride() {
+    try {
+      return localStorage.getItem(MOTION_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   function prefersStill() {
+    const override = motionOverride();
+    if (override === "on") return false;
+    if (override === "off") return true;
     return motionQuery.matches;
+  }
+
+  function setMotionOverride(value) {
+    try {
+      if (value) localStorage.setItem(MOTION_KEY, value);
+      else localStorage.removeItem(MOTION_KEY);
+    } catch {
+      // 隐私模式下写不进去，本次浏览内仍然生效。
+    }
+
+    html.dataset.xqMotion = prefersStill() ? "still" : "full";
+    window.dispatchEvent(new CustomEvent("xq:motionchange", {
+      detail: { still: prefersStill() }
+    }));
   }
 
   /** 当前页面所在的星门 slug；识别不出时返回空字符串（首页返回 ""）。 */
@@ -591,6 +623,37 @@
     }, { passive: true });
   }
 
+  /* ------------------------------------------------------------ 动效开关 */
+  /* 只在系统要求减少动效时才出现：动效本来就正常的访客不需要多这一个按钮。 */
+  function mountMotionToggle() {
+    if (!motionQuery.matches) return;
+    if (doc.querySelector("[data-xq-motion-toggle]")) return;
+
+    const host = doc.querySelector(".xq-topbar__actions") || doc.querySelector("[data-xq-motion-slot]");
+    if (!host) return;
+
+    const button = el("button", "xq-tbtn");
+    button.type = "button";
+    button.setAttribute("data-xq-motion-toggle", "");
+
+    function sync() {
+      const still = prefersStill();
+      button.innerHTML = `<span aria-hidden="true">${still ? "✧" : "✦"}</span><span>${still ? "启用动效" : "动效已开"}</span>`;
+      button.setAttribute("aria-pressed", String(!still));
+      button.title = still
+        ? "你的系统设置为减少动态效果，页面主视觉已静止。点击可只为本站开启。"
+        : "点击恢复为跟随系统的减少动态效果设置。";
+    }
+
+    button.addEventListener("click", () => {
+      setMotionOverride(prefersStill() ? "on" : null);
+      sync();
+    });
+
+    sync();
+    host.prepend(button);
+  }
+
   /* ---------------------------------------------------------------- 页脚 */
   function mountFooter() {
     if (!slug || doc.querySelector(".xq-sitefoot")) return;
@@ -630,6 +693,8 @@
     bindCommandShortcuts();
     mountReveal();
     mountMicroInteractions();
+    mountMotionToggle();
+    html.dataset.xqMotion = prefersStill() ? "still" : "full";
   }
 
   const XQ = {
