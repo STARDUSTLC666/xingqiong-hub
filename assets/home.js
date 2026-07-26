@@ -955,6 +955,49 @@ function renderArchives() {
   markArchivesRendered();
 }
 
+/** 主视觉两种形态之间切换：档案晶核与写实恒星。
+    切换需要重建整个 Three.js 场景，直接重载比热插拔可靠得多。 */
+function initializeHeroVariantToggle() {
+  const slot = document.querySelector("[data-xq-motion-slot]");
+  if (!slot) return;
+
+  const STORAGE_KEY = "xingqiong-hero";
+
+  function currentVariant() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === "sun" ? "sun" : "archive";
+    } catch {
+      return "archive";
+    }
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "header-link header-link--palette";
+  button.innerHTML = '<span aria-hidden="true">☀</span><span></span>';
+  const label = button.lastElementChild;
+
+  function sync() {
+    const isSun = currentVariant() === "sun";
+    label.textContent = isSun ? "档案晶核" : "写实恒星";
+    button.setAttribute("aria-label", isSun ? "切换回档案晶核主视觉" : "切换为写实恒星主视觉");
+    button.title = isSun ? "换回星穹档案晶核" : "换成写实恒星（湍流光球与日冕）";
+  }
+
+  button.addEventListener("click", () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, currentVariant() === "sun" ? "archive" : "sun");
+    } catch {
+      // 存不下就没法保留选择，直接放弃切换而不是给出假的反馈。
+      return;
+    }
+    window.location.reload();
+  });
+
+  sync();
+  slot.prepend(button);
+}
+
 /** 首屏统计从真实数据推导，避免新增档案后页面上的数字失真。 */
 function syncHeadlineNumbers() {
   const totalArchives = ARCHIVES.length;
@@ -1150,6 +1193,7 @@ function initializeHome() {
   animateHeadlineNumbers();
   initializeScrollReveal();
   initializeCardSpotlight();
+  initializeHeroVariantToggle();
 
   elements.modeButtons.forEach((button, index) => {
     button.addEventListener("click", () => requestMode(button.dataset.mode));

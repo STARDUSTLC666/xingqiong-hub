@@ -31,7 +31,7 @@ function createSeededRandom(seed) {
 
 /** 按设备性能档位生成带冷暖变化和独立闪烁相位的三维星尘。 */
 function createParticleField(isCompact) {
-  const particleCount = isCompact ? 260 : 860;
+  const particleCount = isCompact ? 900 : 3200;
   const random = createSeededRandom(0x51a7c0de);
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
@@ -41,24 +41,43 @@ function createParticleField(isCompact) {
   const warmColor = new THREE.Color("#e1b56f");
   const color = new THREE.Color();
 
+  const ARM_COUNT = 2;
+  const ARM_TWIST = 2.9;
+  const DISC_RADIUS = 26.0;
+
   for (let index = 0; index < particleCount; index += 1) {
     const offset = index * 3;
-    const radius = 2.2 + Math.pow(random(), 0.7) * 8.1;
-    const angle = random() * Math.PI * 2;
-    const height = (random() - 0.5) * 7.2;
+
+    // 半径向中心聚集，天然形成核球密、外盘疏的分布
+    const spread = Math.pow(random(), 1.9);
+    const radius = 0.35 + spread * DISC_RADIUS;
+
+    // 对数螺旋：转角随 log(半径) 增长，才是真实星系旋臂的形状。
+    // 散射量随半径变大，旋臂由内向外逐渐散开而不是一直细如刀刻。
+    const arm = Math.floor(random() * ARM_COUNT);
+    const spiral = (arm / ARM_COUNT) * Math.PI * 2 + Math.log(radius + 1.0) * ARM_TWIST;
+    const scatter = (random() - 0.5) * (0.5 + radius * 0.07);
+    const angle = spiral + scatter;
+
+    // 核球厚、盘很薄。三个随机数相加近似正态，避免出现生硬的上下边界。
+    const bulge = Math.exp(-radius * 0.22);
+    const height = (random() + random() + random() - 1.5) * (0.5 + bulge * 3.2);
 
     positions[offset] = Math.cos(angle) * radius;
     positions[offset + 1] = height;
-    positions[offset + 2] = Math.sin(angle) * radius * 0.52 - 1.8;
+    positions[offset + 2] = Math.sin(angle) * radius;
 
-    color.copy(coolColor).lerp(warmColor, random() * 0.7);
-    const brightness = 0.46 + random() * 0.54;
+    // 星族配色：核球是年老的暖黄星，旋臂是年轻的蓝白星
+    const youth = Math.min(1, radius / (DISC_RADIUS * 0.55));
+    color.copy(warmColor).lerp(coolColor, youth * 0.85);
+    if (random() > 0.97) color.setRGB(1.0, 0.62, 0.48); // 零星红巨星
+    const brightness = (0.5 + random() * 0.72) * (0.78 + bulge * 0.35);
     colors[offset] = color.r * brightness;
     colors[offset + 1] = color.g * brightness;
     colors[offset + 2] = color.b * brightness;
 
     // 少量“亮星”撑起层次，其余保持细小，避免整片糊成一团。
-    sizes[index] = random() > 0.92 ? 3.4 + random() * 2.6 : 0.9 + random() * 1.5;
+    sizes[index] = random() > 0.93 ? 3.0 + random() * 2.4 : 0.8 + random() * 1.3;
     phases[index] = random() * Math.PI * 2;
   }
 
@@ -73,7 +92,7 @@ function createParticleField(isCompact) {
     uniforms: {
       uTime: { value: 0 },
       uScale: { value: isCompact ? 42 : 58 },
-      uOpacity: { value: isCompact ? 0.62 : 0.78 }
+      uOpacity: { value: isCompact ? 0.72 : 0.9 }
     },
     vertexShader: `
       attribute vec3 aColor;
@@ -113,7 +132,8 @@ function createParticleField(isCompact) {
   });
 
   const particles = new THREE.Points(geometry, material);
-  particles.rotation.x = -0.08;
+  particles.rotation.set(-0.42, 0, 0.52);
+  particles.position.set(-1.5, 0.4, -12.0);
   return particles;
 }
 
@@ -251,6 +271,227 @@ function createStructuralFrame() {
   return group;
 }
 
+/* 三维值噪声 + fBm，供恒星表面与日冕共用。
+   用哈希噪声而不是外部噪声库，是为了让主视觉保持零依赖。 */
+const NOISE_GLSL = `
+  float xqHash(vec3 p) {
+    p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+
+  float xqNoise(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(xqHash(i + vec3(0.0, 0.0, 0.0)), xqHash(i + vec3(1.0, 0.0, 0.0)), f.x),
+          mix(xqHash(i + vec3(0.0, 1.0, 0.0)), xqHash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+      mix(mix(xqHash(i + vec3(0.0, 0.0, 1.0)), xqHash(i + vec3(1.0, 0.0, 1.0)), f.x),
+          mix(xqHash(i + vec3(0.0, 1.0, 1.0)), xqHash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+  }
+
+  float xqFbm(vec3 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    for (int i = 0; i < XQ_OCTAVES; i++) {
+      value += amplitude * xqNoise(p);
+      p *= 2.03;
+      amplitude *= 0.5;
+    }
+    return value;
+  }
+`;
+
+/** 移动端把 fBm 降到 3 阶：这两个着色器是逐像素的，八度数直接决定发热量。 */
+function noiseGlsl(isCompact) {
+  return `#define XQ_OCTAVES ${isCompact ? 3 : 5}\n${NOISE_GLSL}`;
+}
+
+/** 创建写实恒星核心：湍流等离子体表面 + 临边昏暗 + 日冕。 */
+function createSolarCore(isCompact) {
+  const group = new THREE.Group();
+
+  // 表面。噪声取自物体空间坐标，球体自转时纹理才会跟着转而不是在表面滑动。
+  const surfaceGeometry = new THREE.SphereGeometry(0.62, 96, 64);
+  const surfaceMaterial = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec3 vObjectPosition;
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        vObjectPosition = position;
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec3 vObjectPosition;
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        vec3 direction = normalize(vObjectPosition);
+        vec3 p = direction * 3.4;
+
+        // 域扭曲：让噪声像对流元胞一样翻滚，而不是静止的斑点
+        vec3 warp = vec3(
+          xqFbm(p + vec3(0.0, 0.0, uTime * 0.06)),
+          xqFbm(p + vec3(4.7, 2.3, uTime * 0.05)),
+          xqFbm(p + vec3(9.1, 6.4, uTime * 0.045))
+        );
+
+        float plasma = xqFbm(p + warp * 2.1 + uTime * 0.035);
+        float granulation = xqFbm(p * 5.5 + warp * 0.8 + uTime * 0.09);
+        float heat = plasma * 0.68 + granulation * 0.32;
+
+        // 临边昏暗：真实恒星圆面中心最亮、边缘骤暗，这是它区别于
+        // 普通发光球体最关键的一处观感。
+        float mu = clamp(dot(normalize(vNormalWorld), normalize(vViewDirection)), 0.0, 1.0);
+        float limb = 0.28 + 0.72 * pow(mu, 0.52);
+
+        vec3 shadowed = vec3(0.42, 0.07, 0.01);
+        vec3 warm     = vec3(0.98, 0.36, 0.04);
+        vec3 bright   = vec3(1.0, 0.78, 0.34);
+        vec3 core     = vec3(1.0, 0.97, 0.86);
+
+        vec3 color = mix(shadowed, warm, smoothstep(0.22, 0.52, heat));
+        color = mix(color, bright, smoothstep(0.48, 0.74, heat));
+        color = mix(color, core, smoothstep(0.7, 0.94, heat));
+        color *= limb;
+
+        // 黑子：低温区压暗，给圆面一点可辨识的结构
+        float spot = smoothstep(0.14, 0.03, xqFbm(p * 1.6 + 21.0));
+        color *= 1.0 - spot * 0.55;
+
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+    depthWrite: true
+  });
+  const core = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+  core.renderOrder = 2;
+  group.add(core);
+
+  // 日冕用正对镜头的公告板，而不是球壳：球壳自身的轮廓会在天上留下
+  // 一圈硬边，看起来像套了个玻璃罩。公告板可以让透明度平滑归零。
+  const CORONA_HALF_SIZE = 2.2;
+  const coronaGeometry = new THREE.PlaneGeometry(CORONA_HALF_SIZE * 2, CORONA_HALF_SIZE * 2);
+  const coronaMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      // 光球在公告板上占据的半径比例，日冕从这里往外长
+      uInner: { value: 0.62 / CORONA_HALF_SIZE }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uInner;
+      varying vec2 vUv;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        vec2 offset = vUv - 0.5;
+        float radius = length(offset) * 2.0;
+        if (radius > 1.0 || radius < uInner * 0.88) discard;
+
+        // 角向变化留在 xy、半径与时间放在 z：冕流才会沿半径向外拉直，
+        // 并且随时间向外飘散，而不是斜着整片平移。
+        float angle = atan(offset.y, offset.x);
+        vec3 samplePoint = vec3(cos(angle), sin(angle), 0.0) * 3.6
+          + vec3(0.0, 0.0, radius * 3.2 - uTime * 0.16);
+        float tendril = xqFbm(samplePoint);
+        float streamer = pow(smoothstep(0.38, 0.82, tendril), 1.4);
+
+        // 内缘贴着光球淡入，外缘完全散掉，两头都没有硬边
+        float outward = smoothstep(1.0, uInner * 1.15, radius);
+        float inward = smoothstep(uInner * 0.88, uInner * 1.04, radius);
+
+        // 紧贴光球的色球层始终明亮，往外才交给冕流决定浓淡
+        float chromosphere = pow(smoothstep(uInner * 1.5, uInner * 0.95, radius), 1.8);
+        float alpha = outward * inward * (0.2 + 0.8 * streamer) + chromosphere * inward * 0.5;
+
+        vec3 color = mix(vec3(1.0, 0.3, 0.03), vec3(1.0, 0.76, 0.4), streamer);
+        color = mix(color, vec3(1.0, 0.62, 0.24), chromosphere);
+        gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0) * 0.8);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending
+  });
+  const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
+  corona.renderOrder = -2;
+  group.add(corona);
+
+  // 外层光晕沿用档案版那张径向纹理，负责把光洒到背景上
+  const glowTexture = createCoreGlowTexture();
+  let glow = null;
+  let outerGlow = null;
+
+  if (glowTexture) {
+    const outerMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: "#d4802f",
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending
+    });
+    outerGlow = new THREE.Sprite(outerMaterial);
+    outerGlow.scale.set(7.4, 7.4, 1);
+    outerGlow.renderOrder = -4;
+    group.add(outerGlow);
+
+    const glowMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: "#ffd9a0",
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending
+    });
+    glow = new THREE.Sprite(glowMaterial);
+    glow.scale.set(3.4, 3.4, 1);
+    glow.renderOrder = -3;
+    group.add(glow);
+  }
+
+  // 写实版不需要晶体外壳与经纬网，返回空值让更新逻辑跳过它们。
+  return {
+    group,
+    core,
+    corona,
+    glow,
+    outerGlow,
+    atmosphere: null,
+    facetShell: null,
+    glassShell: null,
+    coordinateGlobe: null,
+    structuralFrame: null,
+    energyRings: [],
+    detailLayer: new THREE.Group()
+  };
+}
+
 /** 创建多层“星穹档案核心”，组合柔光、晶体、经纬壳与结构线。 */
 function createArchiveCore() {
   const group = new THREE.Group();
@@ -368,8 +609,8 @@ function createArchiveCore() {
       varying vec3 vViewDirection;
 
       void main() {
-        float facing = 1.0 - clamp(dot(normalize(vNormalWorld), normalize(vViewDirection)), 0.0, 1.0);
-        float shell = pow(facing, 3.2);
+        float facing = 1.0 - abs(dot(normalize(vNormalWorld), normalize(vViewDirection)));
+        float shell = pow(facing, 3.0);
         gl_FragColor = vec4(uGlow, shell * 0.85);
       }
     `,
@@ -481,7 +722,7 @@ function createArchiveCore() {
 }
 
 /** 生成档案核心、三维轨道和轨道光点的完整主视觉装置。 */
-function createOrbitalSystem() {
+function createOrbitalSystem(isCompact) {
   const root = new THREE.Group();
   const tracks = [];
   const orbiterGeometry = new THREE.SphereGeometry(0.055, 10, 10);
@@ -497,10 +738,19 @@ function createOrbitalSystem() {
     root.add(track.carrier);
   }
 
-  const archiveCore = createArchiveCore();
-  root.add(archiveCore.group);
+  const heroCore = heroVariant() === "sun" ? createSolarCore(isCompact) : createArchiveCore();
+  root.add(heroCore.group);
 
-  return { root, tracks, ...archiveCore };
+  return { root, tracks, ...heroCore };
+}
+
+/** 主视觉形态：archive 是默认的档案晶核，sun 是写实恒星。 */
+function heroVariant() {
+  try {
+    return localStorage.getItem("xingqiong-hero") === "sun" ? "sun" : "archive";
+  } catch {
+    return "archive";
+  }
 }
 
 /** 释放单个 Three.js 材质，兼容数组材质。 */
@@ -599,7 +849,9 @@ function initializeHeroScene(targetCanvas) {
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 40);
   camera.position.set(0, 0, 8.8);
 
-  const orbitalSystem = createOrbitalSystem();
+  const orbitalSystem = createOrbitalSystem(mobileQuery.matches);
+  // 每帧复用，避免在动画循环里反复分配
+  const billboardQuaternion = new THREE.Quaternion();
   let particles = createParticleField(mobileQuery.matches);
   scene.add(particles, orbitalSystem.root);
 
@@ -720,15 +972,33 @@ function initializeHeroScene(targetCanvas) {
     orbitalSystem.core.rotation.x += deltaSeconds * 0.11;
     orbitalSystem.core.rotation.y += deltaSeconds * 0.19;
     orbitalSystem.core.material.uniforms.uTime.value = time;
-    orbitalSystem.atmosphere.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
+    orbitalSystem.atmosphere?.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
+    if (orbitalSystem.corona) {
+      orbitalSystem.corona.material.uniforms.uTime.value = time;
+      // 抵消父级的世界旋转，让公告板的世界朝向恒等于相机朝向
+      orbitalSystem.corona.parent.getWorldQuaternion(billboardQuaternion);
+      orbitalSystem.corona.quaternion.copy(billboardQuaternion.invert()).multiply(camera.quaternion);
+    }
     particles.material.uniforms.uTime.value = time;
-    orbitalSystem.facetShell.rotation.x -= deltaSeconds * 0.08;
-    orbitalSystem.facetShell.rotation.y += deltaSeconds * 0.13;
-    orbitalSystem.glassShell.rotation.x += deltaSeconds * 0.035;
-    orbitalSystem.glassShell.rotation.y -= deltaSeconds * 0.055;
-    orbitalSystem.coordinateGlobe.rotation.y += deltaSeconds * 0.045;
-    orbitalSystem.coordinateGlobe.rotation.z -= deltaSeconds * 0.025;
-    orbitalSystem.structuralFrame.rotation.y += deltaSeconds * 0.035;
+    // 写实恒星版没有晶体外壳与经纬网，这些成员为空时整段跳过。
+    if (orbitalSystem.facetShell) {
+      orbitalSystem.facetShell.rotation.x -= deltaSeconds * 0.08;
+      orbitalSystem.facetShell.rotation.y += deltaSeconds * 0.13;
+    }
+
+    if (orbitalSystem.glassShell) {
+      orbitalSystem.glassShell.rotation.x += deltaSeconds * 0.035;
+      orbitalSystem.glassShell.rotation.y -= deltaSeconds * 0.055;
+    }
+
+    if (orbitalSystem.coordinateGlobe) {
+      orbitalSystem.coordinateGlobe.rotation.y += deltaSeconds * 0.045;
+      orbitalSystem.coordinateGlobe.rotation.z -= deltaSeconds * 0.025;
+    }
+
+    if (orbitalSystem.structuralFrame) {
+      orbitalSystem.structuralFrame.rotation.y += deltaSeconds * 0.035;
+    }
 
     for (let index = 0; index < orbitalSystem.energyRings.length; index += 1) {
       const direction = index % 2 === 0 ? 1 : -1;
