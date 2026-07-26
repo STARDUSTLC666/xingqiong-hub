@@ -296,7 +296,8 @@ const CATEGORY_NAMES = {
 
 const state = {
   mode: "standard",
-  activeFilter: "all"
+  activeFilter: "all",
+  archivesRendered: false
 };
 
 const WORKFLOW_STORAGE_KEY = "xingqiong-workflow-v1";
@@ -927,11 +928,13 @@ function renderArchives() {
 
   updateSearchClearState();
 
+  // 编号取自 ARCHIVES 的固定位置，这样同一份档案在任何筛选下编号都一致。
+  elements.archiveGrid.classList.toggle("is-restaged", Boolean(state.archivesRendered));
   elements.archiveGrid.innerHTML = filtered.map((archive, index) => `
     <a class="archive-card" href="${escapeHtml(archive.href)}" style="--archive-accent:${escapeHtml(archive.accent)};--archive-delay:${Math.min(index * 28, 220)}ms">
       <span class="archive-card__topline"></span>
       <span class="archive-card__meta">
-        <span class="archive-card__number">${String(index + 1).padStart(2, "0")}</span>
+        <span class="archive-card__number">${String(ARCHIVES.indexOf(archive) + 1).padStart(2, "0")}</span>
         <span class="archive-card__badge">${escapeHtml(archive.badge)}</span>
       </span>
       <span class="archive-card__icon"><i data-lucide="${escapeHtml(archive.icon)}"></i></span>
@@ -949,6 +952,95 @@ function renderArchives() {
   elements.resultCount.textContent = `${filtered.length} 份档案`;
   elements.emptyState.hidden = filtered.length !== 0;
   refreshIcons();
+  markArchivesRendered();
+}
+
+/** 首屏统计从真实数据推导，避免新增档案后页面上的数字失真。 */
+function syncHeadlineNumbers() {
+  const totalArchives = ARCHIVES.length;
+  const totalRoutes = Object.values(WORKFLOWS)
+    .reduce((sum, mode) => sum + Object.keys(mode.goals).length, 0);
+
+  const facts = document.querySelectorAll(".hero__facts dt");
+  if (facts[0]) facts[0].dataset.count = String(totalArchives);
+  if (facts[1]) facts[1].dataset.count = String(totalRoutes);
+
+  const edition = document.querySelector(".hero__edition span:last-child");
+  if (edition) edition.textContent = `01 / ${totalArchives}`;
+}
+
+/** 首屏数字滚动到位，减少动态偏好时直接落到终值。 */
+function animateHeadlineNumbers() {
+  const facts = document.querySelectorAll(".hero__facts dt[data-count]");
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  for (const fact of facts) {
+    const target = Number(fact.dataset.count);
+    if (!Number.isFinite(target)) continue;
+
+    if (still) {
+      fact.textContent = String(target);
+      continue;
+    }
+
+    const duration = 900;
+    const started = performance.now();
+
+    const step = (now) => {
+      const progress = Math.min(1, (now - started) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      fact.textContent = String(Math.round(target * eased));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+
+    fact.textContent = "0";
+    requestAnimationFrame(step);
+  }
+}
+
+/** 精选与关于区块滚动进场；档案卡片的入场由 CSS 延迟负责。 */
+function initializeScrollReveal() {
+  if (!("IntersectionObserver" in window)) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const targets = document.querySelectorAll(
+    ".section-heading, .featured-item, .about__layout > *, .workflow-finish"
+  );
+  if (!targets.length) return;
+
+  for (const [index, target] of targets.entries()) {
+    target.classList.add("reveal");
+    target.style.setProperty("--reveal-delay", `${Math.min(index, 5) * 70}ms`);
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add("is-revealed");
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: "0px 0px -10% 0px", threshold: 0.08 });
+
+  targets.forEach((target) => observer.observe(target));
+}
+
+/** 档案卡片跟随指针的柔光，触控与减少动态设备保持静态。 */
+function initializeCardSpotlight() {
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  document.addEventListener("pointermove", (event) => {
+    const card = event.target.closest(".archive-card, .goal-switch__button, .workflow-step");
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty("--pointer-x", `${event.clientX - rect.left}px`);
+    card.style.setProperty("--pointer-y", `${event.clientY - rect.top}px`);
+  }, { passive: true });
+}
+
+/** 切换分类或搜索时不重播入场动画，只有首次渲染值得那一次强调。 */
+function markArchivesRendered() {
+  state.archivesRendered = true;
 }
 
 /** 切换档案分类，并同步按钮的选中状态。 */
@@ -1052,8 +1144,12 @@ function setMobileMenu(open) {
 
 /** 绑定键盘、筛选、模式和移动导航交互并完成首次渲染。 */
 function initializeHome() {
+  syncHeadlineNumbers();
   setMode("standard");
   refreshIcons();
+  animateHeadlineNumbers();
+  initializeScrollReveal();
+  initializeCardSpotlight();
 
   elements.modeButtons.forEach((button, index) => {
     button.addEventListener("click", () => requestMode(button.dataset.mode));

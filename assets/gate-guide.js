@@ -1,4 +1,11 @@
-﻿(function () {
+/* ===========================================================================
+   星穹枢庭 · 星门说明
+   ---------------------------------------------------------------------------
+   在每个子页面顶部注入一张「这个星门是干什么的 + 可以联动去哪」的引导卡。
+   样式使用 assets/sanctuary.css 的设计令牌，可折叠并记住用户的选择。
+   =========================================================================== */
+
+(function () {
   'use strict';
 
   const GATES = {
@@ -224,55 +231,159 @@
     }
   };
 
-  const HOME_ROUTES = [
-    {
-      icon: '🟢',
-      title: '第一次想直接出图',
-      desc: '先搭好主体，再补氛围，最后去 ComfyUI 生成。',
-      steps: ['Nova Anima 起手', 'Lighting Codex 补光影', 'Cyber Summon 整理标签', '星穹绘所出图'],
-      links: ['nova-anima', 'lighting-codex', 'cyber-summon', 'portal']
-    },
-    {
-      icon: '🔁',
-      title: '看到参考图想复刻',
-      desc: '先从图片拿信息，再把标签变成可控提示词。',
-      steps: ['Prompt Reader 读元数据', 'WD Tagger 反推标签', 'Lust Codex 查词', '星穹绘所重画'],
-      links: ['prompt-reader', 'wd-tagger', 'lust-codex', 'portal']
-    },
-    {
-      icon: '🧯',
-      title: 'ComfyUI 出问题',
-      desc: '先排拖拽和工作流问题，再回到出图。',
-      steps: ['Drag Resolver 排错', 'Prompt Reader 检查图片/工作流', 'Reverse Showcase 修负面词', '星穹绘所复测'],
-      links: ['drag-resolver', 'prompt-reader', 'reverse-showcase', 'portal']
-    },
-    {
-      icon: '🧭',
-      title: '不知道该用哪个标签',
-      desc: '先查词，再组合，不要一股脑全塞进 prompt。',
-      steps: ['Lust Codex 查普通标签', 'NSFW Tags 查成人向分类', 'Cyber Summon 组合加权', '星穹绘所测试'],
-      links: ['lust-codex', 'nsfw-tags', 'cyber-summon', 'portal']
-    },
-    {
-      icon: '🗝️',
-      title: '跨工具共享说明',
-      desc: '把固定术语和上下文写成协议，再用终端检查。',
-      steps: ['Moon Scroll 看格式', 'Decoder Terminal 解码检查', 'Secret Scroll 存复杂约定'],
-      links: ['moon-scroll', 'decoder-terminal', 'secret-scroll']
-    }
-  ];
+  const COLLAPSE_KEY = 'xingqiong-gate-guide-collapsed';
 
   const style = `
+.gs-beginner-guide {
+  position: relative;
+  z-index: 20;
+  width: min(var(--xq-page, 1180px), 100%);
+  padding: 1px;
+  border-radius: var(--xq-r-xl, 26px);
+  margin: 1.05rem auto 1.6rem;
+  background: linear-gradient(135deg, rgba(255, 226, 178, .3), rgba(116, 196, 212, .16), rgba(255, 178, 205, .2));
+  box-shadow: var(--xq-shadow-lg, 0 24px 90px rgba(0, 0, 0, .34));
+  color: var(--xq-text-soft, rgba(238, 238, 250, .82));
+  font-family: var(--xq-font-sans, sans-serif);
+  overflow: hidden;
+}
+.gs-beginner-guide::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: calc(var(--xq-r-xl, 26px) - 1px);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(242, 189, 115, .14), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgba(129, 230, 255, .11), transparent 32%),
+    linear-gradient(180deg, rgba(9, 14, 28, .9), rgba(10, 12, 26, .78));
+}
+.gs-beginner-guide::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 26px;
+  left: 26px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--xq-line-strong, rgba(255, 225, 166, .64)), transparent);
+  opacity: .8;
+}
+.gs-beginner-guide * { box-sizing: border-box; }
+.gs-beginner-guide a { color: inherit; text-decoration: none; }
 
-    .gs-beginner-guide, .gs-route-map { position: relative; z-index: 20; max-width: 1120px; margin: 1.05rem auto 1.45rem; padding: 1px; border-radius: 26px; background: linear-gradient(135deg, rgba(255,225,166,.34), rgba(129,230,255,.18), rgba(255,158,201,.22)); box-shadow: 0 24px 90px rgba(0,0,0,.34); color: rgba(238,238,250,.82); font-family: 'Noto Sans SC','Microsoft YaHei',sans-serif; box-sizing: border-box; overflow: hidden; }
-    .gs-beginner-guide::before, .gs-route-map::before { content: ''; position: absolute; inset: 1px; border-radius: 25px; background: radial-gradient(circle at 14% 0%, rgba(242,189,115,.14), transparent 34%), radial-gradient(circle at 92% 18%, rgba(129,230,255,.11), transparent 32%), linear-gradient(180deg, rgba(9,14,28,.88), rgba(10,12,26,.74)); z-index: -1; }
-    .gs-beginner-guide::after, .gs-route-map::after { content: ''; position: absolute; left: 26px; right: 26px; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,225,166,.64), transparent); opacity: .7; }
-    .gs-beginner-guide *,.gs-route-map *{box-sizing:border-box}.gs-beginner-guide a,.gs-route-map a{color:inherit;text-decoration:none}
-    .gs-guide-head{display:flex;gap:1rem;align-items:flex-start;padding:1.05rem 1.05rem .75rem}.gs-guide-icon{width:3rem;height:3rem;display:grid;place-items:center;border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,225,166,.18);font-size:1.38rem;flex:0 0 auto;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 34px rgba(0,0,0,.18)}.gs-guide-kicker{font-size:.68rem;letter-spacing:.18em;color:rgba(255,225,166,.72);text-transform:uppercase}.gs-guide-title{margin:.12rem 0 0;color:#ffe1a6;font-family:'Noto Serif SC','Songti SC',serif;font-weight:900;font-size:1.18rem;line-height:1.35}.gs-guide-plain{margin:.36rem 0 0;color:rgba(238,238,255,.78);font-size:.9rem;line-height:1.78}.gs-guide-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,1.04fr);gap:.8rem;padding:0 1.05rem 1.05rem}.gs-guide-card{border:1px solid rgba(255,255,255,.075);border-radius:18px;background:rgba(255,255,255,.035);padding:.9rem .95rem}.gs-guide-card h3{margin:0 0 .55rem;color:#f2bd73;font-size:.86rem;font-weight:900;letter-spacing:.03em}.gs-guide-card p{margin:0;color:rgba(230,230,248,.62);font-size:.8rem;line-height:1.75}.gs-guide-card ol{margin:.18rem 0 0 1.15rem;padding:0;color:rgba(230,230,248,.74);font-size:.8rem;line-height:1.8}.gs-guide-card li{padding-left:.15rem}.gs-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.52rem}.gs-link-card{display:block;border:1px solid rgba(255,225,166,.13);border-radius:15px;padding:.66rem .72rem;background:rgba(255,255,255,.04);transition:transform .18s ease,border-color .18s ease,background .18s ease}.gs-link-card:hover{transform:translateY(-2px);border-color:rgba(255,225,166,.38);background:rgba(242,189,115,.09)}.gs-link-name{display:flex;align-items:center;gap:.42rem;color:#ffe1a6;font-size:.78rem;font-weight:900}.gs-link-why{display:block;margin-top:.3rem;color:rgba(225,225,245,.52);font-size:.7rem;line-height:1.55}.gs-guide-note{margin:0 1.05rem 1.05rem;padding:.66rem .8rem;border-radius:15px;background:rgba(129,230,255,.06);border:1px solid rgba(129,230,255,.13);color:rgba(224,248,255,.64);font-size:.72rem;line-height:1.65}
-    .gs-route-title{display:flex;align-items:center;gap:.55rem;margin:1.05rem 1.05rem .25rem;color:#ffe1a6;font-family:'Noto Serif SC','Songti SC',serif;font-size:1.18rem;font-weight:900}.gs-route-sub{color:rgba(232,232,248,.56);font-size:.82rem;line-height:1.7;margin:0 1.05rem .9rem}.gs-route-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;padding:0 1.05rem 1.05rem}.gs-route-card{border:1px solid rgba(255,255,255,.075);border-radius:18px;background:rgba(255,255,255,.035);padding:.9rem}.gs-route-card h3{margin:0 0 .35rem;color:#ffe1a6;font-size:.9rem}.gs-route-card p{margin:0 0 .55rem;color:rgba(232,232,248,.54);font-size:.74rem;line-height:1.65}.gs-route-steps{display:flex;flex-wrap:wrap;gap:.35rem}.gs-route-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.26rem .52rem;border-radius:999px;background:rgba(129,230,255,.075);border:1px solid rgba(129,230,255,.14);color:rgba(221,249,255,.78);font-size:.66rem}
-    @media(max-width:760px){.gs-beginner-guide,.gs-route-map{margin:.85rem .75rem 1rem}.gs-guide-head{padding:.9rem .9rem .65rem}.gs-guide-grid{grid-template-columns:1fr;padding:0 .9rem .9rem}.gs-link-grid{grid-template-columns:1fr}.gs-guide-note{margin:0 .9rem .9rem}.gs-guide-title{font-size:1.02rem}.gs-route-grid{grid-template-columns:1fr;padding:0 .9rem .9rem}.gs-route-title,.gs-route-sub{margin-left:.9rem;margin-right:.9rem}}
-  
-  `;
+.gs-guide-head { display: flex; gap: 1rem; align-items: flex-start; padding: 1.05rem 1.05rem .8rem; }
+.gs-guide-icon {
+  width: 3rem; height: 3rem; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border: 1px solid var(--xq-line, rgba(255, 225, 166, .18));
+  border-radius: var(--xq-r-lg, 18px);
+  background: rgba(255, 255, 255, .055);
+  box-shadow: var(--xq-inner-top, inset 0 1px 0 rgba(255, 255, 255, .08)), 0 14px 34px rgba(0, 0, 0, .18);
+  font-size: 1.38rem;
+}
+.gs-guide-kicker {
+  font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--xq-gold-bright, rgba(255, 225, 166, .72));
+}
+.gs-guide-title {
+  margin: .12rem 0 0;
+  color: var(--xq-gold-bright, #ffe1a6);
+  font-family: var(--xq-font-serif, serif);
+  font-size: 1.18rem; font-weight: 800; line-height: 1.35;
+}
+.gs-guide-plain { margin: .36rem 0 0; font-size: .9rem; line-height: 1.78; }
+
+.gs-guide-toggle {
+  flex: 0 0 auto; align-self: center;
+  display: inline-flex; align-items: center; gap: .38rem;
+  padding: .34rem .8rem;
+  border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, .08));
+  border-radius: var(--xq-r-pill, 999px);
+  background: rgba(255, 255, 255, .04);
+  color: var(--xq-text-muted, rgba(226, 226, 244, .6));
+  font: inherit; font-size: .72rem; cursor: pointer;
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.gs-guide-toggle:hover {
+  border-color: var(--xq-line-strong, rgba(255, 225, 166, .38));
+  background: var(--xq-accent-soft, rgba(242, 189, 115, .1));
+  color: var(--xq-gold-bright, #ffe1a6);
+}
+.gs-guide-toggle span:last-child { transition: transform .2s ease; }
+.gs-beginner-guide.is-collapsed .gs-guide-toggle span:last-child { transform: rotate(-90deg); }
+
+.gs-guide-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .32s ease; }
+.gs-beginner-guide.is-collapsed .gs-guide-body { grid-template-rows: 0fr; }
+.gs-guide-body > div { overflow: hidden; min-height: 0; }
+.gs-beginner-guide.is-collapsed .gs-guide-head { padding-bottom: 1.05rem; }
+.gs-beginner-guide.is-collapsed .gs-guide-plain { display: none; }
+
+.gs-guide-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.04fr);
+  gap: .8rem;
+  padding: 0 1.05rem 1.05rem;
+}
+.gs-guide-card {
+  padding: .9rem .95rem;
+  border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, .075));
+  border-radius: var(--xq-r-lg, 18px);
+  background: rgba(255, 255, 255, .035);
+}
+.gs-guide-card h3 {
+  margin: 0 0 .55rem;
+  color: var(--xq-gold, #f2bd73);
+  font-size: .86rem; font-weight: 800; letter-spacing: .03em;
+}
+.gs-guide-card h3 + h3 { margin-top: .75rem; }
+.gs-guide-card p { margin: 0; font-size: .8rem; line-height: 1.75; color: var(--xq-text-muted, rgba(230, 230, 248, .62)); }
+.gs-guide-card ol { margin: .18rem 0 0 1.15rem; padding: 0; font-size: .8rem; line-height: 1.8; }
+.gs-guide-card li { padding-left: .15rem; }
+
+.gs-link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .52rem; }
+.gs-link-card {
+  display: block; padding: .66rem .72rem;
+  border: 1px solid var(--xq-line, rgba(255, 225, 166, .13));
+  border-radius: var(--xq-r-md, 15px);
+  background: rgba(255, 255, 255, .04);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.gs-link-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--xq-line-strong, rgba(255, 225, 166, .38));
+  background: var(--xq-accent-soft, rgba(242, 189, 115, .09));
+}
+.gs-link-name {
+  display: flex; align-items: center; gap: .42rem;
+  color: var(--xq-gold-bright, #ffe1a6);
+  font-size: .78rem; font-weight: 800;
+}
+.gs-link-why { display: block; margin-top: .3rem; font-size: .7rem; line-height: 1.55; color: var(--xq-text-faint, rgba(225, 225, 245, .52)); }
+
+.gs-guide-note {
+  margin: 0 1.05rem 1.05rem;
+  padding: .66rem .8rem;
+  border: 1px solid rgba(116, 196, 212, .14);
+  border-radius: var(--xq-r-md, 15px);
+  background: rgba(116, 196, 212, .06);
+  color: rgba(224, 248, 255, .66);
+  font-size: .72rem; line-height: 1.65;
+}
+
+@media (max-width: 760px) {
+  .gs-beginner-guide { margin: .85rem .75rem 1rem; width: auto; }
+  .gs-guide-head { padding: .9rem .9rem .7rem; }
+  .gs-guide-grid, .gs-link-grid { grid-template-columns: 1fr; }
+  .gs-guide-grid { padding: 0 .9rem .9rem; }
+  .gs-guide-note { margin: 0 .9rem .9rem; }
+  .gs-guide-title { font-size: 1.02rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-link-card, .gs-guide-body, .gs-guide-toggle span:last-child { transition: none; }
+  .gs-link-card:hover { transform: none; }
+}
+`;
 
   function addStyle() {
     if (document.getElementById('gs-gate-guide-style')) return;
@@ -290,115 +401,118 @@
     const path = decodeURIComponent(location.pathname || '').replace(/\\/g, '/');
     const parts = path.split('/').filter(Boolean);
     if ((parts[parts.length - 1] || '').toLowerCase() === 'index.html') parts.pop();
-    let slug = parts[parts.length - 1] || '';
+    const slug = parts[parts.length - 1] || '';
     if (GATES[slug]) return slug;
+
     const title = document.title || '';
     for (const [key, gate] of Object.entries(GATES)) {
       if ((gate.alias || []).some(hint => title.includes(hint))) return key;
     }
-    if (/Gemini Sanctuary|双子星秘境|GEMINI SANCTUARY/i.test(title) || /GeminiSanctuary/i.test(slug)) return '__home';
     return '';
-  }
-
-  function isHome() {
-    return currentSlug() === '__home';
-  }
-
-  function hrefFor(slug) {
-    if (!slug || !GATES[slug]) return '#';
-    const target = `${slug}/index.html`;
-    return isHome() ? target : `../${target}`;
   }
 
   function linkCard(slug, why) {
     const gate = GATES[slug];
     if (!gate) return '';
-    return `<a class="gs-link-card" href="${esc(hrefFor(slug))}"><span class="gs-link-name"><span>${esc(gate.icon)}</span>${esc(gate.name)}</span><span class="gs-link-why">${esc(why)}</span></a>`;
+    return `<a class="gs-link-card" href="../${esc(slug)}/index.html">`
+      + `<span class="gs-link-name"><span>${esc(gate.icon)}</span>${esc(gate.name)}</span>`
+      + `<span class="gs-link-why">${esc(why)}</span></a>`;
   }
 
-  function routePill(slug, index) {
-    const gate = GATES[slug];
-    if (!gate) return '';
-    return `<a class="gs-route-pill" href="${esc(hrefFor(slug))}">${index + 1}. ${esc(gate.name)}</a>`;
+  function readCollapsed() {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function writeCollapsed(collapsed) {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch {
+      // 隐私模式下写入会失败，只在本次浏览中保持状态即可。
+    }
   }
 
   function renderGuide(slug) {
     const gate = GATES[slug];
     if (!gate || document.getElementById('gs-beginner-guide')) return;
-    const el = document.createElement('section');
-    el.id = 'gs-beginner-guide';
-    el.className = 'gs-beginner-guide';
-    el.setAttribute('aria-label', `${gate.name} 星门说明`);
-    el.innerHTML = `
+
+    const section = document.createElement('section');
+    section.id = 'gs-beginner-guide';
+    section.className = 'gs-beginner-guide';
+    section.setAttribute('aria-label', `${gate.name} 星门说明`);
+    section.innerHTML = `
       <div class="gs-guide-head">
-        <div class="gs-guide-icon">${esc(gate.icon)}</div>
-        <div>
-          <div class="gs-guide-kicker">星门说明 · 新手可读</div>
-          <div class="gs-guide-title">${esc(gate.name)} 是干什么的？</div>
+        <div class="gs-guide-icon" aria-hidden="true">${esc(gate.icon)}</div>
+        <div style="flex:1 1 auto;min-width:0">
+          <p class="gs-guide-kicker">星门说明 · 新手可读</p>
+          <h2 class="gs-guide-title">${esc(gate.name)} 是干什么的？</h2>
           <p class="gs-guide-plain">${esc(gate.plain)}</p>
         </div>
+        <button class="gs-guide-toggle" type="button" aria-expanded="true" aria-controls="gs-guide-body">
+          <span class="gs-guide-toggle-label">收起</span><span aria-hidden="true">▾</span>
+        </button>
       </div>
-      <div class="gs-guide-grid">
-        <div class="gs-guide-card">
-          <h3>什么时候用它</h3>
-          <p>${esc(gate.when)}</p>
-          <h3 style="margin-top:.75rem">三步上手</h3>
-          <ol>${gate.steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
-        </div>
-        <div class="gs-guide-card">
-          <h3>可以联动的星门</h3>
-          <div class="gs-link-grid">${gate.links.map(([target, why]) => linkCard(target, why)).join('')}</div>
-        </div>
-      </div>
-      <div class="gs-guide-note">小提示：如果你不知道下一步去哪，就按右侧联动卡片从上往下试；“查词/整理 prompt/出图/复盘”通常是一个闭环。</div>
-    `;
-    insertNearHeader(el);
-  }
-
-  function renderHomeRoutes() {
-    if (document.getElementById('gs-route-map')) return;
-    const el = document.createElement('section');
-    el.id = 'gs-route-map';
-    el.className = 'gs-route-map';
-    el.setAttribute('aria-label', '新手星门路线图');
-    el.innerHTML = `
-      <div class="gs-route-title">🧭 新手星门路线图</div>
-      <div class="gs-route-sub">不知道先开哪个星门时，就按目标走下面的路线。每个子页面里也会显示“它能和谁联动”。</div>
-      <div class="gs-route-grid">
-        ${HOME_ROUTES.map(route => `
-          <div class="gs-route-card">
-            <h3>${esc(route.icon)} ${esc(route.title)}</h3>
-            <p>${esc(route.desc)}</p>
-            <div class="gs-route-steps">${route.links.map(routePill).join('')}</div>
+      <div class="gs-guide-body" id="gs-guide-body"><div>
+        <div class="gs-guide-grid">
+          <div class="gs-guide-card">
+            <h3>什么时候用它</h3>
+            <p>${esc(gate.when)}</p>
+            <h3>三步上手</h3>
+            <ol>${gate.steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
           </div>
-        `).join('')}
-      </div>
+          <div class="gs-guide-card">
+            <h3>可以联动的星门</h3>
+            <div class="gs-link-grid">${gate.links.map(([target, why]) => linkCard(target, why)).join('')}</div>
+          </div>
+        </div>
+        <div class="gs-guide-note">小提示：如果你不知道下一步去哪，就按右侧联动卡片从上往下试；“查词 / 整理 prompt / 出图 / 复盘”通常是一个闭环。</div>
+      </div></div>
     `;
-    const anchor = document.querySelector('.command') || document.querySelector('.hero') || document.querySelector('main') || document.body;
-    if (anchor && anchor.parentNode && anchor.classList && anchor.classList.contains('command')) anchor.parentNode.insertBefore(el, anchor.nextSibling);
-    else insertNearHeader(el);
+
+    const toggle = section.querySelector('.gs-guide-toggle');
+    const label = section.querySelector('.gs-guide-toggle-label');
+
+    function applyCollapsed(collapsed) {
+      section.classList.toggle('is-collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      label.textContent = collapsed ? '展开说明' : '收起';
+    }
+
+    applyCollapsed(readCollapsed());
+    toggle.addEventListener('click', () => {
+      const collapsed = !section.classList.contains('is-collapsed');
+      applyCollapsed(collapsed);
+      writeCollapsed(collapsed);
+    });
+
+    insertNearHeader(section);
   }
 
-  function insertNearHeader(el) {
+  function insertNearHeader(node) {
     const candidates = [
       document.querySelector('.page-header'),
       document.querySelector('.hero'),
-      document.querySelector('header'),
-      document.querySelector('h1') && document.querySelector('h1').closest('section, header, div')
+      document.querySelector('main > header'),
+      document.querySelector('header')
     ].filter(Boolean);
-    const target = candidates[0];
-    if (target && target.parentNode) target.parentNode.insertBefore(el, target.nextSibling);
-    else (document.querySelector('main') || document.body).prepend(el);
+
+    // 只接受不在窄侧栏里的落点，否则 1180px 的卡片会挤垮固定侧栏布局。
+    const target = candidates.find(candidate => !candidate.closest('aside, nav, .sidebar'));
+
+    if (target && target.parentNode) target.parentNode.insertBefore(node, target.nextSibling);
+    else (document.querySelector('main') || document.body).prepend(node);
   }
 
   function init() {
-    addStyle();
     const slug = currentSlug();
-    if (slug === '__home') renderHomeRoutes();
-    else renderGuide(slug);
+    if (!slug) return;
+    addStyle();
+    renderGuide(slug);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
-

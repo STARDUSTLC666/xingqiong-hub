@@ -3,289 +3,846 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌸 赛博魔典：Danbooru NSFW 极速吟唱法阵 🌸</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Orbitron:wght@500;800&family=Noto+Sans+SC:wght@300;500;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        cyberPink: '#ff007f',
-                        cyberBlue: '#00f0ff',
-                        cyberPurple: '#a020f0',
-                        glassBg: 'rgba(18, 10, 34, 0.6)',
-                    },
-                    fontFamily: {
-                        orbitron: ['Orbitron', 'sans-serif'],
-                        cinzel: ['Cinzel', 'serif'],
-                        sans: ['Noto Sans SC', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Custom thin neon scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(9, 5, 20, 0.9);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 0, 127, 0.4);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 0, 127, 0.8);
-        }
-        
-        body {
-            background-color: #060212;
-            overflow-x: hidden;
-        }
+    <title>NSFW 标签大全 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="成人向 Danbooru 标签的分类速查表，用于理解标签归类与常见混淆。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/nsfw-tags/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="NSFW 标签大全 · 星穹枢庭">
+  <meta property="og:description" content="成人向 Danbooru 标签的分类速查表，用于理解标签归类与常见混淆。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/nsfw-tags/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* 本页原先靠 Tailwind CDN + Google Fonts + Font Awesome 三个外部依赖撑起来，
+   全部撤掉后改写成语义组件类：类目更少、都走 --xq-* 令牌，站点也重回自包含。 */
 
-        /* Ambient glows */
-        .ambient-glow {
-            position: fixed;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(160, 32, 240, 0) 70%);
-            top: -100px;
-            right: -100px;
-            pointer-events: none;
-            z-index: -1;
-        }
-        .ambient-glow-2 {
-            position: fixed;
-            width: 700px;
-            height: 700px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, rgba(9, 5, 20, 0) 70%);
-            bottom: -150px;
-            left: -150px;
-            pointer-events: none;
-            z-index: -1;
-        }
-        
-        /* Glassmorphic border glow */
-        .glass-panel {
-            background: rgba(18, 10, 34, 0.55);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        /* Pulse for the Special foot section */
-        @keyframes border-pulse {
-            0%, 100% { 
-                border-color: rgba(255, 0, 127, 0.3); 
-                box-shadow: 0 0 15px rgba(255, 0, 127, 0.15); 
-            }
-            50% { 
-                border-color: rgba(255, 0, 127, 0.8); 
-                box-shadow: 0 0 35px rgba(255, 0, 127, 0.4); 
-            }
-        }
-        .foot-glowing-border {
-            animation: border-pulse 3s infinite;
-        }
-        .search-highlight { background:rgba(255,0,127,0.35); color:#ff80bf; font-weight:bold; border-radius:2px; padding:1px 2px; }
-        .search-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:0; transition:opacity .2s; font-size:16px; color:#999; background:none; border:none; }
-        .search-clear:hover { color:#ff007f; }
-        .search-wrapper:hover .search-clear { opacity:1; }
-        .search-wrapper input:not(:placeholder-shown) ~ .search-clear { opacity:1; }
-        #search-result-count { transition:all .3s; }
-        #search-result-count.hidden { display:none; }
-        .no-results { text-align:center; padding:3rem 1rem; }
-        .no-results .suggest-tags { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:600px; margin:0 auto; }
-        .no-results .suggest-tags button { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:6px 14px; border-radius:20px; font-size:13px; cursor:pointer; transition:all .2s; }
-        .no-results .suggest-tags button:hover { background:rgba(255,0,127,0.2); border-color:rgba(255,0,127,0.4); color:#fff; }
-    </style>
+[hidden] { display: none !important; }
+
+/* 底部已选条是固定层，给页面尾部留出等高的空间，免得盖住共享页脚 */
+:root { --tray-h: 64px; }
+body { padding-bottom: calc(var(--tray-h) + 12px); }
+
+/* 共享的返回顶部按钮默认贴着屏幕底边，会正好压在已选条上，抬高一档 */
+.xq-fab { bottom: calc(var(--tray-h) + clamp(14px, 3vw, 28px)); }
+body.tray-open .xq-fab { opacity: 0; pointer-events: none; }
+
+/* ------------------------------------------------------------ 顶部统计 */
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.stat {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 15px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  font-size: 0.78rem;
+  gap: 8px;
+}
+.stat b {
+  display: inline-block;
+  color: var(--xq-accent);
+  font-family: var(--xq-font-mono);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+.stat--live b { color: var(--xq-gold-bright); }
+/* 计数变化时弹一下，让"注入法阵"这个动作有落点 */
+.stat b.is-bump { animation: statBump 460ms var(--xq-spring); }
+@keyframes statBump {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.34); }
+  100% { transform: scale(1); }
+}
+
+/* -------------------------------------------------------- 检索工具条 */
+.tools {
+  position: sticky;
+  z-index: 30;
+  top: calc(var(--xq-topbar-h) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.tools-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+.search-field {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 260px;
+  align-items: center;
+}
+.search-field .search-icon {
+  position: absolute;
+  left: 0.85rem;
+  display: grid;
+  color: var(--xq-text-faint);
+  place-items: center;
+  pointer-events: none;
+}
+.search-field input[type="search"] {
+  padding-right: 2.6rem;
+  padding-left: 2.5rem;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-field input[type="search"]::-webkit-search-decoration,
+.search-field input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+.search-clear {
+  position: absolute;
+  right: 0.5rem;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  place-items: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-ease);
+}
+.search-clear:hover {
+  background: var(--xq-accent-soft);
+  color: var(--xq-accent);
+  transform: rotate(90deg);
+}
+
+/* 视图切换 */
+.view-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: rgba(6, 8, 18, 0.55);
+  gap: 3px;
+}
+.view-switch button {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--xq-r-pill);
+  background: none;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  gap: 6px;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.view-switch button:hover { color: var(--xq-text); }
+.view-switch button[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--xq-accent), var(--xq-gold-deep));
+  box-shadow: 0 4px 16px var(--xq-accent-soft);
+  color: #1b0d0a;
+}
+
+/* 分类锚点导航 */
+.cat-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 13px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.73rem;
+  gap: 5px;
+  line-height: 1.6;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+.cat-pill:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text);
+  transform: translateY(-2px);
+}
+.cat-pill.is-current {
+  border-color: var(--xq-accent);
+  background: var(--xq-accent-soft);
+  color: var(--xq-gold-bright);
+}
+.result-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--xq-text-faint);
+  font-size: 0.72rem;
+  gap: 10px;
+}
+
+/* -------------------------------------------------------- 分类区块 */
+.cat-section {
+  position: relative;
+  padding: clamp(16px, 2.2vw, 24px);
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-lg);
+  margin-bottom: 20px;
+  background: var(--xq-surface);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow: var(--xq-shadow-sm);
+  scroll-margin-top: calc(var(--xq-topbar-h) + 120px);
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.cat-section:hover { border-color: var(--xq-line); }
+.cat-section--special {
+  border-color: var(--xq-accent-soft);
+  animation: specialPulse 4.5s var(--xq-ease) infinite;
+  background: linear-gradient(150deg, var(--xq-accent-soft), transparent 55%), var(--xq-surface);
+}
+@keyframes specialPulse {
+  0%, 100% { border-color: var(--xq-line-soft); box-shadow: var(--xq-shadow-sm); }
+  50% { border-color: var(--xq-accent); box-shadow: 0 0 30px var(--xq-accent-soft); }
+}
+.cat-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--xq-line-soft);
+  margin-bottom: 16px;
+  gap: 10px;
+}
+.cat-title {
+  flex: 1 1 auto;
+  color: var(--xq-gold-bright);
+  font-family: var(--xq-font-serif);
+  font-size: clamp(1rem, 2.4vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cat-section--special .cat-title { color: var(--xq-accent); }
+.cat-badge {
+  padding: 2px 9px;
+  border: 1px solid var(--xq-accent);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-accent-soft);
+  color: var(--xq-accent);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.cat-count {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ 标签卡 */
+.tag-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+}
+.tag-card {
+  display: flex;
+  flex-direction: column;
+  padding: 13px 14px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: rgba(255, 255, 255, 0.028);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  gap: 5px;
+  text-align: left;
+  transition: transform var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    background var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.tag-card:hover {
+  border-color: var(--xq-line-strong);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: var(--xq-shadow-md);
+  transform: translateY(-3px);
+}
+.tag-card:active { transform: translateY(-1px) scale(0.99); }
+.tag-card:focus-visible {
+  outline: 2px solid var(--xq-accent);
+  outline-offset: 2px;
+}
+.tag-card[aria-pressed="true"] {
+  border-color: var(--xq-accent);
+  background: var(--xq-accent-soft);
+  box-shadow: 0 0 0 1px var(--xq-accent-soft), 0 10px 30px var(--xq-accent-soft);
+}
+.tag-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tag-card__code {
+  overflow: hidden;
+  color: var(--xq-cyan);
+  font-family: var(--xq-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tag-card[aria-pressed="true"] .tag-card__code { color: var(--xq-gold-bright); }
+.tag-card__state {
+  flex: 0 0 auto;
+  border-radius: var(--xq-r-sm);
+  color: var(--xq-text-faint);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity var(--xq-dur-fast) var(--xq-ease), color var(--xq-dur-fast) var(--xq-ease);
+}
+.tag-card__state::before { content: "＋ 注入"; }
+.tag-card:hover .tag-card__state,
+.tag-card:focus-visible .tag-card__state { opacity: 1; }
+.tag-card[aria-pressed="true"] .tag-card__state {
+  padding: 1px 7px;
+  background: var(--xq-accent-soft);
+  color: var(--xq-accent);
+  opacity: 1;
+}
+.tag-card[aria-pressed="true"] .tag-card__state::before { content: "✓ 已入阵"; }
+.tag-card__zh {
+  color: var(--xq-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.tag-card__desc {
+  color: var(--xq-text-muted);
+  font-size: 0.73rem;
+  line-height: 1.6;
+}
+
+/* 密麻轴卷视图 */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 13px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  gap: 7px;
+  transition: transform var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), color var(--xq-dur-fast) var(--xq-ease);
+}
+.tag-pill:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text);
+  transform: translateY(-2px);
+}
+.tag-pill:focus-visible {
+  outline: 2px solid var(--xq-accent);
+  outline-offset: 2px;
+}
+.tag-pill[aria-pressed="true"] {
+  border-color: var(--xq-accent);
+  background: var(--xq-accent-soft);
+  color: var(--xq-gold-bright);
+}
+.tag-pill__code {
+  padding-left: 7px;
+  border-left: 1px solid var(--xq-line-soft);
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+}
+
+/* 搜索命中高亮 */
+mark.hl {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: var(--xq-accent-soft);
+  color: var(--xq-accent);
+  font-weight: 700;
+}
+
+/* 空结果 */
+.no-results {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.no-results__icon { font-size: 2.6rem; }
+.no-results__title {
+  margin: 0.8rem 0 0.3rem;
+  color: var(--xq-text-muted);
+  font-size: 0.9rem;
+}
+.no-results__hint {
+  margin-bottom: 1rem;
+  color: var(--xq-text-faint);
+  font-size: 0.74rem;
+}
+.no-results__tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* --------------------------------------------------- 底部已选标签条 */
+.tray {
+  position: fixed;
+  z-index: 60;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-top: 1px solid var(--xq-line);
+  background: rgba(8, 10, 22, 0.88);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: blur(20px) saturate(1.3);
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+  font-family: var(--xq-font-sans);
+}
+.tray__inner {
+  width: min(var(--xq-page), 100%);
+  padding: 0 clamp(12px, 3vw, 28px);
+  margin: 0 auto;
+}
+.tray__bar {
+  display: flex;
+  min-height: var(--tray-h);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 9px 0;
+  gap: 10px;
+}
+.tray__toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  gap: 9px;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    color var(--xq-dur-fast) var(--xq-ease);
+}
+.tray__toggle:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text);
+}
+.tray__badge {
+  display: grid;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--xq-r-pill);
+  background: linear-gradient(135deg, var(--xq-accent), var(--xq-gold-deep));
+  color: #1b0d0a;
+  font-family: var(--xq-font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  place-items: center;
+}
+.tray__chev { transition: transform var(--xq-dur) var(--xq-ease); }
+.tray.is-open .tray__chev { transform: rotate(180deg); }
+.tray__actions {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 46px;
+}
+.tray__body {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height var(--xq-dur-slow) var(--xq-ease-out), opacity var(--xq-dur) var(--xq-ease);
+}
+.tray.is-open .tray__body {
+  overflow-y: auto;
+  max-height: min(62vh, 540px);
+  opacity: 1;
+}
+.tray__grid {
+  display: grid;
+  padding-bottom: 16px;
+  border-top: 1px solid var(--xq-line-soft);
+  padding-top: 14px;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .tray__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+}
+.tray__col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+.tray__label {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+}
+.opt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.opt {
+  display: inline-flex;
+  align-items: center;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  gap: 7px;
+  transition: color var(--xq-dur-fast) var(--xq-ease);
+}
+.opt:hover { color: var(--xq-text); }
+.opt input { accent-color: var(--xq-accent); width: 15px; height: 15px; cursor: pointer; }
+
+.sel-list {
+  display: flex;
+  max-height: 190px;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 6px;
+  list-style: none;
+}
+.sel-empty {
+  padding: 1.6rem 0;
+  color: var(--xq-text-faint);
+  font-size: 0.75rem;
+  text-align: center;
+}
+.sel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px 5px 12px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  animation: selIn 320ms var(--xq-ease-out) both;
+  background: rgba(255, 255, 255, 0.03);
+  gap: 10px;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease);
+}
+.sel-item:hover { border-color: var(--xq-line-strong); }
+@keyframes selIn {
+  from { opacity: 0; transform: translateX(-8px); }
+}
+.sel-item__main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.sel-item__code {
+  overflow: hidden;
+  color: var(--xq-accent);
+  font-family: var(--xq-font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-item__zh {
+  color: var(--xq-text-faint);
+  font-size: 0.66rem;
+}
+.sel-item__ctrl {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+.sel-item__w {
+  min-width: 30px;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  text-align: center;
+}
+.wbtn {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-sm);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  place-items: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+.wbtn:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text);
+  transform: translateY(-1px);
+}
+.wbtn--del:hover {
+  border-color: var(--xq-danger);
+  background: rgba(224, 125, 112, 0.16);
+  color: var(--xq-danger);
+}
+
+.out {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: rgba(6, 8, 18, 0.6);
+}
+.out__head {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.out__label {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+}
+.out__text {
+  max-height: 74px;
+  overflow-y: auto;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.71rem;
+  line-height: 1.7;
+  word-break: break-word;
+}
+.out__text::selection { color: #1a1207; background: var(--xq-gold-bright); }
+.out--flash {
+  animation: outFlash 700ms var(--xq-ease-out);
+}
+@keyframes outFlash {
+  0% { border-color: var(--xq-ok); box-shadow: 0 0 0 0 rgba(126, 200, 168, 0.4); }
+  45% { border-color: var(--xq-ok); box-shadow: 0 0 0 6px rgba(126, 200, 168, 0); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.import-box textarea {
+  min-height: 62px;
+  font-family: var(--xq-font-mono);
+  font-size: 0.72rem;
+}
+
+/* 选中标签时从卡片上迸出的小火花 */
+.spark {
+  position: fixed;
+  z-index: 90;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--xq-accent);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------- 滚动进场 */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--xq-dur-slow) var(--xq-ease-out), transform var(--xq-dur-slow) var(--xq-ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------------------------------------------------------- 响应式 */
+@media (max-width: 760px) {
+  .tools { position: static; }
+  .tray__actions { padding-right: 0; }
+  .tray__bar { padding-bottom: 10px; }
+  .tag-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .cat-nav { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .cat-pill { white-space: nowrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .cat-section--special,
+  .stat b.is-bump,
+  .sel-item,
+  .out--flash { animation: none; }
+  .tag-card:hover,
+  .tag-pill:hover,
+  .cat-pill:hover,
+  .wbtn:hover { transform: none; }
+  .search-clear:hover { transform: none; }
+}
+</style>
 </head>
-<body class="text-gray-100 font-sans min-h-screen relative selection:bg-pink-500 selection:text-white">
-    <a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.82rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC',sans-serif;text-shadow:0 0 8px rgba(0,0,0,0.6);" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">← 返回双子星秘境</a>
-    <!-- Ambient Canvas Sakura Background -->
-    <canvas id="sakura-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-0 opacity-80"></canvas>
-    
-    <div class="ambient-glow"></div>
-    <div class="ambient-glow-2"></div>
+<body>
 
-    <!-- Main Content wrapper -->
-    <div class="max-w-7xl mx-auto px-4 py-8 relative z-10 pb-48">
-        
-        <!-- Header -->
-        <header class="text-center mb-10">
-            <h1 class="text-3xl md:text-5xl font-extrabold tracking-wider font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 mb-3 drop-shadow-[0_0_15px_rgba(255,0,127,0.3)]">
-                🌸 赛博魔典 · 极速吟唱法阵 🌸
-            </h1>
-            <p class="text-xs md:text-sm text-pink-300 font-medium italic max-w-2xl mx-auto backdrop-blur-sm px-4 py-2 rounded-full border border-pink-500/10 bg-pink-950/20 shadow-inner">
-                “哥哥是大坏蛋……大半夜让花花整理这么涩涩的魔咒，不许笑话人家哦！💦 已经全部装进法阵里了，快来组合你的超涩词条吧！💕”
-            </p>
-        </header>
+<main class="page">
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
-        <!-- Stats Counter Panel -->
-        <div class="glass-panel rounded-2xl p-4 mb-8 flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-            <div class="flex items-center gap-4 text-sm">
-                <span class="px-3 py-1 bg-pink-500/20 border border-pink-500/30 text-pink-400 rounded-lg">
-                    📊 收录魔咒：<span id="total-tags-count" class="font-bold font-orbitron">0</span> 个
-                </span>
-                <span class="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg">
-                    ✨ 当前选入：<span id="selected-tags-count" class="font-bold font-orbitron">0</span> 个
-                </span>
-            </div>
-            
-            <div class="flex gap-2">
-                <button onclick="importPrompt()" class="px-4 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all text-xs font-semibold flex items-center gap-1.5 text-cyan-300">
-                    <i class="fa-solid fa-file-import text-[10px]"></i> 导入外部提示词
-                </button>
-            </div>
-        </div>
+  <header class="page-header fade-in">
+    <h1>🔞 NSFW 标签大全</h1>
+    <p class="subtitle">NSFW TAG CODEX · 成人向 Danbooru 标签分类速查 · 极速吟唱法阵</p>
+  </header>
 
-        <!-- Sticky Controls Bar -->
-        <div class="sticky top-4 z-40 glass-panel rounded-2xl p-4 mb-8 shadow-[0_10px_35px_rgba(0,0,0,0.6)] border-pink-500/15">
-            <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-                
-                <!-- Search bar -->
-                <div class="relative w-full md:w-96">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <div class="search-wrapper" style="position:relative;flex:1">
-                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="搜索魔典 (英/中/描述)... 按 / 聚焦" 
-                           onkeydown="if(event.key==='Escape'){this.value='';handleSearch('');}"
-                           class="w-full pl-9 pr-8 py-2 rounded-xl border border-white/10 bg-[#0e071e]/80 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 placeholder-gray-500 transition-all shadow-inner">
-                    <button class="search-clear" onclick="var inp=document.getElementById('search-input');inp.value='';handleSearch('');inp.focus();">&times;</button>
-                </div>
-                <span id="search-result-count" class="hidden text-xs text-gray-400 block text-center mt-1"></span>
-                
-                <!-- Quick Navigation Pills -->
-                <div id="nav-pills" class="flex flex-wrap gap-1.5 justify-center max-w-full overflow-x-auto">
-                    <!-- Nav items generated dynamically -->
-                </div>
-
-                <!-- View Switcher -->
-                <div class="flex gap-1 bg-[#090514] p-1 rounded-lg border border-white/5 shrink-0">
-                    <button onclick="setView('cards')" id="view-cards-btn" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]">
-                        <i class="fa-solid fa-grip"></i> 卡牌魔典
-                    </button>
-                    <button onclick="setView('compact')" id="view-compact-btn" class="px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white">
-                        <i class="fa-solid fa-align-justify"></i> 密麻轴卷
-                    </button>
-                </div>
-                
-            </div>
-        </div>
-
-        <!-- Tags Sections Container -->
-        <div id="sections-container" class="space-y-12">
-            <!-- Rendered dynamically -->
-        </div>
-
+  <!-- === 说明 + 统计 === -->
+  <section class="panel fade-in d1">
+    <p class="text-muted" style="line-height:1.85;">
+      “哥哥是大坏蛋……大半夜让花花整理这么涩涩的魔咒，不许笑话人家哦！💦 已经全部装进法阵里了，快来组合你的超涩词条吧！💕”
+    </p>
+    <p class="text-muted mt-1" style="line-height:1.85;">
+      八个分类收录成人向 Danbooru 标签，方便理解归类与常见混淆。点击任意标签即可注入底部的<strong class="text-gold">吟唱法阵</strong>，
+      在那里可以调权重、拼接正负面提示词并一键复制。搜索框支持英文标签、中文释义与描述三路匹配，按 <code>/</code> 可以直接聚焦。
+    </p>
+    <div class="stat-row mt-1">
+      <span class="stat">📚 收录魔咒 <b id="total-tags-count">0</b> 个</span>
+      <span class="stat stat--live">✨ 当前选入 <b id="selected-tags-count">0</b> 个</span>
+      <span class="stat">🗂️ 分类 <b id="total-cats-count">0</b> 组</span>
     </div>
+  </section>
 
-    <!-- Floating Prompt Builder (魔晶吟唱法阵 Panel) -->
-    <div id="magic-builder-panel" class="fixed bottom-6 right-6 z-50 transition-all duration-300 transform translate-y-0">
-        
-        <!-- Collapsed Circular Badge -->
-        <button onclick="toggleBuilderPanel(false)" id="builder-collapsed-badge" class="hidden flex items-center justify-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white rounded-full p-4 shadow-[0_0_25px_rgba(236,72,153,0.5)] font-bold tracking-wider hover:scale-105 transition-all">
-            <span class="relative flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-            </span>
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>吟唱法阵</span>
-            <span id="collapsed-count" class="bg-white/20 text-white px-2 py-0.5 rounded-full text-xs font-orbitron">0</span>
+  <!-- === 检索 + 分类锚点 === -->
+  <section class="panel tools fade-in d2" aria-label="标签检索与分类导航">
+    <div class="tools-row">
+      <div class="search-field">
+        <span class="search-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+        </span>
+        <label class="xq-sr" for="search-input">搜索标签</label>
+        <input type="search" id="search-input" placeholder="搜索魔典（英文 / 中文 / 描述）… 按 / 聚焦" autocomplete="off" spellcheck="false">
+        <button type="button" class="search-clear" id="search-clear" aria-label="清空搜索" hidden>✕</button>
+      </div>
+      <div class="view-switch" role="group" aria-label="切换展示方式">
+        <button type="button" id="view-cards-btn" data-view="cards" aria-pressed="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          卡牌魔典
         </button>
+        <button type="button" id="view-compact-btn" data-view="compact" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h11"></path></svg>
+          密麻轴卷
+        </button>
+      </div>
+    </div>
+    <nav class="cat-nav" id="nav-pills" aria-label="分类锚点"></nav>
+    <div class="result-line">
+      <span id="search-result-count" role="status" aria-live="polite"></span>
+    </div>
+  </section>
 
-        <!-- Expanded Control Panel -->
-        <div id="builder-expanded-box" class="w-[92vw] sm:w-[450px] glass-panel rounded-2xl p-5 shadow-[0_15px_45px_rgba(0,0,0,0.8)] border-pink-500/25 max-h-[80vh] flex flex-col">
-            
-            <!-- Panel Header -->
-            <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">
-                <div class="flex items-center gap-2 text-pink-400 font-bold">
-                    <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
-                    <span>🔮 极乐魔晶吟唱法阵</span>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="toggleBuilderPanel(true)" class="text-gray-400 hover:text-white transition-colors p-1" title="收起法阵">
-                        <i class="fa-solid fa-angle-down text-lg"></i>
-                    </button>
-                </div>
-            </div>
+  <!-- === 分类区块（脚本渲染） === -->
+  <div id="sections-container"></div>
+</main>
 
-            <!-- Pre-baked Options Checkboxes -->
-            <div class="grid grid-cols-2 gap-2 mb-3 shrink-0 text-xs bg-black/35 p-2 rounded-xl border border-white/5">
-                <label class="flex items-center gap-1.5 cursor-pointer text-gray-300 hover:text-white transition-colors select-none">
-                    <input type="checkbox" id="prefix-checkbox" onchange="updateBuilder()" checked 
-                           class="rounded bg-gray-900 border-white/15 text-pink-500 focus:ring-0">
-                    <span>✨ 注入超高清起手式</span>
-                </label>
-                <label class="flex items-center gap-1.5 cursor-pointer text-gray-300 hover:text-white transition-colors select-none">
-                    <input type="checkbox" id="negative-checkbox" onchange="updateBuilder()" checked 
-                           class="rounded bg-gray-900 border-white/15 text-pink-500 focus:ring-0">
-                    <span>🚫 注入极避让除魔咒</span>
-                </label>
-            </div>
-
-            <!-- Tags Scroll list -->
-            <div id="builder-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 mb-4">
-                <!-- Selected list item pills will go here -->
-                <div class="text-center text-xs text-gray-500 py-8 italic select-none">
-                    法阵空荡荡呢，快在上面挑选你要的魔咒注入吧～
-                </div>
-            </div>
-
-            <!-- Chanting Generated Output Box -->
-            <div class="space-y-3 border-t border-white/10 pt-3 shrink-0">
-                
-                <!-- Output displays -->
-                <div class="space-y-2">
-                    <!-- Positive Prompt Display -->
-                    <div class="relative bg-black/40 border border-white/10 rounded-xl p-2.5">
-                        <span class="absolute top-1 right-2 text-[10px] font-bold text-pink-400 uppercase tracking-widest font-orbitron select-none">Positive</span>
-                        <div id="positive-output" class="text-xs text-gray-300 pr-12 break-all max-h-[70px] overflow-y-auto font-mono select-all">
-                            masterpiece, best quality, ...
-                        </div>
-                        <button onclick="copyToClipboard('positive')" class="absolute bottom-1 right-1 text-[10px] bg-pink-500/20 hover:bg-pink-500 hover:text-white text-pink-400 px-2 py-1 rounded transition-all font-bold flex items-center gap-1" title="一键复制正面词">
-                            <i class="fa-solid fa-copy"></i> 复制
-                        </button>
-                    </div>
-
-                    <!-- Negative Prompt Display -->
-                    <div class="relative bg-black/40 border border-white/10 rounded-xl p-2.5">
-                        <span class="absolute top-1 right-2 text-[10px] font-bold text-purple-400 uppercase tracking-widest font-orbitron select-none">Negative</span>
-                        <div id="negative-output" class="text-xs text-gray-400 pr-12 break-all max-h-[50px] overflow-y-auto font-mono select-all">
-                            lowres, bad anatomy, bad hands, ...
-                        </div>
-                        <button onclick="copyToClipboard('negative')" class="absolute bottom-1 right-1 text-[10px] bg-purple-500/20 hover:bg-purple-500 hover:text-white text-purple-400 px-2 py-1 rounded transition-all font-bold flex items-center gap-1" title="一键复制负面词">
-                            <i class="fa-solid fa-copy"></i> 复制
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Control Buttons -->
-                <div class="flex gap-2">
-                    <button onclick="clearAllSelected()" class="w-1/3 py-2 rounded-xl border border-red-500/30 hover:border-red-500 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-wand-magic-sparkles rotate-180"></i> 驱散法阵
-                    </button>
-                    <button onclick="copyToClipboard('both')" class="w-2/3 py-2 bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 hover:opacity-90 active:scale-95 text-white rounded-xl shadow-[0_0_15px_rgba(255,0,127,0.3)] text-xs font-bold transition-all flex items-center justify-center gap-1.5 uppercase font-orbitron tracking-wider">
-                        <i class="fa-solid fa-circle-check animate-bounce"></i> 召唤！双重吟唱
-                    </button>
-                </div>
-            </div>
-
-        </div>
+<!-- === 底部已选标签条：计数 + 复制 + 清空，展开后是完整的吟唱法阵 === -->
+<section class="tray" id="tray" aria-label="已选标签与提示词生成">
+  <div class="tray__inner">
+    <div class="tray__bar">
+      <button type="button" class="tray__toggle" id="tray-toggle" aria-expanded="false" aria-controls="tray-body">
+        <span class="tray__badge" id="tray-count">0</span>
+        <span>🔮 吟唱法阵</span>
+        <svg class="tray__chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>
+      </button>
+      <div class="tray__actions">
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-clear">🧹 清空</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-copy-negative">复制负面词</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-copy-both">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          复制双重吟唱
+        </button>
+      </div>
     </div>
 
-    <!-- Data & Frontend Engine Javascript -->
+    <div class="tray__body" id="tray-body">
+      <div class="tray__grid">
+        <div class="tray__col">
+          <span class="tray__label">已选魔咒 · 可调权重</span>
+          <ul class="sel-list" id="builder-list"></ul>
+          <div class="import-box">
+            <label class="tray__label" for="import-input">导入外部提示词（自动匹配本魔典收录的标签）</label>
+            <textarea id="import-input" placeholder="粘贴现有的 Stable Diffusion 提示词，例如：masterpiece, (pantyhose:1.2), blush"></textarea>
+            <button type="button" class="btn btn-sm btn-ghost mt-1" id="btn-import">📥 解析并注入</button>
+          </div>
+        </div>
+        <div class="tray__col">
+          <span class="tray__label">生成结果</span>
+          <div class="opt-row">
+            <label class="opt"><input type="checkbox" id="prefix-checkbox" checked><span>✨ 注入超高清起手式</span></label>
+            <label class="opt"><input type="checkbox" id="negative-checkbox" checked><span>🚫 注入避让除魔咒</span></label>
+          </div>
+          <div class="out" id="out-positive">
+            <div class="out__head">
+              <span class="out__label">POSITIVE</span>
+              <button type="button" class="btn btn-sm btn-ghost" id="btn-copy-positive">复制正面词</button>
+            </div>
+            <div class="out__text" id="positive-output"></div>
+          </div>
+          <div class="out" id="out-negative">
+            <div class="out__head">
+              <span class="out__label">NEGATIVE</span>
+            </div>
+            <div class="out__text" id="negative-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
     <script>
         // Tag Categories JSON Data base
         const tagData = [
@@ -526,664 +1083,696 @@
                     { tag: "leg_grab", zh: "抓着大腿", desc: "哥哥用力掐出的红印" },
                     { tag: "thighs", zh: "大腿", desc: "肉感的美腿" },
                     { tag: "calves", zh: "小腿", desc: "纤细的弧线" },
-                    { tag: "jk", zh: "女高中生", desc: "搭配制服和乐福鞋的终极杀器" },
                     { tag: "loafers", zh: "乐福鞋/小皮鞋", desc: "闷出咸香原味袜的罪魁祸首！" }
                 ]
             }
         ];
 
-        // Global States
-        let selectedTags = []; // element structure: { tag: "nsfw", weight: 1.0 }
-        let currentSearch = '';
-        let currentView = 'cards'; // 'cards' | 'compact'
-        let searchDebounce = null;
+        /* 分类的短名与图标：原来靠正则从 category 字段里抠字符串，
+           标题里一混入 emoji 或全角括号就会抠错，这里显式列一份更稳。 */
+        const SECTION_META = [
+            { icon: "🔞", short: "基础裸露" },
+            { icon: "💋", short: "动作姿势" },
+            { icon: "💦", short: "体液高潮" },
+            { icon: "⛓️", short: "调教道具" },
+            { icon: "👙", short: "衣物走光" },
+            { icon: "🎥", short: "视角构图" },
+            { icon: "🌸", short: "状态场景" },
+            { icon: "👣", short: "足袜专区" }
+        ];
 
-        // ----------------- INITIATION -----------------
-        window.onload = function() {
-            // Compute total tags count
-            let total = 0;
-            tagData.forEach(sec => total += sec.tags.length);
-            document.getElementById('total-tags-count').innerText = total;
+        const PREFIX_TAGS = ["masterpiece", "best quality", "ultra-detailed", "cinematic lighting"];
+        const NEGATIVE_PROMPT = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
+        const POPULAR_HINTS = ["pantyhose", "thighhighs", "nude", "blush", "sweat", "bondage", "spread_legs", "pov"];
 
-            renderNavigation();
-            renderTags();
-            updateBuilder();
-            initSakura();
-            // Keyboard shortcut: / to focus search
-            document.addEventListener('keydown', function(e) {
-                if (e.key === '/' && document.activeElement !== document.getElementById('search-input') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                    e.preventDefault();
-                    document.getElementById('search-input').focus();
+        const state = { selected: [], search: "", view: "cards" };
+        const stillQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+        const dom = {};
+        let searchTimer = null;
+        let clearArmed = false;
+        let clearTimer = null;
+        let revealObserver = null;
+        let spyObserver = null;
+
+        /* ------------------------------------------------------------ 小工具 */
+        function byId(id) { return document.getElementById(id); }
+
+        function toast(message, tone) {
+            if (window.XQ && typeof window.XQ.toast === "function") window.XQ.toast(message, tone);
+            else if (typeof window.gsToast === "function") window.gsToast(message);
+        }
+
+        function copyText(text, source) {
+            if (typeof window.gsCopy === "function") return window.gsCopy(text, source);
+            if (navigator.clipboard) return navigator.clipboard.writeText(text);
+            return Promise.resolve(false);
+        }
+
+        function terms() {
+            return state.search ? state.search.toLowerCase().split(/\s+/).filter(Boolean) : [];
+        }
+
+        function labelOf(tagStr) {
+            for (const section of tagData) {
+                for (const item of section.tags) {
+                    if (item.tag === tagStr) return item.zh;
                 }
-            });
+            }
+            return tagStr;
         }
 
-        // ----------------- RENDER ENGINE -----------------
-        function renderNavigation() {
-            const navContainer = document.getElementById('nav-pills');
-            navContainer.innerHTML = '';
-            
-            // "全部" button
-            const allBtn = document.createElement('button');
-            allBtn.onclick = () => {
-                document.getElementById('search-input').value = '';
-                currentSearch = '';
-                renderTags();
-                scrollToSection('all');
-            };
-            allBtn.className = "px-3 py-1 bg-white/5 border border-white/10 hover:border-pink-500/30 text-xs rounded-full transition-all text-gray-300 hover:text-white";
-            allBtn.innerText = "🔮 全部";
-            navContainer.appendChild(allBtn);
-
-            tagData.forEach((sec, idx) => {
-                const btn = document.createElement('button');
-                btn.onclick = () => scrollToSection(`section-${idx + 1}`);
-                
-                // Get name index
-                const name = sec.category.match(/(\d+\.\s*[^\s]+)/) ? sec.category.match(/(\d+\.\s*[^\s]+)/)[0] : `板块 ${idx+1}`;
-                btn.className = `px-3 py-1 text-xs rounded-full border transition-all ${
-                    idx === 7 
-                        ? 'bg-pink-950/20 border-pink-500/30 hover:bg-pink-500/20 text-pink-300' 
-                        : 'bg-white/5 border-white/10 hover:border-purple-500/30 text-gray-300 hover:text-white'
-                }`;
-                btn.innerText = name;
-                navContainer.appendChild(btn);
-            });
+        function isSelected(tagStr) {
+            return state.selected.some((sel) => sel.tag === tagStr);
         }
 
-        function scrollToSection(id) {
-            if (id === 'all') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+        /** 把命中片段包成 <mark>，全程走 textContent，动态数据永远不进 innerHTML。 */
+        function writeHighlighted(node, text, list) {
+            node.textContent = "";
+            const hits = [];
+            const lower = text.toLowerCase();
+
+            for (const term of list) {
+                let from = 0;
+                for (;;) {
+                    const at = lower.indexOf(term, from);
+                    if (at < 0) break;
+                    hits.push([at, at + term.length]);
+                    from = at + term.length;
+                }
+            }
+
+            if (!hits.length) {
+                node.textContent = text;
                 return;
             }
-            const el = document.getElementById(id);
-            if (el) {
-                const headerOffset = 180;
-                const elementPosition = el.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
+
+            hits.sort((a, b) => a[0] - b[0]);
+            const merged = [];
+            for (const span of hits) {
+                const last = merged[merged.length - 1];
+                if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+                else merged.push([span[0], span[1]]);
+            }
+
+            let cursor = 0;
+            for (const [start, end] of merged) {
+                if (start > cursor) node.append(text.slice(cursor, start));
+                const mark = document.createElement("mark");
+                mark.className = "hl";
+                mark.textContent = text.slice(start, end);
+                node.append(mark);
+                cursor = end;
+            }
+            if (cursor < text.length) node.append(text.slice(cursor));
+        }
+
+        function matchesSearch(item, list) {
+            if (!list.length) return true;
+            const haystack = (item.tag + " " + item.zh + " " + item.desc).toLowerCase();
+            return list.every((term) => haystack.indexOf(term) >= 0);
+        }
+
+        /* --------------------------------------------------------- 进场与聚光 */
+        function reveal(node, index) {
+            if (stillQuery.matches || !("IntersectionObserver" in window)) {
+                node.classList.add("reveal", "is-in");
+                return;
+            }
+            node.classList.add("reveal");
+            node.style.setProperty("--reveal-delay", `${Math.min(index, 5) * 60}ms`);
+            if (!revealObserver) {
+                revealObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (!entry.isIntersecting) continue;
+                        entry.target.classList.add("is-in");
+                        revealObserver.unobserve(entry.target);
+                    }
+                }, { rootMargin: "0px 0px -6% 0px", threshold: 0.03 });
+            }
+            revealObserver.observe(node);
+        }
+
+        /** 选中标签时从卡片中心迸出的小火花，纯装饰，静音模式下直接不做。 */
+        function spark(origin) {
+            if (stillQuery.matches || !origin || typeof origin.animate !== "function") return;
+            const rect = origin.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 10; i += 1) {
+                const dot = document.createElement("span");
+                dot.className = "spark";
+                dot.style.left = `${cx}px`;
+                dot.style.top = `${cy}px`;
+                document.body.append(dot);
+
+                const angle = (Math.PI * 2 * i) / 10 + Math.random() * 0.6;
+                const distance = 26 + Math.random() * 38;
+                const motion = dot.animate([
+                    { transform: "translate(-50%, -50%) scale(1)", opacity: 1 },
+                    {
+                        transform: `translate(calc(-50% + ${Math.cos(angle) * distance}px), calc(-50% + ${Math.sin(angle) * distance}px)) scale(0.2)`,
+                        opacity: 0
+                    }
+                ], { duration: 520 + Math.random() * 240, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
+                motion.onfinish = () => dot.remove();
             }
         }
 
-function highlightText(text, query) {
-            if (!query) return text;
-            var terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-            var result = text;
-            terms.forEach(function(term) {
-                var escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                var re = new RegExp('(' + escaped + ')', 'gi');
-                result = result.replace(re, '<span class="search-highlight">$1</span>');
+        function bump(node) {
+            if (stillQuery.matches) return;
+            node.classList.remove("is-bump");
+            void node.offsetWidth;
+            node.classList.add("is-bump");
+        }
+
+        /* ------------------------------------------------------------ 渲染层 */
+        function renderNav() {
+            dom.nav.textContent = "";
+
+            const all = document.createElement("button");
+            all.type = "button";
+            all.className = "cat-pill";
+            all.dataset.target = "top";
+            all.textContent = "🔮 全部";
+            dom.nav.append(all);
+
+            tagData.forEach((section, index) => {
+                const meta = SECTION_META[index] || { icon: "✦", short: `板块 ${index + 1}` };
+                const pill = document.createElement("button");
+                pill.type = "button";
+                pill.className = "cat-pill";
+                pill.dataset.target = `section-${index + 1}`;
+                pill.textContent = `${meta.icon} ${index + 1}. ${meta.short}`;
+                dom.nav.append(pill);
             });
-            return result;
         }
 
-        function tagMatchesSearch(t, terms) {
-            if (!terms.length) return true;
-            var haystack = (t.tag + ' ' + t.zh + ' ' + t.desc).toLowerCase();
-            return terms.every(function(term) { return haystack.indexOf(term) >= 0; });
+        function buildCard(item, list) {
+            const card = document.createElement("button");
+            card.type = "button";
+            card.className = "tag-card xq-spotlight";
+            card.dataset.tag = item.tag;
+            card.setAttribute("aria-pressed", String(isSelected(item.tag)));
+
+            const top = document.createElement("span");
+            top.className = "tag-card__top";
+            const code = document.createElement("span");
+            code.className = "tag-card__code";
+            writeHighlighted(code, item.tag, list);
+            const flag = document.createElement("span");
+            flag.className = "tag-card__state";
+            flag.setAttribute("aria-hidden", "true");
+            top.append(code, flag);
+
+            const zh = document.createElement("span");
+            zh.className = "tag-card__zh";
+            writeHighlighted(zh, item.zh, list);
+
+            const desc = document.createElement("span");
+            desc.className = "tag-card__desc";
+            writeHighlighted(desc, item.desc, list);
+
+            card.append(top, zh, desc);
+            return card;
         }
 
-        function getPopularSuggestions(n) {
-            var popular = [
-                {tag:'pantyhose',zh:'丝袜'},{tag:'thighhighs',zh:'过膝袜'},{tag:'nsfw',zh:'限制级'},
-                {tag:'nude',zh:'全裸'},{tag:'ass',zh:'臀部'},{tag:'breasts',zh:'胸部'},
-                {tag:'spread_legs',zh:'张开双腿'},{tag:'lingerie',zh:'内衣'},{tag:'school_uniform',zh:'校服'},
-                {tag:'sweat',zh:'汗水'},{tag:'blush',zh:'脸红'},{tag:'bondage',zh:'束缚'}
-            ];
-            return popular.slice(0, n);
+        function buildPill(item, list) {
+            const pill = document.createElement("button");
+            pill.type = "button";
+            pill.className = "tag-pill";
+            pill.dataset.tag = item.tag;
+            pill.setAttribute("aria-pressed", String(isSelected(item.tag)));
+
+            const zh = document.createElement("span");
+            writeHighlighted(zh, item.zh, list);
+            const code = document.createElement("span");
+            code.className = "tag-pill__code";
+            writeHighlighted(code, item.tag, list);
+
+            pill.append(zh, code);
+            return pill;
         }
 
-        function renderTags() {
-            const container = document.getElementById('sections-container');
-            container.innerHTML = '';
-            const searchTerms = currentSearch ? currentSearch.toLowerCase().split(/\s+/).filter(Boolean) : [];
-            let totalFound = 0;
+        function buildEmptyState(list) {
+            const box = document.createElement("div");
+            box.className = "no-results";
 
-            tagData.forEach((section, sIndex) => {
-                // Filter tags matching search
-                const filteredTags = section.tags.filter(t => tagMatchesSearch(t, searchTerms));
-                
-                if (filteredTags.length === 0) return;
-                totalFound += filteredTags.length;
-                
-                const secId = sIndex + 1;
-                const isSpecial = secId === 8;
-                
-                const secEl = document.createElement('section');
-                secEl.id = `section-${secId}`;
-                secEl.className = `rounded-2xl p-5 md:p-6 backdrop-blur-md transition-all duration-300 ${
-                    isSpecial 
-                        ? 'foot-glowing-border border-2 bg-gradient-to-br from-pink-950/10 via-purple-950/10 to-[#12051e]/40' 
-                        : 'border border-white/8 bg-white/5 hover:border-white/15'
-                }`;
-                
-                // Section Title
-                const titleHtml = `
-                    <div class="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
-                        <h2 class="text-lg md:text-xl font-bold flex items-center gap-2 ${isSpecial ? 'text-pink-400' : 'text-purple-300'}">
-                            <span>${section.category}</span>
-                            ${isSpecial ? '<span class="animate-pulse text-[10px] bg-pink-500 text-white font-semibold px-2 py-0.5 rounded-full">哥哥专享 🤤</span>' : ''}
-                        </h2>
-                        <span class="text-xs text-gray-400 font-mono">共 ${filteredTags.length} 个条目</span>
-                    </div>
-                `;
-                secEl.innerHTML += titleHtml;
-                
-                // Content View Modes
-                let tagsContainerHtml = '';
-                if (currentView === 'cards') {
-                    tagsContainerHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">`;
-                    filteredTags.forEach(t => {
-                        const isSelected = selectedTags.some(sel => sel.tag === t.tag);
-                        const activeClass = isSelected 
-                            ? 'border-pink-500 bg-pink-500/15 shadow-[0_0_15px_rgba(255,0,127,0.25)] scale-[1.01]' 
-                            : 'border-white/10 bg-white/5 hover:border-pink-500/30 hover:bg-pink-500/5 hover:scale-[1.01]';
-                        
-                        const indicator = isSelected 
-                            ? `<span class="text-[10px] bg-gradient-to-r from-pink-500 to-purple-500 text-white font-extrabold px-1.5 py-0.5 rounded select-none flex items-center gap-1 animate-pulse"><i class="fa-solid fa-square-check"></i>已入阵</span>` 
-                            : `<span class="text-[10px] text-gray-500 group-hover:text-pink-400/80 transition-all font-mono select-none flex items-center gap-0.5 opacity-0 group-hover:opacity-100"><i class="fa-solid fa-plus-circle"></i>点击注入</span>`;
-                        
-                        tagsContainerHtml += `
-                            <div onclick="toggleTag('${t.tag}', ${secId})" data-category="${secId}" class="group relative cursor-pointer p-4 rounded-xl border transition-all duration-200 ${activeClass}">
-                                <div class="flex items-start justify-between gap-2 mb-1.5">
-                                    <span class="font-mono text-xs font-semibold tracking-wide text-cyan-300 group-hover:text-cyberPink select-all" style="font-family: 'Orbitron', monospace;">
-                                        ${highlightText(t.tag, currentSearch)}
-                                    </span>
-                                    ${indicator}
-                                </div>
-                                <div class="text-white font-semibold text-sm mb-1 group-hover:text-pink-200 transition-colors">${highlightText(t.zh, currentSearch)}</div>
-                                <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors line-clamp-2 leading-relaxed h-8 overflow-hidden">${highlightText(t.desc, currentSearch)}</div>
-                                <!-- Background hover glow effect -->
-                                <div class="absolute inset-0 -z-10 rounded-xl bg-gradient-to-br from-pink-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 blur transition-opacity duration-300"></div>
-                            </div>
-                        `;
-                    });
-                    tagsContainerHtml += `</div>`;
-                } else {
-                    // Compact Mode
-                    tagsContainerHtml = `<div class="flex flex-wrap gap-2.5">`;
-                    filteredTags.forEach(t => {
-                        const isSelected = selectedTags.some(sel => sel.tag === t.tag);
-                        const activeClass = isSelected 
-                            ? 'border-pink-500 bg-pink-500 text-white shadow-[0_0_12px_rgba(255,0,127,0.4)] hover:bg-pink-600 scale-105' 
-                            : 'border-white/10 bg-white/5 text-gray-300 hover:border-pink-400 hover:text-pink-300 hover:scale-102';
-                        
-                        tagsContainerHtml += `
-                            <button onclick="toggleTag('${t.tag}', ${secId})" data-category="${secId}" class="px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 flex items-center gap-1.5 ${activeClass}">
-                                <span class="font-semibold">${highlightText(t.zh, currentSearch)}</span>
-                                <span class="font-mono text-[10px] opacity-60 ml-1 border-l border-white/20 pl-1.5">${highlightText(t.tag, currentSearch)}</span>
-                            </button>
-                        `;
-                    });
-                    tagsContainerHtml += `</div>`;
-                }
-                
-                secEl.innerHTML += tagsContainerHtml;
-                container.appendChild(secEl);
+            const icon = document.createElement("div");
+            icon.className = "no-results__icon";
+            icon.textContent = "🔮";
+
+            const title = document.createElement("p");
+            title.className = "no-results__title";
+            title.textContent = `魔典中没有匹配「${state.search}」的标签`;
+
+            const hint = document.createElement("p");
+            hint.className = "no-results__hint";
+            hint.textContent = "换个关键词，或者从这些高频标签开始：";
+
+            const tags = document.createElement("div");
+            tags.className = "no-results__tags";
+            POPULAR_HINTS.forEach((hintTag) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "cat-pill";
+                btn.dataset.suggest = hintTag;
+                btn.textContent = hintTag;
+                tags.append(btn);
             });
 
-            // Show result count
-            const cntEl = document.getElementById('search-result-count');
-            if (cntEl) {
-                if (currentSearch) {
-                    cntEl.textContent = totalFound ? '搜索 "' + currentSearch + '" → 找到 ' + totalFound + ' 个标签' : '搜索 "' + currentSearch + '" → 无匹配';
-                    cntEl.classList.remove('hidden');
-                } else {
-                    cntEl.classList.add('hidden');
-                }
-            }
-
-            // No results suggestions
-            if (totalFound === 0 && currentSearch) {
-                const noEl = document.createElement('div');
-                noEl.className = 'no-results';
-                var suggs = getPopularSuggestions(8);
-                var suggHtml = '';
-                suggs.forEach(function(s) {
-                    suggHtml += `<button onclick="document.getElementById('search-input').value='${s.tag}';handleSearch('${s.tag}');">${s.tag} <span style="color:#888">${s.zh}</span></button>`;
-                });
-                noEl.innerHTML = '<div style="font-size:3rem;margin-bottom:1rem">🔮</div>' +
-                    '<div style="color:#999;font-size:0.875rem;margin-bottom:0.75rem">魔典中没找到匹配 "' + currentSearch + '" 的标签呢...</div>' +
-                    '<div style="color:#777;font-size:0.75rem;margin-bottom:1rem">试试这些热门标签快速跳转：</div>' +
-                    '<div class="suggest-tags">' + suggHtml + '</div>';
-                container.appendChild(noEl);
-            }
+            box.append(icon, title, hint, tags);
+            return box;
         }
 
-        // ----------------- PROMPT BUILDER ENGINE -----------------
-        function toggleTag(tagStr, catId) {
-            const index = selectedTags.findIndex(sel => sel.tag === tagStr);
-            if (index > -1) {
-                // Remove
-                selectedTags.splice(index, 1);
+        function renderSections() {
+            const list = terms();
+            const container = dom.sections;
+            container.textContent = "";
+            let found = 0;
+            let revealIndex = 0;
+
+            tagData.forEach((section, index) => {
+                const filtered = section.tags.filter((item) => matchesSearch(item, list));
+                if (!filtered.length) return;
+                found += filtered.length;
+
+                const secId = index + 1;
+                const isSpecial = secId === tagData.length;
+
+                const block = document.createElement("section");
+                block.id = `section-${secId}`;
+                block.className = isSpecial ? "cat-section cat-section--special" : "cat-section";
+
+                const head = document.createElement("div");
+                head.className = "cat-head";
+
+                const title = document.createElement("h2");
+                title.className = "cat-title";
+                title.textContent = section.category;
+                head.append(title);
+
+                if (isSpecial) {
+                    const badge = document.createElement("span");
+                    badge.className = "cat-badge";
+                    badge.textContent = "哥哥专享";
+                    head.append(badge);
+                }
+
+                const count = document.createElement("span");
+                count.className = "cat-count";
+                count.textContent = `共 ${filtered.length} 条`;
+                head.append(count);
+                block.append(head);
+
+                const body = document.createElement("div");
+                body.className = state.view === "cards" ? "tag-grid" : "tag-list";
+                filtered.forEach((item) => {
+                    body.append(state.view === "cards" ? buildCard(item, list) : buildPill(item, list));
+                });
+                block.append(body);
+
+                container.append(block);
+                reveal(block, revealIndex);
+                revealIndex += 1;
+            });
+
+            if (!found && state.search) container.append(buildEmptyState(list));
+
+            dom.resultCount.textContent = state.search
+                ? (found ? `搜索「${state.search}」→ 命中 ${found} 个标签` : `搜索「${state.search}」→ 无匹配`)
+                : "";
+
+            watchSections();
+        }
+
+        /* 滚动到哪个分类，导航就点亮哪一颗 */
+        function watchSections() {
+            if (spyObserver) spyObserver.disconnect();
+            if (!("IntersectionObserver" in window)) return;
+
+            spyObserver = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    dom.nav.querySelectorAll(".cat-pill").forEach((pill) => {
+                        pill.classList.toggle("is-current", pill.dataset.target === entry.target.id);
+                    });
+                }
+            }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
+
+            dom.sections.querySelectorAll(".cat-section").forEach((node) => spyObserver.observe(node));
+        }
+
+        function syncCardStates() {
+            dom.sections.querySelectorAll("[data-tag]").forEach((node) => {
+                node.setAttribute("aria-pressed", String(isSelected(node.dataset.tag)));
+            });
+        }
+
+        /* ------------------------------------------------------- 吟唱法阵 */
+        function buildOutputs() {
+            const positive = [];
+            if (dom.prefixBox.checked) positive.push(...PREFIX_TAGS);
+            state.selected.forEach((sel) => {
+                positive.push(sel.weight === 1 ? sel.tag : `(${sel.tag}:${sel.weight})`);
+            });
+
+            return {
+                positive: positive.join(", "),
+                negative: dom.negativeBox.checked ? NEGATIVE_PROMPT : ""
+            };
+        }
+
+        function renderTray() {
+            const count = state.selected.length;
+            dom.selectedCount.textContent = String(count);
+            dom.trayCount.textContent = String(count);
+            bump(dom.selectedCount);
+
+            dom.builderList.textContent = "";
+            if (!count) {
+                const empty = document.createElement("li");
+                empty.className = "sel-empty";
+                empty.textContent = "法阵空荡荡呢，点上面的标签把魔咒注进来～";
+                dom.builderList.append(empty);
             } else {
-                // Add with default weight 1.0
-                selectedTags.push({ tag: tagStr, weight: 1.0 });
+                state.selected.forEach((sel) => {
+                    const row = document.createElement("li");
+                    row.className = "sel-item";
+
+                    const main = document.createElement("span");
+                    main.className = "sel-item__main";
+                    const code = document.createElement("span");
+                    code.className = "sel-item__code";
+                    code.textContent = sel.tag;
+                    const zh = document.createElement("span");
+                    zh.className = "sel-item__zh";
+                    zh.textContent = labelOf(sel.tag);
+                    main.append(code, zh);
+
+                    const ctrl = document.createElement("span");
+                    ctrl.className = "sel-item__ctrl";
+                    ctrl.append(
+                        weightButton("down", "−", `降低 ${sel.tag} 的权重`, sel.tag),
+                        weightValue(sel),
+                        weightButton("up", "＋", `提高 ${sel.tag} 的权重`, sel.tag),
+                        weightButton("remove", "✕", `从法阵移除 ${sel.tag}`, sel.tag)
+                    );
+
+                    row.append(main, ctrl);
+                    dom.builderList.append(row);
+                });
             }
-            updateBuilder();
-            renderTags();
+
+            const output = buildOutputs();
+            dom.positiveOut.textContent = output.positive || "还没有可吟唱的正面词，先挑几个标签吧";
+            dom.negativeOut.textContent = output.negative || "未启用除魔词条";
+        }
+
+        function weightButton(action, glyph, label, tagStr) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = action === "remove" ? "wbtn wbtn--del" : "wbtn";
+            btn.dataset.act = action;
+            btn.dataset.tag = tagStr;
+            btn.textContent = glyph;
+            btn.setAttribute("aria-label", label);
+            return btn;
+        }
+
+        function weightValue(sel) {
+            const value = document.createElement("span");
+            value.className = "sel-item__w";
+            value.textContent = sel.weight.toFixed(1);
+            return value;
+        }
+
+        function toggleTag(tagStr, origin) {
+            const index = state.selected.findIndex((sel) => sel.tag === tagStr);
+            if (index > -1) {
+                state.selected.splice(index, 1);
+            } else {
+                state.selected.push({ tag: tagStr, weight: 1 });
+                spark(origin);
+            }
+            syncCardStates();
+            renderTray();
         }
 
         function changeWeight(tagStr, delta) {
-            const index = selectedTags.findIndex(sel => sel.tag === tagStr);
-            if (index > -1) {
-                let w = selectedTags[index].weight + delta;
-                w = Math.max(0.1, Math.min(2.0, w));
-                selectedTags[index].weight = parseFloat(w.toFixed(1));
-                updateBuilder();
+            const target = state.selected.find((sel) => sel.tag === tagStr);
+            if (!target) return;
+            const next = Math.max(0.1, Math.min(2, target.weight + delta));
+            target.weight = Number(next.toFixed(1));
+            renderTray();
+        }
+
+        function removeTag(tagStr) {
+            state.selected = state.selected.filter((sel) => sel.tag !== tagStr);
+            syncCardStates();
+            renderTray();
+        }
+
+        function disarmClear() {
+            clearArmed = false;
+            if (clearTimer) clearTimeout(clearTimer);
+            dom.btnClear.textContent = "🧹 清空";
+        }
+
+        function handleClear() {
+            if (!state.selected.length) {
+                toast("法阵里还没有魔咒");
+                return;
             }
-        }
-
-        function removeSelectedTag(tagStr) {
-            selectedTags = selectedTags.filter(sel => sel.tag !== tagStr);
-            updateBuilder();
-            renderTags();
-        }
-
-        function clearAllSelected() {
-            if (selectedTags.length === 0) return;
-            if (confirm("哥哥，确定要清空吟唱法阵中所有的魔咒吗？🥺")) {
-                selectedTags = [];
-                updateBuilder();
-                renderTags();
+            if (!clearArmed) {
+                clearArmed = true;
+                dom.btnClear.textContent = "再点一次确认";
+                clearTimer = setTimeout(disarmClear, 3200);
+                return;
             }
+            const removed = state.selected.length;
+            state.selected = [];
+            disarmClear();
+            syncCardStates();
+            renderTray();
+            toast(`已驱散 ${removed} 个魔咒`, "ok");
         }
 
-        function updateBuilder() {
-            // Update counts
-            const count = selectedTags.length;
-            document.getElementById('selected-tags-count').innerText = count;
-            document.getElementById('collapsed-count').innerText = count;
+        function handleCopy(kind, source) {
+            const output = buildOutputs();
+            let text = "";
 
-            const listEl = document.getElementById('builder-list');
-            listEl.innerHTML = '';
+            if (kind === "positive") text = output.positive;
+            else if (kind === "negative") text = output.negative;
+            else if (output.positive || output.negative) text = `【正面提示词】\n${output.positive}\n\n【负面提示词】\n${output.negative}`;
 
-            if (selectedTags.length === 0) {
-                listEl.innerHTML = `
-                    <div class="text-center text-xs text-gray-500 py-10 italic select-none">
-                        法阵空荡荡呢，快在上面挑选你要的魔咒注入吧～
-                    </div>
-                `;
-                document.getElementById('positive-output').innerText = '';
-                document.getElementById('negative-output').innerText = '';
+            if (!text.trim()) {
+                toast("法阵里还没有可复制的内容", "error");
                 return;
             }
 
-            selectedTags.forEach(sel => {
-                // Find Chinese label
-                let zhName = sel.tag;
-                tagData.forEach(cat => {
-                    cat.tags.forEach(t => {
-                        if (t.tag === sel.tag) zhName = t.zh;
-                    });
-                });
-
-                const pill = document.createElement('div');
-                pill.className = "flex items-center justify-between bg-[#190d33]/90 border border-white/10 rounded-xl px-3 py-1.5 transition-all text-xs hover:border-pink-500/30";
-                
-                const weightDisplay = sel.weight === 1.0 ? '' : ` : ${sel.weight}`;
-                
-                pill.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="font-mono text-pink-400 font-bold tracking-wider">${sel.tag}${weightDisplay}</span>
-                        <span class="text-[10px] text-gray-400 font-semibold">${zhName}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <button onclick="changeWeight('${sel.tag}', -0.1)" class="w-5 h-5 rounded bg-white/5 hover:bg-pink-500/20 text-gray-400 hover:text-white flex items-center justify-center font-bold text-xs" title="降低权重">-</button>
-                        <button onclick="changeWeight('${sel.tag}', 0.1)" class="w-5 h-5 rounded bg-white/5 hover:bg-pink-500/20 text-gray-400 hover:text-white flex items-center justify-center font-bold text-xs" title="提高权重">+</button>
-                        <button onclick="removeSelectedTag('${sel.tag}')" class="w-5 h-5 rounded bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-white flex items-center justify-center text-xs ml-1" title="移除词条">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                `;
-                listEl.appendChild(pill);
-            });
-
-            // Generate Output string
-            generatePrompts();
+            copyText(text, source);
+            const box = kind === "negative" ? dom.outNegative : dom.outPositive;
+            box.classList.remove("out--flash");
+            void box.offsetWidth;
+            box.classList.add("out--flash");
         }
 
-        function generatePrompts() {
-            // Positive
-            let posTags = [];
-            const addPrefix = document.getElementById('prefix-checkbox').checked;
-            
-            if (addPrefix) {
-                posTags = ["masterpiece", "best quality", "ultra-detailed", "cinematic lighting"];
+        function handleImport() {
+            const raw = dom.importInput.value;
+            if (!raw.trim()) {
+                toast("先粘贴一段提示词再解析", "error");
+                dom.importInput.focus();
+                return;
             }
 
-            selectedTags.forEach(sel => {
-                if (sel.weight === 1.0) {
-                    posTags.push(sel.tag);
-                } else {
-                    posTags.push(`(${sel.tag}:${sel.weight})`);
+            const segments = raw
+                .replace(/[(){}[\]]/g, " ")
+                .split(/[,;\n\s]+/)
+                .map((piece) => piece.trim().toLowerCase())
+                .filter(Boolean);
+
+            let added = 0;
+            segments.forEach((segment) => {
+                let tagStr = segment;
+                let weight = 1;
+
+                if (segment.includes(":")) {
+                    const parts = segment.split(":");
+                    tagStr = parts[0].trim();
+                    const parsed = parseFloat(parts[1]);
+                    if (!Number.isNaN(parsed)) weight = Math.max(0.1, Math.min(2, Number(parsed.toFixed(1))));
+                }
+
+                const known = tagData.some((section) => section.tags.some((item) => item.tag.toLowerCase() === tagStr));
+                if (known && !isSelected(tagStr)) {
+                    state.selected.push({ tag: tagStr, weight });
+                    added += 1;
                 }
             });
 
-            const posPrompt = posTags.join(", ");
-            document.getElementById('positive-output').innerText = posPrompt || '点击魔咒加入法阵...';
+            if (!added) {
+                toast("没能从这段文字里认出本魔典收录的标签", "error");
+                return;
+            }
 
-            // Negative
-            const addNegative = document.getElementById('negative-checkbox').checked;
-            const negPrompt = addNegative 
-                ? "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry" 
-                : "";
-            
-            document.getElementById('negative-output').innerText = negPrompt || '未启用除魔词条';
-        }
-
-        // ----------------- UTILS & INTERACTIONS -----------------
-        function handleSearch(val) {
-            if (searchDebounce) clearTimeout(searchDebounce);
-            const v = val;
-            searchDebounce = setTimeout(function() {
-                currentSearch = v;
-                renderTags();
-            }, 150);
+            dom.importInput.value = "";
+            syncCardStates();
+            renderTray();
+            toast(`已注入 ${added} 个魔咒`, "ok");
         }
 
         function setView(view) {
-            currentView = view;
-            const cardsBtn = document.getElementById('view-cards-btn');
-            const compactBtn = document.getElementById('view-compact-btn');
-            
-            if (view === 'cards') {
-                cardsBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]";
-                compactBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white";
-            } else {
-                cardsBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-gray-400 hover:text-white";
-                compactBtn.className = "px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 text-white bg-pink-600 shadow-[0_0_10px_rgba(255,0,127,0.3)]";
-            }
-            renderTags();
+            if (state.view === view) return;
+            state.view = view;
+            dom.viewCards.setAttribute("aria-pressed", String(view === "cards"));
+            dom.viewCompact.setAttribute("aria-pressed", String(view === "compact"));
+            renderSections();
         }
 
-        function toggleBuilderPanel(isCollapse) {
-            const collapseBadge = document.getElementById('builder-collapsed-badge');
-            const expandedBox = document.getElementById('builder-expanded-box');
-            
-            if (isCollapse) {
-                // Collapse
-                expandedBox.classList.add('hidden');
-                collapseBadge.classList.remove('hidden');
-            } else {
-                // Expand
-                expandedBox.classList.remove('hidden');
-                collapseBadge.classList.add('hidden');
-            }
+        function setTrayOpen(open) {
+            dom.tray.classList.toggle("is-open", open);
+            dom.trayToggle.setAttribute("aria-expanded", String(open));
+            document.body.classList.toggle("tray-open", open);
         }
 
-        function fallbackCopyTextToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.position = "fixed";
-            textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                document.body.removeChild(textArea);
-                return successful;
-            } catch (err) {
-                document.body.removeChild(textArea);
-                return false;
-            }
-        }
-
-        function copyToClipboard(type) {
-            const posText = document.getElementById('positive-output').innerText;
-            const negText = document.getElementById('negative-output').innerText;
-            
-            let textToCopy = "";
-            let alertMsg = "";
-
-            if (type === 'positive') {
-                textToCopy = posText;
-                alertMsg = "✨ 正面魔咒吟唱词复制成功！直接贴入 SD 即可绘图哦～";
-            } else if (type === 'negative') {
-                textToCopy = negText;
-                alertMsg = "🚫 负面除魔咒词复制成功！";
-            } else {
-                // Both
-                textToCopy = `【正面提示词】:\n${posText}\n\n【负面提示词】:\n${negText}`;
-                alertMsg = "🔮 正负双重契约词全部复制成功！";
-            }
-
-            if (!textToCopy || textToCopy.startsWith('点击') || textToCopy.startsWith('未启用')) {
-                alert("法阵中还没有生成可以复制的魔咒呢，哥哥快选几个吧！💦");
-                return;
-            }
-
-            const doVisualFeedback = () => {
-                // Visual feedback flash
-                const panel = document.getElementById('builder-expanded-box');
-                panel.classList.add('border-green-500', 'shadow-[0_0_30px_rgba(34,197,94,0.4)]');
-                setTimeout(() => {
-                    panel.classList.remove('border-green-500', 'shadow-[0_0_30px_rgba(34,197,94,0.4)]');
-                }, 800);
-                
-                // Show notification text inside output instead of blocking prompt
-                const button = event.currentTarget;
-                if (button) {
-                    const origText = button.innerHTML;
-                    button.innerHTML = `<i class="fa-solid fa-check"></i> 成功！`;
-                    button.classList.add('bg-green-600', 'text-white');
-                    setTimeout(() => {
-                        button.innerHTML = origText;
-                        button.classList.remove('bg-green-600', 'text-white');
-                    }, 1500);
-                }
+        /** 窄屏下已选条会换行变高，把实测高度写回 --tray-h，页脚才不会被压住。 */
+        function watchTrayHeight() {
+            const bar = dom.tray.querySelector(".tray__bar");
+            const apply = () => {
+                const height = Math.round(bar.getBoundingClientRect().height);
+                if (!height) return;
+                // 变量给固定按钮定位用，内边距直接写死，免得依赖变量的重算时机
+                document.documentElement.style.setProperty("--tray-h", `${height}px`);
+                document.body.style.paddingBottom = `${height + 12}px`;
             };
 
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    doVisualFeedback();
-                }).catch(err => {
-                    if (fallbackCopyTextToClipboard(textToCopy)) {
-                        doVisualFeedback();
-                    } else {
-                        alert("复制失败，可能浏览器限制了剪贴板权限，哥哥可以手动选中复制哦 😢");
-                    }
-                });
-            } else {
-                if (fallbackCopyTextToClipboard(textToCopy)) {
-                    doVisualFeedback();
-                } else {
-                    alert("复制失败，可能浏览器限制了剪贴板权限，哥哥可以手动选中复制哦 😢");
-                }
-            }
+            apply();
+            if ("ResizeObserver" in window) new ResizeObserver(apply).observe(bar);
+            else window.addEventListener("resize", apply, { passive: true });
         }
 
-        function importPrompt() {
-            const input = prompt("请输入您现有的 Stable Diffusion 提示词 (系统将智能匹配我们的魔典数据库)：");
-            if (!input) return;
-            
-            // Normalize & clean tags structure
-            const cleanedInput = input.replace(/[\(\)\{\}\[\]]/g, ' '); 
-            const segments = cleanedInput.split(/[,;\s]+/).map(s => s.trim().toLowerCase()).filter(s => s);
-            
-            let matchCount = 0;
-            segments.forEach(seg => {
-                let tagStr = seg;
-                let weight = 1.0;
-                
-                // Parse weight syntax if exists
-                if (seg.includes(':')) {
-                    const parts = seg.split(':');
-                    tagStr = parts[0].trim();
-                    const parsedWeight = parseFloat(parts[1]);
-                    if (!isNaN(parsedWeight)) weight = parsedWeight;
-                }
+        function applySearch(value) {
+            state.search = value.trim();
+            dom.searchClear.hidden = !value;
+            renderSections();
+        }
 
-                // Search in database
-                let exists = false;
-                tagData.forEach(cat => {
-                    cat.tags.forEach(t => {
-                        if (t.tag.toLowerCase() === tagStr) exists = true;
-                    });
-                });
+        function jumpTo(targetId) {
+            if (targetId === "top") {
+                window.scrollTo({ top: 0, behavior: stillQuery.matches ? "auto" : "smooth" });
+                return;
+            }
+            const node = byId(targetId);
+            if (node) node.scrollIntoView({ behavior: stillQuery.matches ? "auto" : "smooth", block: "start" });
+        }
 
-                if (exists) {
-                    if (!selectedTags.some(sel => sel.tag === tagStr)) {
-                        selectedTags.push({ tag: tagStr, weight: weight });
-                        matchCount++;
-                    }
+        /* ------------------------------------------------------------- 启动 */
+        function init() {
+            dom.nav = byId("nav-pills");
+            dom.sections = byId("sections-container");
+            dom.searchInput = byId("search-input");
+            dom.searchClear = byId("search-clear");
+            dom.resultCount = byId("search-result-count");
+            dom.viewCards = byId("view-cards-btn");
+            dom.viewCompact = byId("view-compact-btn");
+            dom.tray = byId("tray");
+            dom.trayToggle = byId("tray-toggle");
+            dom.trayCount = byId("tray-count");
+            dom.builderList = byId("builder-list");
+            dom.selectedCount = byId("selected-tags-count");
+            dom.positiveOut = byId("positive-output");
+            dom.negativeOut = byId("negative-output");
+            dom.outPositive = byId("out-positive");
+            dom.outNegative = byId("out-negative");
+            dom.prefixBox = byId("prefix-checkbox");
+            dom.negativeBox = byId("negative-checkbox");
+            dom.importInput = byId("import-input");
+            dom.btnClear = byId("btn-clear");
+
+            const total = tagData.reduce((sum, section) => sum + section.tags.length, 0);
+            byId("total-tags-count").textContent = String(total);
+            byId("total-cats-count").textContent = String(tagData.length);
+
+            renderNav();
+            renderSections();
+            renderTray();
+            watchTrayHeight();
+
+            // 标签卡与胶囊都是动态渲染的，统一用事件委托，避免内联 onclick 拼字符串
+            dom.sections.addEventListener("click", (event) => {
+                const suggest = event.target.closest("[data-suggest]");
+                if (suggest) {
+                    dom.searchInput.value = suggest.dataset.suggest;
+                    applySearch(suggest.dataset.suggest);
+                    return;
                 }
+                const node = event.target.closest("[data-tag]");
+                if (node) toggleTag(node.dataset.tag, node);
             });
 
-            if (matchCount > 0) {
-                updateBuilder();
-                renderTags();
-                alert(`✨ 魔法契约成立！成功从外部匹配并注入了 ${matchCount} 个魔咒词条！`);
-            } else {
-                alert("未能从输入中检索到魔咒对应的标准 Danbooru 标签，哥哥确认是不是弄错格式啦 🥺");
-            }
-        }
-
-        // ----------------- SPARKLE BURST ENGINE -----------------
-        window.addEventListener('click', (e) => {
-            // Detect if click happened inside the special footer zone
-            const isSpecialSection = e.target.closest('#section-8') || e.target.closest('[data-category="8"]');
-            const emojis = isSpecialSection ? ['👣', '🧦', '💖', '🌸', '✨'] : ['🌸', '✨', '💖', '🍭', '⭐'];
-            
-            createEmojiBurst(e.clientX, e.clientY, emojis);
-        });
-
-        function createEmojiBurst(x, y, emojis) {
-            const count = 8;
-            for (let i = 0; i < count; i++) {
-                const el = document.createElement('div');
-                el.className = 'fixed pointer-events-none text-base md:text-lg select-none z-50 particle-emoji';
-                el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
-                el.style.left = x + 'px';
-                el.style.top = y + 'px';
-                
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 2 + Math.random() * 4;
-                const vx = Math.cos(angle) * speed;
-                const vy = Math.sin(angle) * speed - 1; // slight float up bias
-                
-                let opacity = 1;
-                let px = x;
-                let py = y;
-                
-                const duration = 600 + Math.random() * 400;
-                const start = performance.now();
-                
-                function frame(time) {
-                    const elapsed = time - start;
-                    const progress = elapsed / duration;
-                    if (progress >= 1) {
-                        el.remove();
-                        return;
-                    }
-                    
-                    px += vx;
-                    py += vy + progress * 1.5; // subtle gravity drift
-                    opacity = 1 - progress;
-                    
-                    el.style.left = px + 'px';
-                    el.style.top = py + 'px';
-                    el.style.opacity = opacity;
-                    el.style.transform = `scale(${1 - progress * 0.4}) rotate(${progress * 270}deg)`;
-                    
-                    requestAnimationFrame(frame);
-                }
-                document.body.appendChild(el);
-                requestAnimationFrame(frame);
-            }
-        }
-
-        // ----------------- SAKURA CANVAS ENGINE -----------------
-        let ctx, canvas;
-        let width, height;
-        const petals = [];
-
-        function initSakura() {
-            canvas = document.getElementById('sakura-canvas');
-            ctx = canvas.getContext('2d');
-            
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-
-            window.addEventListener('resize', () => {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
+            dom.nav.addEventListener("click", (event) => {
+                const pill = event.target.closest("[data-target]");
+                if (pill) jumpTo(pill.dataset.target);
             });
 
-            // Populate initial petals
-            const petalCount = Math.min(30, Math.floor(width / 30));
-            for (let i = 0; i < petalCount; i++) {
-                petals.push(new SakuraPetal());
-            }
-
-            animateSakura();
-        }
-
-        function drawSinglePetal(x, y, r, angle) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(-r/2, -r/2, -r, r/3, 0, r);
-            ctx.bezierCurveTo(r, r/3, r/2, -r/2, 0, 0);
-            
-            // Radial pink gradient for premium realism
-            const grad = ctx.createRadialGradient(0, r/2, 0, 0, r/2, r);
-            grad.addColorStop(0, 'rgba(255, 182, 193, 0.75)'); // cherry pink
-            grad.addColorStop(0.7, 'rgba(219, 112, 147, 0.4)'); // hot pink
-            grad.addColorStop(1, 'rgba(18, 10, 34, 0.05)');     // blend background
-            ctx.fillStyle = grad;
-            ctx.fill();
-            ctx.restore();
-        }
-
-        class SakuraPetal {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height - height;
-                this.r = 5 + Math.random() * 8;
-                this.angle = Math.random() * Math.PI * 2;
-                this.spin = (Math.random() - 0.5) * 0.02;
-                this.vx = (Math.random() - 0.3) * 1.2 + 0.4; // light breeze blowing rightwards
-                this.vy = 0.8 + Math.random() * 1.5;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.angle += this.spin;
-                
-                // Reset petal if off screen
-                if (this.y > height || this.x > width || this.x < -20) {
-                    this.x = Math.random() * width;
-                    this.y = -20;
-                    this.r = 5 + Math.random() * 8;
-                    this.vx = (Math.random() - 0.3) * 1.2 + 0.4;
-                    this.vy = 0.8 + Math.random() * 1.5;
-                }
-            }
-            draw() {
-                drawSinglePetal(this.x, this.y, this.r, this.angle);
-            }
-        }
-
-        function animateSakura() {
-            ctx.clearRect(0, 0, width, height);
-            petals.forEach(p => {
-                p.update();
-                p.draw();
+            dom.builderList.addEventListener("click", (event) => {
+                const btn = event.target.closest("[data-act]");
+                if (!btn) return;
+                if (btn.dataset.act === "up") changeWeight(btn.dataset.tag, 0.1);
+                else if (btn.dataset.act === "down") changeWeight(btn.dataset.tag, -0.1);
+                else removeTag(btn.dataset.tag);
             });
-            requestAnimationFrame(animateSakura);
+
+            dom.searchInput.addEventListener("input", (event) => {
+                const value = event.target.value;
+                dom.searchClear.hidden = !value;
+                if (searchTimer) clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => applySearch(value), 150);
+            });
+
+            dom.searchInput.addEventListener("keydown", (event) => {
+                if (event.key !== "Escape") return;
+                dom.searchInput.value = "";
+                applySearch("");
+            });
+
+            dom.searchClear.addEventListener("click", () => {
+                dom.searchInput.value = "";
+                applySearch("");
+                dom.searchInput.focus();
+            });
+
+            dom.viewCards.addEventListener("click", () => setView("cards"));
+            dom.viewCompact.addEventListener("click", () => setView("compact"));
+
+            dom.trayToggle.addEventListener("click", () => {
+                setTrayOpen(!dom.tray.classList.contains("is-open"));
+            });
+
+            dom.prefixBox.addEventListener("change", renderTray);
+            dom.negativeBox.addEventListener("change", renderTray);
+            dom.btnClear.addEventListener("click", handleClear);
+            byId("btn-import").addEventListener("click", handleImport);
+            byId("btn-copy-positive").addEventListener("click", (event) => handleCopy("positive", event.currentTarget));
+            byId("btn-copy-negative").addEventListener("click", (event) => handleCopy("negative", event.currentTarget));
+            byId("btn-copy-both").addEventListener("click", (event) => handleCopy("both", event.currentTarget));
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+                const active = document.activeElement;
+                if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+                event.preventDefault();
+                dom.searchInput.focus();
+            });
         }
 
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+        else init();
     </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

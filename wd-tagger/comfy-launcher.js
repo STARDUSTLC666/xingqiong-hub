@@ -1,4 +1,4 @@
-// ComfyUI Launcher — local server for Gemini Sanctuary WD Tagger
+// ComfyUI Launcher — local server for 星穹枢庭 WD Tagger
 // Usage: node comfy-launcher.js
 // Listens on :18433, controls ComfyUI lifecycle
 

@@ -3,224 +3,465 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>星穹绘所 · 新手向导</title>
+<title>星穹绘所 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="连接本机 ComfyUI 的出图工作台：按向导整理提示词、参数与负向词，一步步完成一次生成。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/portal/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="星穹绘所 · 星穹枢庭">
+  <meta property="og:description" content="连接本机 ComfyUI 的出图工作台：按向导整理提示词、参数与负向词，一步步完成一次生成。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/portal/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
+<link rel="stylesheet" href="../assets/gemini.css">
 <style>
-/* === RESET === */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;scroll-behavior:smooth}
-body{
-  font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
-  background:#0a0a14;color:#d4d4e8;min-height:100vh;overflow-x:hidden;
-}
-#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* 基础层（reset / .page / .page-header / .panel / .btn / 表单 / pre / .back-link）
+   全部来自 gemini.css，这里只保留星穹绘所向导自己的组件与效果。 */
 
-.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 1.5rem}
+/* .btn 等组件自带 display，会盖掉浏览器默认的 [hidden]{display:none}，
+   而公网降级要靠 hidden 属性藏按钮，所以这里强制一次。 */
+[hidden]{display:none !important}
 
-.back-link{
-  display:inline-flex;align-items:center;gap:0.4rem;
-  color:rgba(200,200,224,0.3);text-decoration:none;font-size:0.78rem;
-  letter-spacing:0.04em;padding:1rem 0 0;transition:color 0.3s;
+/* ===================== 向导进度轨（常驻） ===================== */
+.wizard-rail{
+  position:sticky;z-index:20;top:calc(var(--xq-topbar-h) + 6px);
+  display:flex;flex-direction:column;align-items:center;gap:0.7rem;
+  padding:0.8rem 0.7rem 0.9rem;
+  border:1px solid var(--xq-line-soft);border-radius:var(--xq-r-lg);
+  margin-bottom:1.3rem;
+  background:rgba(9,11,26,0.86);
+  -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:var(--xq-shadow-sm),var(--xq-inner-top);
 }
-.back-link:hover{color:#e8a860}
-
-.header{padding:0.8rem 0 2rem;text-align:center;border-bottom:1px solid rgba(255,215,150,0.08);margin-bottom:2rem}
-.header h1{
-  font-family:'Noto Serif SC','SimSun',serif;font-size:2.4rem;font-weight:700;
-  background:linear-gradient(135deg,#f0d080,#e8a860 40%,#ffc080);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.06em;
-}
-.header .sub{font-size:0.85rem;color:rgba(212,212,232,0.4);margin-top:0.3rem}
-.header .hint{font-size:0.75rem;color:rgba(180,160,130,0.45);margin-top:0.2rem;font-style:italic}
-
-.panel{
-  background:rgba(20,20,42,0.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(255,215,150,0.1);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.2rem;
-}
-.panel-title{
-  font-family:'Noto Serif SC',serif;font-size:1rem;color:#e8a860;
-  margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(255,215,150,0.1);
-  display:flex;align-items:center;gap:0.5rem;
-}
-
-/* === WIZARD STEPS === */
 .wizard-progress{
-  display:flex;gap:0.4rem;margin-bottom:2rem;flex-wrap:wrap;justify-content:center;
+  position:relative;
+  display:flex;align-items:flex-start;justify-content:center;
+  width:100%;gap:clamp(0.3rem,2.6vw,1.15rem);
+}
+/* 连接进度线：铺在圆点中心线上，宽度随当前步增长 */
+.wizard-track{
+  position:absolute;top:1.08rem;right:8%;left:8%;height:2px;
+  overflow:hidden;border-radius:var(--xq-r-pill);
+  background:var(--xq-line-soft);
+}
+.wizard-track__fill{
+  width:0;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,var(--xq-gold-deep),var(--xq-gold-bright));
+  box-shadow:0 0 10px rgba(232,168,96,0.5);
+  transition:width var(--xq-dur-slow) var(--xq-ease-out);
 }
 .step-dot{
-  width:2.2rem;height:2.2rem;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:0.75rem;font-weight:700;cursor:pointer;
-  background:rgba(30,30,60,0.8);border:2px solid rgba(255,215,150,0.15);
-  color:rgba(212,212,232,0.3);transition:all 0.3s;
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:0.34rem;
+  padding:0;border:none;background:none;
+  color:var(--xq-text-faint);cursor:pointer;font-family:inherit;
+  transition:color var(--xq-dur) var(--xq-ease);
 }
-.step-dot.active{background:rgba(232,168,96,0.2);border-color:#e8a860;color:#e8a860}
-.step-dot.done{background:rgba(100,180,120,0.15);border-color:#6a8;color:#6a8}
-.step-dot:hover{border-color:rgba(255,215,150,0.5)}
+.step-dot__mark{
+  position:relative;
+  display:grid;width:2.2rem;height:2.2rem;place-items:center;
+  border:2px solid var(--xq-line);border-radius:50%;
+  background:var(--xq-ink-soft);
+  font-size:0.78rem;font-weight:700;
+  transition:transform var(--xq-dur) var(--xq-spring),border-color var(--xq-dur) var(--xq-ease),
+    background var(--xq-dur) var(--xq-ease),box-shadow var(--xq-dur) var(--xq-ease),color var(--xq-dur) var(--xq-ease);
+}
+.step-dot__label{font-size:0.66rem;letter-spacing:0.05em;white-space:nowrap}
+.step-dot:hover .step-dot__mark{border-color:var(--xq-line-strong);transform:translateY(-2px)}
+.step-dot[aria-current="step"]{color:var(--xq-gold-bright)}
+.step-dot[aria-current="step"] .step-dot__mark{
+  border-color:var(--xq-gold);background:var(--xq-gold-wash);
+  box-shadow:var(--xq-glow-gold);color:var(--xq-gold-bright);transform:scale(1.12);
+}
+.step-dot.is-done{color:var(--xq-ok)}
+.step-dot.is-done .step-dot__mark{
+  border-color:var(--xq-ok);background:rgba(126,200,168,0.12);color:transparent;
+}
+/* done 态：数字淡出，两笔线条长出一个勾 */
+.step-dot__mark::before,.step-dot__mark::after{
+  position:absolute;border-radius:2px;background:var(--xq-ok);content:"";
+  opacity:0;transform-origin:left center;
+}
+.step-dot__mark::before{top:1.10rem;left:0.62rem;width:0.36rem;height:2px;transform:rotate(45deg) scaleX(0)}
+.step-dot__mark::after{top:1.34rem;left:0.87rem;width:0.72rem;height:2px;transform:rotate(-50deg) scaleX(0)}
+.step-dot.is-done .step-dot__mark::before{animation:stepCheckA 300ms var(--xq-ease-out) both}
+.step-dot.is-done .step-dot__mark::after{animation:stepCheckB 300ms var(--xq-ease-out) 110ms both}
+@keyframes stepCheckA{to{opacity:1;transform:rotate(45deg) scaleX(1)}}
+@keyframes stepCheckB{to{opacity:1;transform:rotate(-50deg) scaleX(1)}}
 
-.step-panel{display:none}
-.step-panel.active{display:block}
+.wizard-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0.5rem}
+.tag-count{
+  display:inline-flex;align-items:center;gap:0.4rem;
+  padding:0.3rem 0.9rem;
+  border:1px solid var(--xq-line);border-radius:var(--xq-r-pill);
+  background:var(--xq-accent-soft);
+  color:var(--xq-text-muted);font-size:0.72rem;letter-spacing:0.04em;
+}
+.tag-count strong{color:var(--xq-gold-bright);font-size:0.86rem;font-variant-numeric:tabular-nums}
+.tag-count.is-bumped{animation:countBump 420ms var(--xq-spring)}
+@keyframes countBump{40%{transform:scale(1.1)}}
+
+/* ========================= 步骤面板 ========================= */
+/* 步骤面板默认 display:none，永远不会与 IntersectionObserver 相交，
+   所以要挡掉 sanctuary 自动补上的滚动进场，否则切过去时是全透明的。 */
+.step-panel[data-xq-reveal]{opacity:1;transform:none}
+.step-panel{display:none;animation:none;scroll-margin-top:calc(var(--xq-topbar-h) + 8.5rem)}
+.step-panel.active{display:block;animation:stepIn 400ms var(--xq-ease-out) both}
+.step-panel.active.is-back{animation-name:stepInBack}
+@keyframes stepIn{from{opacity:0;transform:translateX(28px)}}
+@keyframes stepInBack{from{opacity:0;transform:translateX(-28px)}}
+
 .step-instruction{
-  font-size:0.82rem;color:rgba(212,212,232,0.5);margin-bottom:1rem;
-  line-height:1.6;padding-left:0.3rem;
+  padding-left:0.3rem;margin-bottom:1rem;
+  color:var(--xq-text-muted);font-size:0.82rem;line-height:1.7;
 }
-.step-instruction strong{color:#e8a860}
+.step-instruction strong{color:var(--xq-gold)}
+.tag-group{margin-bottom:0.9rem}
+.group-label{
+  margin-bottom:0.45rem;
+  color:var(--xq-text-faint);font-size:0.72rem;letter-spacing:0.08em;
+}
 
-/* === TAG OPTIONS === */
-.tag-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;
-}
+/* ========================= 标签卡片 ========================= */
+.tag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:0.5rem}
 .tag-option{
-  display:flex;flex-direction:column;gap:0.2rem;
-  padding:0.7rem 0.9rem;border-radius:12px;cursor:pointer;
-  background:rgba(15,15,35,0.7);border:1px solid rgba(255,215,150,0.08);
-  transition:all 0.2s;user-select:none;
+  position:relative;
+  display:flex;flex-direction:column;align-items:flex-start;gap:0.16rem;
+  padding:0.66rem 0.82rem;
+  border:1px solid var(--xq-line-soft);border-radius:var(--xq-r-md);
+  background:rgba(8,10,22,0.52);
+  color:var(--xq-text-soft);cursor:pointer;font-family:inherit;text-align:left;
+  transition:transform var(--xq-dur-fast) var(--xq-ease),border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease),box-shadow var(--xq-dur-fast) var(--xq-ease);
 }
-.tag-option:hover{background:rgba(255,215,150,0.06);border-color:rgba(255,215,150,0.2)}
-.tag-option.selected{background:rgba(232,168,96,0.12);border-color:#e8a860;box-shadow:0 0 12px rgba(232,168,96,0.12)}
-.tag-option .tag-en{font-size:0.73rem;color:#c0a0d0;font-family:'Consolas','Courier New',monospace;letter-spacing:0.02em}
-.tag-option .tag-zh{font-size:0.82rem;color:#d4d4e8;font-weight:600}
-.tag-option .tag-desc{font-size:0.68rem;color:rgba(180,180,200,0.45);line-height:1.3}
-.tag-option .tag-check{display:none;font-size:0.7rem;color:#e8a860}
-.tag-option.selected .tag-check{display:inline}
-.tag-option.selected .tag-en{color:#e8a860}
+.tag-option:hover{
+  border-color:var(--xq-line-strong);background:rgba(232,168,96,0.06);
+  box-shadow:var(--xq-shadow-sm);transform:translateY(-2px);
+}
+.tag-option:active{transform:translateY(0) scale(0.985)}
+.tag-option[aria-pressed="true"]{
+  border-color:var(--xq-gold);background:rgba(232,168,96,0.14);
+  box-shadow:var(--xq-glow-gold);
+}
+.tag-en{
+  color:var(--xq-violet);font-family:var(--xq-font-mono);font-size:0.72rem;letter-spacing:0.02em;
+  transition:color var(--xq-dur-fast) var(--xq-ease);
+}
+.tag-option[aria-pressed="true"] .tag-en{color:var(--xq-gold-bright)}
+.tag-zh{color:var(--xq-text);font-size:0.82rem;font-weight:600;line-height:1.4}
+.tag-desc{color:var(--xq-text-faint);font-size:0.68rem;line-height:1.35}
+.tag-check{
+  display:inline-block;color:var(--xq-gold);font-size:0.72rem;
+  opacity:0;transform:scale(0.5);
+  transition:opacity var(--xq-dur-fast) var(--xq-ease),transform var(--xq-dur-fast) var(--xq-spring);
+}
+.tag-option[aria-pressed="true"] .tag-check{opacity:1;transform:scale(1)}
 
-/* === NEGATIVE TAGS === */
+/* ========================= 负向标签 ========================= */
 .neg-grid{display:flex;flex-wrap:wrap;gap:0.35rem}
 .neg-chip{
-  padding:0.3rem 0.7rem;border-radius:16px;font-size:0.7rem;cursor:pointer;
-  background:rgba(255,80,80,0.05);border:1px solid rgba(255,80,80,0.12);
-  color:#c08080;transition:all 0.2s;user-select:none;
+  padding:0.32rem 0.75rem;
+  border:1px solid rgba(224,125,112,0.18);border-radius:var(--xq-r-pill);
+  background:rgba(224,125,112,0.06);
+  color:#d6968c;cursor:pointer;font-family:inherit;font-size:0.7rem;
+  transition:transform var(--xq-dur-fast) var(--xq-ease),border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease),color var(--xq-dur-fast) var(--xq-ease);
 }
-.neg-chip:hover{background:rgba(255,80,80,0.12)}
-.neg-chip.selected{background:rgba(255,80,80,0.18);border-color:#c06060;color:#e08080}
+.neg-chip:hover{border-color:rgba(224,125,112,0.45);background:rgba(224,125,112,0.15);transform:translateY(-1px)}
+.neg-chip[aria-pressed="true"]{
+  border-color:var(--xq-coral);background:rgba(224,125,112,0.24);
+  box-shadow:0 0 0 1px rgba(224,125,112,0.22),0 6px 20px rgba(224,125,112,0.16);color:#f4b6ab;
+}
 
-/* === BUTTONS === */
-.btn{
-  display:inline-flex;align-items:center;gap:0.4rem;padding:0.6rem 1.4rem;
-  border-radius:10px;font-family:inherit;font-size:0.88rem;font-weight:600;
-  cursor:pointer;transition:all 0.25s;border:none;letter-spacing:0.03em;
-}
-.btn-primary{background:linear-gradient(135deg,#e8a860,#d48540);color:#0a0a14}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,168,96,0.35)}
-.btn-ghost{background:transparent;border:1px solid rgba(255,215,150,0.2);color:#e8a860}
-.btn-ghost:hover{border-color:rgba(255,215,150,0.5);background:rgba(232,168,96,0.05)}
-.btn-sm{padding:0.35rem 0.7rem;font-size:0.75rem}
-.btn-bar{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:space-between;margin-top:1rem}
-.btn-bar .left-gap{margin-left:auto}
+/* ========================= 操作条与说明 ========================= */
+.btn-bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0.6rem;margin-top:1.2rem}
+.btn-bar__end{display:flex;flex-wrap:wrap;gap:0.5rem}
 .mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.55rem;margin:0.65rem 0 0.75rem}
-.mode-card{display:flex;gap:0.45rem;align-items:flex-start;padding:0.62rem 0.72rem;border-radius:12px;background:rgba(255,215,150,0.035);border:1px solid rgba(255,215,150,0.10);cursor:pointer;color:rgba(212,212,232,0.68);font-size:0.74rem;line-height:1.45}
-.mode-card input{margin-top:0.18rem;accent-color:#e8a860}
-.mode-card strong{display:block;color:#e8a860;margin-bottom:0.12rem}
-.preset-row{display:flex;gap:0.45rem;flex-wrap:wrap;margin-top:0.45rem}
-.mini-help{font-size:0.68rem;color:rgba(212,212,232,0.38);line-height:1.65;margin-top:0.35rem}
-.notice-line{font-size:0.68rem;color:rgba(232,168,96,0.58);line-height:1.55;margin-top:0.35rem}
+.mode-card{
+  display:flex;align-items:flex-start;gap:0.45rem;padding:0.62rem 0.72rem;
+  border:1px solid var(--xq-line);border-radius:var(--xq-r-md);
+  background:var(--xq-surface-quiet);
+  color:var(--xq-text-soft);cursor:pointer;font-size:0.74rem;line-height:1.5;
+  transition:border-color var(--xq-dur-fast) var(--xq-ease),background var(--xq-dur-fast) var(--xq-ease);
+}
+.mode-card:hover{border-color:var(--xq-line-strong);background:var(--xq-accent-soft)}
+.mode-card:focus-within{border-color:var(--xq-gold)}
+.mode-card input{width:auto;margin-top:0.18rem;accent-color:var(--xq-gold)}
+.mode-card strong{display:block;margin-bottom:0.12rem;color:var(--xq-gold)}
+.preset-row{display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.45rem}
+.mini-help{margin-top:0.35rem;color:var(--xq-text-faint);font-size:0.68rem;line-height:1.65}
+.notice-line{margin-top:0.35rem;color:rgba(232,168,96,0.62);font-size:0.68rem;line-height:1.6}
+.field-title{
+  display:block;margin-bottom:0.2rem;
+  color:var(--xq-gold);font-size:0.85rem;font-weight:700;
+}
+.inline-check{
+  display:flex;align-items:center;gap:0.45rem;
+  color:var(--xq-text-muted);cursor:pointer;font-size:0.7rem;
+}
+.inline-check input{width:auto;accent-color:var(--xq-gold)}
 
-/* === REVIEW === */
+/* ========================= 确认与审阅 ========================= */
 .review-block{
-  background:rgba(10,10,24,0.5);border-radius:12px;padding:1rem 1.2rem;
-  margin-bottom:0.8rem;border:1px solid rgba(255,215,150,0.06);
+  padding:1rem 1.15rem;
+  border:1px solid var(--xq-line-soft);border-radius:var(--xq-r-md);
+  margin-bottom:0.8rem;
+  background:rgba(6,8,18,0.5);
+  transition:border-color var(--xq-dur) var(--xq-ease),box-shadow var(--xq-dur) var(--xq-ease);
 }
-.review-block h4{font-size:0.78rem;color:rgba(232,168,96,0.7);margin-bottom:0.5rem}
-.review-block .review-tags{
-  display:flex;flex-wrap:wrap;gap:0.3rem;
+.review-block:hover{border-color:var(--xq-line);box-shadow:var(--xq-shadow-sm)}
+.review-block h4{margin-bottom:0.55rem;color:var(--xq-gold);font-size:0.8rem}
+.review-tags{display:flex;flex-wrap:wrap;gap:0.3rem}
+.review-tag{
+  padding:0.2rem 0.58rem;
+  border:1px solid rgba(232,168,96,0.16);border-radius:var(--xq-r-sm);
+  background:rgba(232,168,96,0.08);
+  color:var(--xq-text);font-family:var(--xq-font-mono);font-size:0.7rem;
+  animation:tagPop 260ms var(--xq-spring) both;
 }
-.review-block .review-tag{
-  padding:0.2rem 0.55rem;border-radius:10px;font-size:0.7rem;
-  background:rgba(232,168,96,0.08);border:1px solid rgba(232,168,96,0.12);color:#d4d4e8;
-}
+@keyframes tagPop{from{opacity:0;transform:scale(0.82)}}
 .review-prompt{
-  font-family:'Consolas','Courier New',monospace;font-size:0.78rem;line-height:1.7;
-  color:rgba(212,212,232,0.65);white-space:pre-wrap;word-break:break-all;
+  max-height:15rem;margin-top:0.6rem;
+  font-size:0.76rem;white-space:pre-wrap;word-break:break-word;
 }
-.review-empty{color:rgba(212,212,232,0.2);font-style:italic}
+.review-empty{color:var(--xq-text-faint);font-style:italic}
+.disclosure{
+  display:flex;width:100%;align-items:center;justify-content:space-between;gap:0.6rem;
+  padding:0;border:none;background:none;
+  color:var(--xq-gold);cursor:pointer;font-family:inherit;font-size:0.8rem;font-weight:600;text-align:left;
+}
+.disclosure__caret{transition:transform var(--xq-dur) var(--xq-ease)}
+.disclosure[aria-expanded="true"] .disclosure__caret{transform:rotate(90deg)}
+.advanced-body{margin-top:0.9rem;animation:advIn 320ms var(--xq-ease-out) both}
+@keyframes advIn{from{opacity:0;transform:translateY(-8px)}}
 
-/* === PARAMS === */
+/* ========================= 参数区 ========================= */
 .param-row{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:0.8rem}
-.param-row.triple{grid-template-columns:1fr 1fr 1fr}
-label{display:block;font-size:0.76rem;color:rgba(212,212,232,0.5);margin-bottom:0.25rem}
-label .hint{font-size:0.65rem;color:rgba(212,212,232,0.25);font-weight:normal}
-select,input[type="number"],input[type="text"]{
-  width:100%;background:rgba(10,10,24,0.6);border:1px solid rgba(255,215,150,0.12);
-  border-radius:10px;padding:0.55rem 0.8rem;color:#d4d4e8;
-  font-family:inherit;font-size:0.82rem;outline:none;transition:border-color 0.3s;
+.param-row.triple{grid-template-columns:repeat(3,1fr)}
+.param-block{margin-bottom:1rem}
+label{display:block;margin-bottom:0.25rem;color:var(--xq-text-muted);font-size:0.76rem}
+label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
+.slider-group{display:flex;align-items:center;gap:0.6rem;padding-top:0.3rem}
+.slider-group input[type="range"]{width:auto;flex:1;accent-color:var(--xq-gold)}
+.slider-val{
+  min-width:2.4rem;color:var(--xq-gold);font-size:0.8rem;font-weight:600;
+  font-variant-numeric:tabular-nums;text-align:center;
 }
-select:focus,input:focus{border-color:rgba(232,168,96,0.4);box-shadow:0 0 0 3px rgba(232,168,96,0.06)}
-select{cursor:pointer}
-
-.slider-group{display:flex;align-items:center;gap:0.6rem}
-.slider-group input[type="range"]{flex:1;accent-color:#e8a860}
-.slider-val{min-width:2.2rem;text-align:center;font-size:0.8rem;color:#e8a860;font-weight:600}
-
-/* === COMFY === */
-.comfy-status-row{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem}
-.dot-ok{width:10px;height:10px;border-radius:50%;background:#4a8;animation:pulse 2s ease infinite}
-.dot-off{width:10px;height:10px;border-radius:50%;background:#a44}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.comfy-actions{display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.6rem}
-
-/* === TOAST === */
-.toast{
-  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
-  background:rgba(20,20,42,0.95);border:1px solid rgba(232,168,96,0.3);
-  padding:0.7rem 1.4rem;border-radius:12px;font-size:0.82rem;
-  color:#e8a860;z-index:100;pointer-events:none;
-  animation:toastIn 0.3s,toastOut 0.3s 2.5s forwards;
+.tune-card{
+  padding:0.85rem 1rem;margin-top:0.8rem;
+  border:1px solid var(--xq-line);border-radius:var(--xq-r-md);
+  background:rgba(232,168,96,0.035);
 }
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}}
-@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+.tune-card__title{margin-bottom:0.6rem;color:var(--xq-gold);font-size:0.78rem;font-weight:700}
+.tune-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1rem;font-size:0.68rem;line-height:1.7}
+.tune-grid b{color:var(--xq-coral);font-weight:600}
 
-.footer{text-align:center;padding:3rem 0 2rem;color:rgba(212,212,232,0.15);font-size:0.72rem}
-.fade-in{animation:fadeIn 0.5s ease both}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}}
+/* ========================= 准备工作与桥接 ========================= */
+.prep-bar{display:flex;flex-wrap:wrap;align-items:center;gap:0.7rem}
+.prep-title{color:#c9ab7d;font-size:0.85rem;font-weight:700;white-space:nowrap}
+.prep-stat{
+  display:inline-flex;align-items:center;gap:0.35rem;
+  color:var(--xq-text-muted);font-size:0.7rem;
+  transition:color var(--xq-dur) var(--xq-ease);
+}
+.prep-stat.is-ok{color:var(--xq-ok)}
+.prep-stat.is-off{color:var(--xq-danger)}
+.prep-spacer{flex:1 1 auto;min-width:0}
+.stat-dot{
+  display:inline-block;width:8px;height:8px;flex:0 0 auto;border-radius:50%;
+  background:var(--xq-text-faint);
+  transition:background var(--xq-dur) var(--xq-ease);
+}
+.stat-dot.is-ok{background:var(--xq-ok);animation:statPulse 2.2s var(--xq-ease) infinite}
+.stat-dot.is-off{background:var(--xq-danger)}
+@keyframes statPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(126,200,168,0.5)}
+  50%{box-shadow:0 0 0 6px rgba(126,200,168,0)}
+}
+.bridge-controls{display:flex;flex-wrap:wrap;gap:0.35rem}
+.bridge-controls .btn{font-size:0.7rem}
+.btn-ok{border-color:rgba(126,200,168,0.34);color:var(--xq-ok)}
+.btn-ok:hover:not(:disabled){border-color:var(--xq-ok);background:rgba(126,200,168,0.1);color:var(--xq-ok)}
+.btn-danger{border-color:rgba(224,125,112,0.34);color:var(--xq-danger)}
+.btn-danger:hover:not(:disabled){border-color:var(--xq-danger);background:rgba(224,125,112,0.1);color:var(--xq-danger)}
+.btn-violet{border-color:rgba(171,156,219,0.32);color:var(--xq-violet)}
+.btn-violet:hover:not(:disabled){border-color:var(--xq-violet);background:rgba(171,156,219,0.1);color:var(--xq-violet)}
+.remote-card{
+  padding:0.9rem 1.05rem;margin-top:0.9rem;
+  border:1px solid rgba(116,196,212,0.26);border-radius:var(--xq-r-md);
+  background:rgba(116,196,212,0.06);
+  color:var(--xq-text-soft);font-size:0.75rem;line-height:1.75;
+}
+.remote-card[hidden]{display:none}
+.remote-card strong{display:block;margin-bottom:0.3rem;color:var(--xq-cyan);font-size:0.82rem}
+.remote-card p{margin-bottom:0.45rem}
+.comfy-status-row{display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;margin-bottom:0.6rem}
+.comfy-status-row .prep-spacer{min-width:1rem}
+.comfy-line{margin-bottom:0.4rem;color:var(--xq-text-faint);font-size:0.68rem;line-height:1.6}
+.comfy-line.is-ok{color:var(--xq-ok)}
+.comfy-line.is-off{color:var(--xq-danger)}
+.comfy-fields{display:grid;max-width:26rem;grid-template-columns:1fr;gap:0.6rem;margin-bottom:0.7rem}
+
+/* ========================= 出图结果与进度 ========================= */
+.gen-box{
+  display:flex;flex-direction:column;align-items:center;gap:0.75rem;
+  padding:1.8rem 1rem;text-align:center;
+}
+.gen-ring{
+  width:42px;height:42px;
+  border:3px solid var(--xq-line);border-top-color:var(--xq-gold);border-radius:50%;
+  animation:spin 0.9s linear infinite;
+}
+.gen-bar{
+  position:relative;width:min(340px,100%);height:6px;
+  overflow:hidden;border-radius:var(--xq-r-pill);
+  background:var(--xq-line-soft);
+}
+.gen-bar__fill{
+  width:0;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,var(--xq-gold-deep),var(--xq-gold-bright));
+  box-shadow:0 0 12px rgba(232,168,96,0.45);
+  transition:width 400ms var(--xq-ease-out);
+}
+.gen-bar__sheen{
+  position:absolute;inset:0;
+  animation:genSheen 1.8s var(--xq-ease) infinite;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,0.26),transparent);
+  transform:translateX(-100%);
+}
+@keyframes genSheen{to{transform:translateX(100%)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+.gen-label{color:var(--xq-text-muted);font-size:0.82rem}
+.gen-time{color:var(--xq-text-faint);font-size:0.7rem;font-variant-numeric:tabular-nums}
+.out-empty{padding:2rem 1rem;color:var(--xq-text-faint);font-size:0.85rem;text-align:center}
+.out-error{padding:1.5rem 1rem;color:var(--xq-danger);font-size:0.8rem;text-align:center}
+.out-warn{padding:1.5rem 1rem;color:var(--xq-warn);font-size:0.8rem;line-height:1.8;text-align:center}
+.out-shot{
+  max-width:100%;max-height:70vh;
+  border-radius:var(--xq-r-md);margin:0 auto;
+  box-shadow:var(--xq-shadow-lg);
+  animation:shotIn 520ms var(--xq-ease-out) both;
+}
+@keyframes shotIn{from{opacity:0;transform:scale(0.97)}}
+.out-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:0.5rem;margin-top:0.7rem}
+.out-meta{margin-top:0.5rem;color:var(--xq-text-faint);font-size:0.68rem;word-break:break-all}
+.btn.is-busy{cursor:progress;opacity:0.7}
+
+.page-foot{padding:2.4rem 0 1rem;color:var(--xq-text-faint);font-size:0.72rem;text-align:center}
+
+/* ============================ 响应式 ============================ */
+@media (max-width:720px){
+  .wizard-rail{top:calc(var(--xq-topbar-h) + 4px);padding:0.65rem 0.4rem 0.75rem}
+  .param-row,.param-row.triple{grid-template-columns:1fr}
+  .tune-grid{grid-template-columns:1fr}
+  .btn-bar{justify-content:stretch}
+  .btn-bar>*{flex:1 1 auto}
+  .btn-bar__end{flex:1 1 100%}
+  .btn-bar__end .btn{flex:1 1 auto}
+  .prep-spacer{display:none}
+  .bridge-controls{width:100%}
+  .bridge-controls .btn{flex:1 1 auto}
+}
+
+@media (max-width:560px){
+  .step-dot__label{display:none}
+  .wizard-track{top:0.95rem;right:6%;left:6%}
+  .step-dot__mark{width:1.95rem;height:1.95rem;font-size:0.72rem}
+  .step-dot__mark::before{top:0.98rem;left:0.54rem}
+  .step-dot__mark::after{top:1.2rem;left:0.79rem}
+  .tag-grid{grid-template-columns:repeat(auto-fill,minmax(136px,1fr))}
+  .review-block{padding:0.85rem 0.9rem}
+}
+
+@media (max-width:380px){
+  .tag-grid{grid-template-columns:1fr}
+  .wizard-progress{gap:0.22rem}
+}
+
+/* 屏幕太矮时常驻进度轨会挤掉正文，退回普通流 */
+@media (max-height:620px){
+  .wizard-rail{position:static}
+}
+
+/* ==================== 尊重系统的减少动效设置 ==================== */
+@media (prefers-reduced-motion:reduce){
+  .step-panel.active,
+  .step-panel.active.is-back,
+  .advanced-body,
+  .review-tag,
+  .out-shot,
+  .tag-count.is-bumped,
+  .step-dot.is-done .step-dot__mark::before,
+  .step-dot.is-done .step-dot__mark::after{animation:none}
+  .step-dot.is-done .step-dot__mark::before{opacity:1;transform:rotate(45deg) scaleX(1)}
+  .step-dot.is-done .step-dot__mark::after{opacity:1;transform:rotate(-50deg) scaleX(1)}
+  .gen-ring{animation:none;border-top-color:var(--xq-gold)}
+  .gen-bar__sheen{display:none}
+  .stat-dot.is-ok{animation:none}
+  .tag-option:hover,.neg-chip:hover{transform:none}
+}
 </style>
 </head>
 <body>
 
-<canvas id="starfield"></canvas>
+<main class="page">
+  <a href="../index.html" class="back-link"><span aria-hidden="true">←</span> 返回星穹枢庭</a>
 
-<main class="app">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
-
-  <header class="header fade-in">
+  <header class="page-header">
     <h1>星穹绘所 · 新手向导</h1>
-    <p class="sub">一步步选 → 一键出图 · 零基础也能画出好看</p>
-    <p class="hint">所有标签来自真实 Danbooru 图库，有据可查</p>
+    <p class="subtitle">一步步选 → 一键出图 · 零基础也能画出好看</p>
+    <p class="subtitle">所有标签来自真实 Danbooru 图库，有据可查</p>
   </header>
 
-  <!-- Step Indicator -->
-  <div class="wizard-progress" id="wizardProgress">
-    <div class="step-dot active" onclick="goStep(1)" title="角色">1</div>
-    <div class="step-dot" onclick="goStep(2)" title="外观">2</div>
-    <div class="step-dot" onclick="goStep(3)" title="服装">3</div>
-    <div class="step-dot" onclick="goStep(4)" title="场景">4</div>
-    <div class="step-dot" onclick="goStep(5)" title="姿势">5</div>
-    <div class="step-dot" onclick="goStep(6)" title="氛围">6</div>
-    <div class="step-dot" onclick="goStep(7)" title="确认">✓</div>
+  <!-- 常驻进度轨：步骤点 + 连接线 + 已选标签计数 -->
+  <div class="wizard-rail">
+    <div class="wizard-progress" id="wizardProgress" role="group" aria-label="出图向导步骤">
+      <div class="wizard-track" aria-hidden="true"><div class="wizard-track__fill" id="wizardTrackFill"></div></div>
+      <button type="button" class="step-dot" data-step="1" aria-current="step" aria-controls="step1"><span class="step-dot__mark">1</span><span class="step-dot__label">角色</span></button>
+      <button type="button" class="step-dot" data-step="2" tabindex="-1" aria-controls="step2"><span class="step-dot__mark">2</span><span class="step-dot__label">外观</span></button>
+      <button type="button" class="step-dot" data-step="3" tabindex="-1" aria-controls="step3"><span class="step-dot__mark">3</span><span class="step-dot__label">服装</span></button>
+      <button type="button" class="step-dot" data-step="4" tabindex="-1" aria-controls="step4"><span class="step-dot__mark">4</span><span class="step-dot__label">场景</span></button>
+      <button type="button" class="step-dot" data-step="5" tabindex="-1" aria-controls="step5"><span class="step-dot__mark">5</span><span class="step-dot__label">姿势</span></button>
+      <button type="button" class="step-dot" data-step="6" tabindex="-1" aria-controls="step6"><span class="step-dot__mark">6</span><span class="step-dot__label">氛围</span></button>
+      <button type="button" class="step-dot" data-step="7" tabindex="-1" aria-controls="step7"><span class="step-dot__mark">7</span><span class="step-dot__label">确认</span></button>
+    </div>
+    <div class="wizard-meta">
+      <span class="tag-count" id="tagCount" role="status" aria-live="polite">已选 <strong id="tagCountNum">0</strong> 个标签</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="reset-selection">🧹 清空选择</button>
+    </div>
   </div>
 
-  <!-- ═══════════ 准备工作面板（始终可见）═══════════ -->
-  <section class="panel fade-in" id="prepPanel" style="border-color:rgba(180,160,130,0.15);margin-bottom:1.5rem">
-    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-      <span style="font-size:0.85rem;font-weight:700;color:#c0a080;white-space:nowrap">🔧 准备工作</span>
+  <!-- 准备工作面板（始终可见） -->
+  <section class="panel" id="prepPanel">
+    <div class="prep-bar">
+      <span class="prep-title">🔧 准备工作</span>
 
-      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.7rem;color:rgba(212,212,232,0.5)">
-        <span id="prepBridgeDot" style="width:6px;height:6px;border-radius:50%;background:#444;display:inline-block"></span>
+      <span class="prep-stat" id="prepBridgeStat">
+        <span class="stat-dot" id="prepBridgeDot" aria-hidden="true"></span>
         <span id="prepBridgeText">桥接检测中</span>
       </span>
 
-      <span style="display:flex;align-items:center;gap:0.3rem;font-size:0.7rem;color:rgba(212,212,232,0.5)">
-        <span id="prepComfyDot" style="width:6px;height:6px;border-radius:50%;background:#444;display:inline-block"></span>
-        <span id="prepComfyText">ComfyUI检测中</span>
+      <span class="prep-stat" id="prepComfyStat">
+        <span class="stat-dot" id="prepComfyDot" aria-hidden="true"></span>
+        <span id="prepComfyText">ComfyUI 检测中</span>
       </span>
 
-      <span style="flex:1;min-width:0"></span>
-      <button class="btn btn-ghost btn-sm" onclick="openBridgeLauncher()" id="prepBridgeStartBtn" style="font-size:0.7rem;color:#d6a85f;border-color:rgba(232,168,96,0.35);padding:0.3rem 0.6rem">&#x1F50C; &#x542F;&#x52A8;&#x6865;&#x63A5;</button>
-      <button class="btn btn-ghost btn-sm" onclick="openBridgeStopper()" id="prepBridgeStopBtn" style="font-size:0.7rem;color:#b98cff;border-color:rgba(185,140,255,0.25);padding:0.3rem 0.6rem">&#x65AD;&#x5F00;&#x6865;&#x63A5;</button>
-      <button class="btn btn-ghost btn-sm" onclick="startComfy()" id="prepStartBtn" style="font-size:0.7rem;color:#6a8;border-color:rgba(100,200,100,0.3);padding:0.3rem 0.6rem">&#x25B6; &#x542F;&#x52A8; ComfyUI</button>
-      <button class="btn btn-ghost btn-sm" onclick="stopComfy()" id="prepStopBtn" style="font-size:0.7rem;color:#a55;border-color:rgba(200,100,100,0.3);padding:0.3rem 0.6rem">&#x23F9; &#x505C;&#x6B62; ComfyUI</button>
-      <button class="btn btn-ghost btn-sm" onclick="openComfyWeb()" style="font-size:0.7rem;padding:0.3rem 0.6rem">🌐 WebUI</button>
-      <button class="btn btn-ghost btn-sm" onclick="checkAll()" style="font-size:0.7rem;padding:0.3rem 0.6rem">🔄 刷新</button>
+      <span class="prep-spacer"></span>
+      <div class="bridge-controls" data-bridge-controls="full"></div>
+    </div>
+
+    <div class="remote-card" id="remoteNotice" hidden>
+      <strong>🌐 出图功能需要本机 ComfyUI 桥接</strong>
+      <p>你正在通过公网访问这份档案，浏览器没办法连到本机的 ComfyUI（127.0.0.1）与桥接服务，所以启停按钮已经隐藏。</p>
+      <p>向导、标签库、参数与 Prompt 生成全部可以正常使用——在第 7 步复制生成好的 Prompt，粘进自己电脑上的 ComfyUI / SD / NovelAI 就行。</p>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="force-local">这台机器就在本机跑 · 仍要尝试连接</button>
     </div>
   </section>
 
@@ -234,7 +475,7 @@ select{cursor:pointer}
     <div class="tag-grid" id="step1Tags"></div>
     <div class="btn-bar">
       <span></span>
-      <button class="btn btn-primary" onclick="nextStep(1)">下一步 → 选外观</button>
+      <button class="btn btn-primary" data-action="next" data-step="1">下一步 → 选外观</button>
     </div>
   </section>
 
@@ -245,21 +486,21 @@ select{cursor:pointer}
       <strong>选体型、发型、发色。</strong>多选无妨，组合起来就是角色的样子。
       <br>比如：「long_hair + silver_hair + large_breasts」= 银长直御姐
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 体型</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 体型</div>
       <div class="tag-grid" id="step2aTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 发型</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 发型</div>
       <div class="tag-grid" id="step2bTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 发色</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 发色</div>
       <div class="tag-grid" id="step2cTags"></div>
     </div>
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(2)">← 返回</button>
-      <button class="btn btn-primary" onclick="nextStep(2)">下一步 → 选服装</button>
+      <button class="btn btn-ghost" data-action="prev" data-step="2">← 返回</button>
+      <button class="btn btn-primary" data-action="next" data-step="2">下一步 → 选服装</button>
     </div>
   </section>
 
@@ -270,21 +511,21 @@ select{cursor:pointer}
       <strong>选服装和袜子。</strong>这些标签决定角色的穿搭风格。
       <br>不选也可以，默认就是角色设定里的衣服。想涩涩就从这里开始加料～
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 上衣/套装</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 上衣/套装</div>
       <div class="tag-grid" id="step3aTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 袜子/腿饰</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 袜子/腿饰</div>
       <div class="tag-grid" id="step3bTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 内衣/裸露程度（选填）</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 内衣/裸露程度（选填）</div>
       <div class="tag-grid" id="step3cTags"></div>
     </div>
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(3)">← 返回</button>
-      <button class="btn btn-primary" onclick="nextStep(3)">下一步 → 选场景</button>
+      <button class="btn btn-ghost" data-action="prev" data-step="3">← 返回</button>
+      <button class="btn btn-primary" data-action="next" data-step="3">下一步 → 选场景</button>
     </div>
   </section>
 
@@ -297,8 +538,8 @@ select{cursor:pointer}
     </div>
     <div class="tag-grid" id="step4Tags"></div>
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(4)">← 返回</button>
-      <button class="btn btn-primary" onclick="nextStep(4)">下一步 → 选姿势表情</button>
+      <button class="btn btn-ghost" data-action="prev" data-step="4">← 返回</button>
+      <button class="btn btn-primary" data-action="next" data-step="4">下一步 → 选姿势表情</button>
     </div>
   </section>
 
@@ -309,21 +550,21 @@ select{cursor:pointer}
       <strong>选表情、姿势、视角。</strong>这些决定画面传达的情绪和构图。
       <br>「smile + looking_at_viewer」= 对着你笑；「blush + looking_away」= 害羞避开视线
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 表情</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 表情</div>
       <div class="tag-grid" id="step5aTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 姿势</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 姿势</div>
       <div class="tag-grid" id="step5bTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 构图与镜头</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 构图与镜头</div>
       <div class="tag-grid" id="step5cTags"></div>
     </div>
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(5)">← 返回</button>
-      <button class="btn btn-primary" onclick="nextStep(5)">下一步 → 选氛围</button>
+      <button class="btn btn-ghost" data-action="prev" data-step="5">← 返回</button>
+      <button class="btn btn-primary" data-action="next" data-step="5">下一步 → 选氛围</button>
     </div>
   </section>
 
@@ -334,21 +575,21 @@ select{cursor:pointer}
       <strong>选光影、画质和风格。</strong>这是影响画面好不好看的最后一步。
       <br>「soft_lighting + masterpiece + anime_coloring」= 经典二次元美图质感
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 光照</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 光照</div>
       <div class="tag-grid" id="step6aTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 风格</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 风格</div>
       <div class="tag-grid" id="step6bTags"></div>
     </div>
-    <div style="margin-bottom:0.8rem">
-      <div style="font-size:0.72rem;color:rgba(212,212,232,0.4);margin-bottom:0.4rem">▸ 画质</div>
+    <div class="tag-group">
+      <div class="group-label">▸ 画质</div>
       <div class="tag-grid" id="step6cTags"></div>
     </div>
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(6)">← 返回</button>
-      <button class="btn btn-primary" onclick="nextStep(6)">下一步 → 确认出图</button>
+      <button class="btn btn-ghost" data-action="prev" data-step="6">← 返回</button>
+      <button class="btn btn-primary" data-action="next" data-step="6">下一步 → 确认出图</button>
     </div>
   </section>
 
@@ -362,76 +603,91 @@ select{cursor:pointer}
     <div class="review-block">
       <h4>✨ 正向提示词（你选的所有标签）</h4>
       <div class="review-tags" id="reviewPosTags"></div>
-      <pre class="review-prompt" id="reviewPosPrompt" style="margin-top:0.6rem;"></pre>
+      <pre class="review-prompt" id="reviewPosPrompt"></pre>
     </div>
 
     <div class="review-block">
       <h4>🚫 负向提示词（点击选择你不想要的）</h4>
-      <div class="neg-grid" id="reviewNegTags"></div>
-      <pre class="review-prompt" id="reviewNegPrompt" style="margin-top:0.6rem;"></pre>
+      <div class="neg-grid" id="reviewNegTags" role="group" aria-label="负向提示词候选"></div>
+      <pre class="review-prompt" id="reviewNegPrompt"></pre>
     </div>
 
     <div class="review-block" id="manualPromptBlock">
       <h4>📝 外部 Prompt 粘贴区（从 d栖栖 / 文档 / 其他网页复制后粘到这里）</h4>
-      <p style="font-size:0.72rem;color:rgba(212,212,232,0.42);line-height:1.7;margin:0.2rem 0 0.55rem">
-        可以从别处复制完整 Prompt，也可以只粘“镜头/构图/补充词”。下面选择使用方式，避免误把前面星门标签覆盖掉。
-      </p>
+      <p class="mini-help">可以从别处复制完整 Prompt，也可以只粘“镜头/构图/补充词”。下面选择使用方式，避免误把前面星门标签覆盖掉。</p>
       <div class="mode-grid" role="radiogroup" aria-label="外部 Prompt 使用方式">
         <label class="mode-card">
-          <input type="radio" name="manualPromptMode" value="off" checked onchange="updateReview()">
+          <input type="radio" name="manualPromptMode" value="off" checked>
           <span><strong>不使用</strong>只使用前面星门自动生成的标签。</span>
         </label>
         <label class="mode-card">
-          <input type="radio" name="manualPromptMode" value="append" onchange="updateReview()">
+          <input type="radio" name="manualPromptMode" value="append">
           <span><strong>追加到自动 Prompt 后面</strong>适合只粘镜头词、构图词、补充负面词。</span>
         </label>
         <label class="mode-card">
-          <input type="radio" name="manualPromptMode" value="override" onchange="updateReview()">
+          <input type="radio" name="manualPromptMode" value="override">
           <span><strong>覆盖自动 Prompt</strong>适合粘贴 d栖栖给你的完整正向/负向 Prompt。</span>
         </label>
       </div>
-      <div class="notice-line" id="manualModeHint">当前：不使用外部 Prompt。</div>
-      <div class="param-row" style="grid-template-columns:1fr 1fr;gap:0.8rem">
+      <div class="notice-line" id="manualModeHint" role="status">当前：不使用外部 Prompt。</div>
+      <div class="param-row">
         <div>
-          <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">正向 Prompt</label>
-          <textarea id="manualPosPrompt" oninput="updateReview()" placeholder="可以粘完整正向 prompt；如果选择追加模式，也可以只粘镜头/构图/补充词。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
-          <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualPosPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴正向</button>
+          <label for="manualPosPrompt" class="field-title">正向 Prompt</label>
+          <textarea id="manualPosPrompt" placeholder="可以粘完整正向 prompt；如果选择追加模式，也可以只粘镜头/构图/补充词。"></textarea>
+          <button class="btn btn-ghost btn-sm mt-1" type="button" data-action="paste-manual" data-target="manualPosPrompt">📥 从剪贴板粘贴正向</button>
         </div>
         <div>
-          <label style="font-size:0.76rem;color:rgba(232,168,96,0.9);font-weight:700">负向 Prompt</label>
-          <textarea id="manualNegPrompt" oninput="updateReview()" placeholder="可选：粘完整负向 prompt；追加模式下会接在默认负向词后面。" style="width:100%;min-height:120px;margin-top:0.45rem;background:rgba(10,10,24,0.68);border:1px solid rgba(255,215,150,0.14);border-radius:12px;color:#d4d4e8;padding:0.75rem;font-family:'Consolas','Courier New',monospace;font-size:0.76rem;line-height:1.6;resize:vertical"></textarea>
-          <button class="btn btn-ghost btn-sm" type="button" onclick="pasteManualPrompt('manualNegPrompt')" style="margin-top:0.5rem">📥 从剪贴板粘贴负向</button>
+          <label for="manualNegPrompt" class="field-title">负向 Prompt</label>
+          <textarea id="manualNegPrompt" placeholder="可选：粘完整负向 prompt；追加模式下会接在默认负向词后面。"></textarea>
+          <button class="btn btn-ghost btn-sm mt-1" type="button" data-action="paste-manual" data-target="manualNegPrompt">📥 从剪贴板粘贴负向</button>
         </div>
       </div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem">
-        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt('append')">➕ 追加粘贴词</button>
-        <button class="btn btn-ghost btn-sm" type="button" onclick="enableManualPrompt('override')">✅ 覆盖使用粘贴 Prompt</button>
-        <button class="btn btn-ghost btn-sm" type="button" onclick="clearManualPrompt()">🧹 清空粘贴区</button>
+      <div class="preset-row">
+        <button class="btn btn-ghost btn-sm" type="button" data-action="manual-mode" data-mode="append">➕ 追加粘贴词</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-action="manual-mode" data-mode="override">✅ 覆盖使用粘贴 Prompt</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-action="clear-manual">🧹 清空粘贴区</button>
       </div>
     </div>
 
-    <div class="review-block" style="cursor:pointer" onclick="toggleAdvanced()">
-      <h4>⚙ 高级参数（点击展开/收起 · 调好了画面质量会更好）</h4>
-      <div id="advancedPanel" style="display:none;margin-top:0.6rem" onclick="event.stopPropagation()">
+    <div class="review-block">
+      <button type="button" class="disclosure" id="advancedToggle" aria-expanded="false" aria-controls="advancedPanel">
+        <span>⚙ 高级参数（展开/收起 · 调好了画面质量会更好）</span>
+        <span class="disclosure__caret" aria-hidden="true">▸</span>
+      </button>
+      <div id="advancedPanel" class="advanced-body" hidden>
 
         <!-- 参数预设 -->
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎚 一键参数预设</label>
+        <div class="param-block">
+          <span class="field-title">🎚 一键参数预设</span>
           <p class="mini-help">不知道怎么调时先点预设。高清精修会打开二次潜空间放大，慢一点但细节更稳。</p>
           <div class="preset-row">
-            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('portrait')">人物竖图</button>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('bedroomWide')">卧室横图</button>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('stablePose')">高稳定姿势</button>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('hires')">高清精修</button>
-            <button class="btn btn-ghost btn-sm" type="button" onclick="applyParamPreset('preview')">快速预览</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="preset" data-preset="portrait">人物竖图</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="preset" data-preset="bedroomWide">卧室横图</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="preset" data-preset="stablePose">高稳定姿势</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="preset" data-preset="hires">高清精修</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="preset" data-preset="preview">快速预览</button>
           </div>
-          <div class="notice-line" id="presetHint">当前使用默认参数。想把满意构图继续修，先固定 Seed。</div>
+          <div class="notice-line" id="presetHint" role="status">当前使用默认参数。想把满意构图继续修，先固定 Seed。</div>
         </div>
 
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">📐 图片尺寸</label>
-          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">决定了画面是横是竖、出图快慢。尺寸越大显存占用越大，RTX 4060 8GB 上限约 1600×2048。</p>
-          <select id="imgSize" style="max-width:320px">
+        <!-- 底模 -->
+        <div class="param-block">
+          <label for="ckptName" class="field-title">🧩 底模 Checkpoint</label>
+          <p class="mini-help">必须和 ComfyUI 的 models/checkpoints 目录里的文件名完全一致（含后缀）。改过之后会记住，下次打开自动填回。</p>
+          <div class="param-row">
+            <div>
+              <input type="text" id="ckptName" placeholder="例如 novaAnimeXL_ilV190.safetensors" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="preset-row">
+              <button class="btn btn-ghost btn-sm" type="button" data-action="reset-ckpt">↺ 恢复默认底模</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="param-block">
+          <label for="imgSize" class="field-title">📐 图片尺寸</label>
+          <p class="mini-help">决定了画面是横是竖、出图快慢。尺寸越大显存占用越大，RTX 4060 8GB 上限约 1600×2048。</p>
+          <select id="imgSize">
             <option value="832×1216" selected>竖版 832×1216 · 单人立绘</option>
             <option value="896×1152">竖版 896×1152 · 标准人像</option>
             <option value="896×1344">竖版 896×1344 · 细节人像</option>
@@ -444,12 +700,12 @@ select{cursor:pointer}
         </div>
 
         <!-- 采样器 + 调度器 -->
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎛 采样器 + 调度器</label>
-          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">采样器是"怎么从噪声变成图"的算法，调度器控制去噪节奏。听不懂没关系——新手用默认组合就好。</p>
+        <div class="param-block">
+          <span class="field-title">🎛 采样器 + 调度器</span>
+          <p class="mini-help">采样器是“怎么从噪声变成图”的算法，调度器控制去噪节奏。听不懂没关系——新手用默认组合就好。</p>
           <div class="param-row">
             <div>
-              <label>采样器 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">▼ 怎么选</span></label>
+              <label for="sampler">采样器 <span class="hint">▼ 怎么选</span></label>
               <select id="sampler">
                 <option value="dpmpp_2m" selected>dpmpp_2m · 稳定干净</option>
                 <option value="euler_ancestral">Euler A / Ancestral · 随机纹理感</option>
@@ -457,7 +713,7 @@ select{cursor:pointer}
               </select>
             </div>
             <div>
-              <label>调度器 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">▼ 怎么选</span></label>
+              <label for="scheduler">调度器 <span class="hint">▼ 怎么选</span></label>
               <select id="scheduler">
                 <option value="karras" selected>Karras · 最自然</option>
                 <option value="normal">Normal · 线性标准</option>
@@ -468,43 +724,43 @@ select{cursor:pointer}
         </div>
 
         <!-- 步数 + CFG -->
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">⚡ 步数 + CFG（最常调的两个参数）</label>
+        <div class="param-block">
+          <span class="field-title">⚡ 步数 + CFG（最常调的两个参数）</span>
           <div class="param-row">
             <div>
-              <label>步数 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">15-20预览 / 25-30日常 / 35+浪费</span></label>
+              <label for="steps">步数 <span class="hint">15-20 预览 / 25-30 日常 / 35+ 浪费</span></label>
               <input type="number" id="steps" value="30" min="15" max="60" step="5">
             </div>
             <div>
-              <label>CFG（提示词听话程度） <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">低=AI自由发挥 / 高=死板塑料</span></label>
+              <label for="cfg">CFG（提示词听话程度） <span class="hint">低=AI自由发挥 / 高=死板塑料</span></label>
               <input type="number" id="cfg" value="5" min="1" max="10" step="0.5">
             </div>
           </div>
         </div>
 
         <!-- 种子 + LoRA -->
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🎲 种子 + LoRA 强度</label>
-          <p style="font-size:0.68rem;color:rgba(212,212,232,0.35);margin-bottom:0.4rem">Seed 是构图编号：-1 表示每次随机；填入固定数字后，同样参数会尽量复现同一构图。</p>
+        <div class="param-block">
+          <span class="field-title">🎲 种子 + LoRA 强度</span>
+          <p class="mini-help">Seed 是构图编号：-1 表示每次随机；填入固定数字后，同样参数会尽量复现同一构图。</p>
           <div class="param-row">
             <div>
-              <label>种子 Seed <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">-1=随机 / 数字=固定</span></label>
-              <input type="text" id="seed" value="-1">
-              <div class="preset-row" style="margin-top:0.45rem">
-                <button class="btn btn-ghost btn-sm" type="button" onclick="randomizeSeed()">🎲 随机新 Seed</button>
-                <button class="btn btn-ghost btn-sm" type="button" onclick="fixCurrentSeed()">📌 固定当前 Seed</button>
+              <label for="seed">种子 Seed <span class="hint">-1=随机 / 数字=固定</span></label>
+              <input type="text" id="seed" value="-1" inputmode="numeric" autocomplete="off">
+              <div class="preset-row">
+                <button class="btn btn-ghost btn-sm" type="button" data-action="random-seed">🎲 随机新 Seed</button>
+                <button class="btn btn-ghost btn-sm" type="button" data-action="fix-seed">📌 固定当前 Seed</button>
               </div>
-              <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.45rem;color:rgba(212,212,232,0.5);font-size:0.68rem">
-                <input type="checkbox" id="autoFixSeed" checked style="width:auto;accent-color:#e8a860"> 出图时若为 -1，自动写回本次 Seed，方便继续微调
+              <label class="inline-check mt-1" for="autoFixSeed">
+                <input type="checkbox" id="autoFixSeed" checked> 出图时若为 -1，自动写回本次 Seed，方便继续微调
               </label>
-              <div class="notice-line" id="seedHint">当前 Seed：随机。想固定构图就点“固定当前 Seed”，或出图后保留自动写回的数字。</div>
+              <div class="notice-line" id="seedHint" role="status">当前 Seed：随机。想固定构图就点“固定当前 Seed”，或出图后保留自动写回的数字。</div>
             </div>
             <div>
-              <label>LoRA 文件名（可选） <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">留空=不加载 LoRA</span></label>
-              <input type="text" id="loraName" placeholder="例如 xxx.safetensors">
-              <label style="margin-top:0.55rem">LoRA 强度 <span style="font-size:0.65rem;color:rgba(180,160,130,0.5);font-weight:normal">0.35-0.55 常用 / 太高易崩</span></label>
-              <div class="slider-group" style="padding-top:0.3rem">
-                <input type="range" id="loraWeight" min="0" max="1" step="0.05" value="0.4">
+              <label for="loraName">LoRA 文件名（可选） <span class="hint">留空=不加载 LoRA</span></label>
+              <input type="text" id="loraName" placeholder="例如 xxx.safetensors" autocomplete="off" spellcheck="false">
+              <label for="loraWeight" class="mt-1">LoRA 强度 <span class="hint">0.35-0.55 常用 / 太高易崩</span></label>
+              <div class="slider-group">
+                <input type="range" id="loraWeight" min="0" max="1" step="0.05" value="0.4" aria-describedby="loraVal">
                 <span class="slider-val" id="loraVal">0.40</span>
               </div>
               <div class="mini-help">以前这里只有强度但没接 LoRA；现在填文件名才会在 ComfyUI 工作流里启用 LoraLoader。</div>
@@ -513,104 +769,90 @@ select{cursor:pointer}
         </div>
 
         <!-- 高清精修 -->
-        <div style="margin-bottom:1rem">
-          <label style="font-size:0.85rem;font-weight:700;color:#e8a860">🪄 高清精修 / 二次放大</label>
-          <p class="mini-help">找不到“高清精修”是因为之前没做成开关。打开后会先出基础图，再在潜空间放大并二次采样；更慢、更吃显存，但细节更稳。</p>
-          <label style="display:flex;align-items:center;gap:0.45rem;color:#e8a860;font-size:0.76rem;margin:0.45rem 0;cursor:pointer">
-            <input type="checkbox" id="hiresEnabled" onchange="updateHiresHint()" style="width:auto;accent-color:#e8a860"> 启用高清精修
+        <div class="param-block">
+          <span class="field-title">🪄 高清精修 / 二次放大</span>
+          <p class="mini-help">打开后会先出基础图，再在潜空间放大并二次采样；更慢、更吃显存，但细节更稳。</p>
+          <label class="inline-check" for="hiresEnabled" style="color:var(--xq-gold);font-size:0.76rem;margin:0.45rem 0">
+            <input type="checkbox" id="hiresEnabled"> 启用高清精修
           </label>
           <div class="param-row triple">
             <div>
-              <label>放大倍率 <span class="hint">4060 8GB 建议 1.25-1.4</span></label>
-              <select id="hiresScale" onchange="updateHiresHint()">
+              <label for="hiresScale">放大倍率 <span class="hint">4060 8GB 建议 1.25-1.4</span></label>
+              <select id="hiresScale">
                 <option value="1.25">1.25x · 稳</option>
                 <option value="1.4" selected>1.4x · 推荐精修</option>
                 <option value="1.6">1.6x · 更吃显存</option>
               </select>
             </div>
             <div>
-              <label>精修步数 <span class="hint">12-18 常用</span></label>
+              <label for="hiresSteps">精修步数 <span class="hint">12-18 常用</span></label>
               <input type="number" id="hiresSteps" value="15" min="8" max="30" step="1">
             </div>
             <div>
-              <label>Denoise <span class="hint">低=保构图 / 高=重画</span></label>
+              <label for="hiresDenoise">Denoise <span class="hint">低=保构图 / 高=重画</span></label>
               <input type="number" id="hiresDenoise" value="0.32" min="0.15" max="0.55" step="0.01">
             </div>
           </div>
-          <div class="notice-line" id="hiresHint">高清精修未启用。</div>
+          <div class="notice-line" id="hiresHint" role="status">高清精修未启用。</div>
         </div>
 
-        <div style="background:rgba(255,215,150,0.03);border:1px solid rgba(255,215,150,0.08);border-radius:12px;padding:0.8rem 1rem;margin-top:0.8rem">
-          <div style="font-size:0.78rem;color:#e8a860;font-weight:700;margin-bottom:0.6rem">🔧 出图不满意？对着调（调参速查表）</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1rem;font-size:0.68rem;line-height:1.6">
-            <div><span style="color:#cc8080">画面发灰/模糊</span> → CFG 太低，调到 5-6</div>
-            <div><span style="color:#cc8080">颜色过艳/塑料假人</span> → CFG 太高，降到 4-5</div>
-            <div><span style="color:#cc8080">细节不够/糊</span> → 步数加到 35，LoRA 加到 0.5</div>
-            <div><span style="color:#cc8080">手脚画崩/变形</span> → 开“高稳定姿势”预设，必要时用 OpenPose</div>
-            <div><span style="color:#cc8080">画面噪点多</span> → 采样器换成 dpmpp_2m，步数加到 30</div>
-            <div><span style="color:#cc8080">风格不对/太动漫</span> → 回到第6步加风格标签</div>
-            <div><span style="color:#cc8080">人体比例崩</span> → 加 "natural proportions" 标签，换种子</div>
-            <div><span style="color:#cc8080">想把某张图调更好</span> → 固定 Seed，只改 prompt / CFG / 步数</div>
+        <div class="tune-card">
+          <div class="tune-card__title">🔧 出图不满意？对着调（调参速查表）</div>
+          <div class="tune-grid">
+            <div><b>画面发灰/模糊</b> → CFG 太低，调到 5-6</div>
+            <div><b>颜色过艳/塑料假人</b> → CFG 太高，降到 4-5</div>
+            <div><b>细节不够/糊</b> → 步数加到 35，LoRA 加到 0.5</div>
+            <div><b>手脚画崩/变形</b> → 开“高稳定姿势”预设，必要时用 OpenPose</div>
+            <div><b>画面噪点多</b> → 采样器换成 dpmpp_2m，步数加到 30</div>
+            <div><b>风格不对/太动漫</b> → 回到第 6 步加风格标签</div>
+            <div><b>人体比例崩</b> → 加 natural_proportions 标签，换种子</div>
+            <div><b>想把某张图调更好</b> → 固定 Seed，只改 prompt / CFG / 步数</div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="btn-bar">
-      <button class="btn btn-ghost" onclick="prevStep(7)">← 返回修改</button>
-      <div>
-        <button class="btn btn-ghost btn-sm" onclick="copyPrompt()">📋 复制 Prompt</button>
-        <button class="btn btn-primary" onclick="checkAndSend()" id="sendBtn" style="margin-left:0.4rem;">🚀 发送到 ComfyUI 出图</button>
+      <button class="btn btn-ghost" type="button" data-action="prev" data-step="7">← 返回修改</button>
+      <div class="btn-bar__end">
+        <button class="btn btn-ghost" type="button" data-action="copy-prompt">📋 复制 Prompt</button>
+        <button class="btn btn-primary" type="button" data-action="send" id="sendBtn">🚀 发送到 ComfyUI 出图</button>
       </div>
     </div>
 
-    <!-- ComfyUI -->
-    <div class="review-block" style="margin-top:1rem">
+    <!-- ComfyUI 连接 -->
+    <div class="review-block mt-1">
       <div class="comfy-status-row">
-        <span id="comfyDot" class="dot-off"></span>
-        <span id="comfyText" style="font-size:0.78rem;color:rgba(212,212,232,0.5)">检测中...</span>
-        <span style="flex:1"></span>
-        <button class="btn btn-ghost btn-sm" onclick="checkComfy()" style="font-size:0.7rem">🔄 刷新</button>
+        <span id="comfyDot" class="stat-dot" aria-hidden="true"></span>
+        <span id="comfyText" class="prep-stat">检测中…</span>
+        <span class="prep-spacer"></span>
+        <div class="bridge-controls" data-bridge-controls="compact"></div>
       </div>
-      <div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-bottom:0.4rem" id="bridgeStatus"></div>
-      <div style="font-size:0.66rem;color:rgba(212,212,232,0.24);margin-bottom:0.4rem">&#x6865;&#x63A5;&#x6309;&#x94AE;&#x4F7F;&#x7528; qiqi-bridge:// &#x672C;&#x5730;&#x534F;&#x8BAE;&#xFF0C;&#x4E0D;&#x4F1A;&#x518D;&#x6253;&#x5F00; cmd &#x6587;&#x672C;&#x9875;&#x3002;</div>
-      <div class="comfy-actions">
-        <input type="text" id="comfyUrl" value="http://127.0.0.1:8188" style="flex:1;font-size:0.73rem;padding:0.4rem 0.6rem">
-      </div>
-      <div class="comfy-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openBridgeLauncher()" id="bridgeStartBtn" style="color:#d6a85f;border-color:rgba(232,168,96,0.35)">&#x1F50C; &#x542F;&#x52A8;&#x6865;&#x63A5;</button>
-        <button class="btn btn-ghost btn-sm" onclick="openBridgeStopper()" id="bridgeStopBtn" style="color:#b98cff;border-color:rgba(185,140,255,0.25)">&#x65AD;&#x5F00;&#x6865;&#x63A5;</button>
-        <button class="btn btn-ghost btn-sm" onclick="startComfy()" id="startBtn" style="color:#6a8;border-color:rgba(100,200,100,0.3)">&#x25B6; &#x542F;&#x52A8; ComfyUI</button>
-        <button class="btn btn-ghost btn-sm" onclick="stopComfy()" id="stopBtn" style="color:#a55;border-color:rgba(200,100,100,0.3)">&#x23F9; &#x505C;&#x6B62; ComfyUI</button>
-        <button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 WebUI</button>
+      <div class="comfy-line" id="bridgeStatus" role="status"></div>
+      <div class="comfy-line" data-local-only>桥接按钮走 qiqi-bridge:// 本地协议，不会再弹出 cmd 文本页。</div>
+      <div class="comfy-fields">
+        <div>
+          <label for="comfyUrl">ComfyUI 地址</label>
+          <input type="text" id="comfyUrl" value="http://127.0.0.1:8188" autocomplete="off" spellcheck="false">
+        </div>
       </div>
     </div>
 
     <!-- 出图结果预览 -->
-    <div class="review-block" style="margin-top:1rem" id="outputArea">
+    <div class="review-block mt-1" id="outputArea">
       <h4>🔮 出图结果</h4>
-      <div id="outputContent" style="margin-top:0.6rem">
-        <div style="text-align:center;padding:2rem 1rem;color:rgba(212,212,232,0.2);font-size:0.85rem">
-          点击「🚀 发送到 ComfyUI 出图」后，生成的图片会显示在这里
-        </div>
+      <div id="outputContent" aria-live="polite">
+        <div class="out-empty">点击「🚀 发送到 ComfyUI 出图」后，生成的图片会显示在这里</div>
       </div>
     </div>
   </section>
 
-  <footer class="footer">星穹绘所 · 新手向导 · 栖栖 & 哥哥</footer>
+  <footer class="page-foot">星穹绘所 · 新手向导 · 栖栖 &amp; 哥哥</footer>
 </main>
 
 <script>
-// === STARFIELD ===
-(function(){
-  const c=document.getElementById('starfield'),ctx=c.getContext('2d');
-  let stars=[];
-  function R(){c.width=window.innerWidth;c.height=window.innerHeight}
-  R();window.addEventListener('resize',R);
-  for(let i=0;i<200;i++)stars.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.5+0.3,a:Math.random(),s:Math.random()*0.008+0.003});
-  function D(){ctx.clearRect(0,0,c.width,c.height);for(const s of stars){s.a+=s.s;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(200,180,140,${0.3+Math.sin(s.a)*0.3})`;ctx.fill()}requestAnimationFrame(D)}
-  D();
-})();
+// 环境背景（星尘 / 极光 / 网格）由 assets/sanctuary.js 统一提供，
+// 提示条走 window.gsToast，复制走 window.gsCopy，本页不再自建。
 
 // === TAG DATABASE (REAL DANBOORU TAGS) ===
 const TAG_DB = {
@@ -642,7 +884,6 @@ const TAG_DB = {
     {en:'curvy',zh:'曲线美',desc:'S型身材'},
     {en:'tan_lines',zh:'晒痕',desc:'泳衣晒出来的印子'},
     {en:'pale_skin',zh:'白皙皮肤',desc:'特别白的肤色'},
-  ,
     {en:'partially_nude',zh:'半裸',desc:'欲拒还迎的诱惑'},
     {en:'uncensored',zh:'无码',desc:'极其重要！解除原图的马赛克'},
     {en:'nipples',zh:'乳头',desc:'基础特征'},
@@ -706,7 +947,6 @@ const TAG_DB = {
     {en:'sportswear',zh:'运动服',desc:'运动短裤+上衣'},
     {en:'gothic_lolita',zh:'哥特萝莉装',desc:'暗黑系的华丽洋装'},
     {en:'pajamas',zh:'睡衣',desc:'宽松的居家睡衣'},
-  ,
     {en:'piercing',zh:'穿环',desc:'乳环/脐环等'},
     {en:'tattoo',zh:'纹身',desc:'淫纹等'},
     {en:'panty_pull',zh:'拉扯内裤',desc:'拨开内裤的动作'},
@@ -735,7 +975,6 @@ const TAG_DB = {
     {en:'loafers',zh:'乐福鞋',desc:'JK标配小皮鞋'},
     {en:'heels',zh:'高跟鞋',desc:'增加成熟感的鞋子'},
     {en:'boots',zh:'靴子',desc:'长靴或短靴'},
-  ,
     {en:'torn_pantyhose',zh:'破洞丝袜',desc:'战损版，哥哥撕坏的！'},
     {en:'soles',zh:'脚底/足底',desc:'哥哥最喜欢闻和舔的地方...'},
     {en:'toes',zh:'脚趾',desc:'灵活的小豆豆'},
@@ -763,7 +1002,6 @@ const TAG_DB = {
     {en:'underboob',zh:'南半球',desc:'衣服下露出下半球'},
     {en:'cleavage',zh:'乳沟',desc:'事业线'},
     {en:'navel',zh:'肚脐',desc:'露出腰部的肚脐'},
-  ,
     {en:'cum',zh:'精液',desc:'核心液体tag'},
     {en:'saliva',zh:'唾液',desc:'嘴角的口水'},
     {en:'love_nectar',zh:'爱液',desc:'妹子湿透了的液体'},
@@ -817,7 +1055,6 @@ const TAG_DB = {
     {en:'snow',zh:'雪景',desc:'下雪的场景'},
     {en:'rain',zh:'雨天',desc:'下雨的场景'},
     {en:'sakura',zh:'樱花',desc:'盛开的樱花'},
-  ,
     {en:'bed',zh:'床上',desc:'最常见的地点'},
     {en:'public',zh:'公共场合',desc:'羞耻的露出'},
     {en:'mirror',zh:'镜子',desc:'对着镜子做'},
@@ -840,7 +1077,6 @@ const TAG_DB = {
     {en:'heavy_blush',zh:'深度脸红',desc:'红透了的程度'},
     {en:'ahegao',zh:'阿黑颜',desc:'翻白眼吐舌的高潮脸'},
     {en:'heart_in_eye',zh:'爱心眼',desc:'眼睛里冒爱心'},
-  ,
     {en:'sweat',zh:'汗水',desc:'增加涩气和真实感'},
     {en:'sweatdrop',zh:'汗滴',desc:'细节'},
     {en:'heavy_breathing',zh:'喘息',desc:'表现张力'},
@@ -870,7 +1106,6 @@ const TAG_DB = {
     {en:'straddling',zh:'跨坐',desc:'骑在上面'},
     {en:'holding',zh:'拿着/抱着',desc:'手上有东西'},
     {en:'reaching_out',zh:'伸手',desc:'伸出手臂'},
-  ,
     {en:'vaginal',zh:'阴道性交',desc:'正戏开始'},
     {en:'anal',zh:'肛交',desc:'后庭'},
     {en:'oral',zh:'口交',desc:'嘴巴服侍'},
@@ -911,7 +1146,6 @@ const TAG_DB = {
     {en:'pov',zh:'第一人称',desc:'代入视角，你就是画面里的人'},
     {en:'depth_of_field',zh:'景深',desc:'背景虚化的效果'},
     {en:'motion_blur',zh:'运动模糊',desc:'动作太快产生的模糊'},
-  ,
     {en:'pov_crotch',zh:'第一人称胯部视角',desc:'低头往下看的视角'},
     {en:'pussy_focus',zh:'小穴特写',desc:'镜头对准私处'},
     {en:'breast_focus',zh:'胸部特写',desc:'镜头对准欧派'},
@@ -1001,120 +1235,21 @@ const NEG_DB = [
   {en:'poorly_drawn',zh:'画得差',desc:'拒绝低质量'},
 ];
 
-// === STATE ===
-let selectedTags = {}; // {step1:[],step2a:[],...}
-let selectedNegs = {}; // {neg_en:true}
-let currentStep = 1;
-let comfyConnected = false;
+// === 常量 ===
+const BRIDGE_URL = 'http://127.0.0.1:8791';
+const DEFAULT_COMFY_URL = 'http://127.0.0.1:8188';
+// 底模写死在工作流里时，换模型必须改源码；抽成常量 + 可编辑输入框后可以随时切换。
+const DEFAULT_CHECKPOINT = 'novaAnimeXL_ilV190.safetensors';
+const TOTAL_STEPS = 7;
+const STORE_KEY = 'xq-portal-wizard-v1';
 
-// === INIT ===
-(function init(){
-  // Init selected tags
-  ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'].forEach(k=>{selectedTags[k]=[]});
-  // Render all steps
-  Object.entries(TAG_DB).forEach(([key,tags])=>{
-    const el = document.getElementById(key+'Tags');
-    if(!el) return;
-    el.innerHTML = tags.map(t=>`
-      <div class="tag-option" data-key="${key}" data-tag="${t.en}" onclick="toggleTag(this,'${key}','${t.en}')">
-        <span class="tag-en">${t.en}</span>
-        <span class="tag-zh">${t.zh} <span class="tag-check">✓</span></span>
-        <span class="tag-desc">${t.desc}</span>
-      </div>
-    `).join('');
-  });
-  // Render negative
-  document.getElementById('reviewNegTags').innerHTML = NEG_DB.map(t=>`
-    <span class="neg-chip" data-tag="${t.en}" onclick="toggleNeg(this,'${t.en}')" title="${t.desc}">${t.zh} (${t.en})</span>
-  `).join('');
-  // Lora slider
-  document.getElementById('loraWeight').addEventListener('input',function(){
-    document.getElementById('loraVal').textContent = parseFloat(this.value).toFixed(2);
-  });
-  const seedInput = document.getElementById('seed');
-  if(seedInput) seedInput.addEventListener('input', updateSeedHint);
-  updateSeedHint();
-  updateHiresHint();
-  // Auto-detect bridge + ComfyUI
-  setTimeout(()=>checkAll(),1000);
-})();
-
-// === TAG TOGGLE ===
-function toggleTag(el,key,tag){
-  const arr = selectedTags[key];
-  const idx = arr.indexOf(tag);
-  const willSelect = idx === -1;
-  if(willSelect){
-    arr.push(tag);
-    el.classList.add('selected');
-    applyTagExclusions(key, tag);
-  }else{
-    arr.splice(idx,1);
-    el.classList.remove('selected');
-  }
-  if(currentStep===7) updateReview();
-}
-
-function applyTagExclusions(key, tag){
-  const groups = [
-    {key:'step1', tags:['1girl','1boy','2girls','multiple_girls','solo','no_humans','animal']},
-    {key:'step2a', tags:['large_breasts','huge_breasts','medium_breasts','small_breasts','flat_chest']},
-    {key:'step2c', tags:['black_hair','brown_hair','blonde_hair','silver_hair','white_hair','blue_hair','pink_hair','purple_hair','red_hair','green_hair','gradient_hair','multicolored_hair']},
-    {key:'step5a', tags:['blush','heavy_blush']},
-    {key:'step6c', tags:['detailed_background','simple_background','white_background']},
-    {key:'step3c', tags:['nude','lingerie']}
-  ];
-  groups.forEach(g=>{
-    if(g.key!==key || !g.tags.includes(tag)) return;
-    g.tags.forEach(other=>{
-      if(other!==tag) removeSelectedTag(key, other);
-    });
-  });
-}
-
-function removeSelectedTag(key, tag){
-  const arr = selectedTags[key];
-  if(!arr) return;
-  const idx = arr.indexOf(tag);
-  if(idx>-1) arr.splice(idx,1);
-  const el = document.querySelector(`.tag-option[data-key="${key}"][data-tag="${tag}"]`);
-  if(el) el.classList.remove('selected');
-}
-
-function toggleNeg(el,tag){
-  el.classList.toggle('selected');
-  if(selectedNegs[tag]) delete selectedNegs[tag];
-  else selectedNegs[tag]=true;
-  if(currentStep===7) updateReview();
-}
-
-// === NAVIGATION ===
-function goStep(n){
-  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('step'+n).classList.add('active');
-  currentStep=n;
-  updateWizardDots();
-  if(n===7) updateReview();
-}
-
-function nextStep(n){
-  goStep(n+1);
-}
-
-function prevStep(n){
-  goStep(Math.max(1,n-1));
-}
-
-function updateWizardDots(){
-  document.querySelectorAll('.step-dot').forEach((d,i)=>{
-    d.classList.remove('active','done');
-    if(i+1===currentStep) d.classList.add('active');
-    else if(i+1<currentStep) d.classList.add('done');
-  });
-}
-
-// === GET / PASTE PROMPT ===
 const TAG_ORDER = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
+const GROUP_LABELS = {
+  step1:'角色', step2a:'体型', step2b:'发型', step2c:'发色',
+  step3a:'上衣与套装', step3b:'袜子与腿饰', step3c:'内衣与裸露程度',
+  step4:'场景与时间', step5a:'表情', step5b:'姿势', step5c:'构图与镜头',
+  step6a:'光照', step6b:'风格', step6c:'画质'
+};
 const QUALITY_PREFIX = ['masterpiece','best_quality','high_quality','high_resolution'];
 const EXPLICITISH_TAGS = ['nsfw','nude','uncensored','partially_nude','pussy','nipples','clitoris','labia','love_nectar','squirt'];
 const OUTFIT_TAGS_WHEN_NUDE = ['adult_cosplay_uniform','school_uniform','maid_uniform','office_lady','dress','kimono','yukata','suit','pajamas','hoodie','sweater','t-shirt','sportswear','lingerie','no_bra','no_panties'];
@@ -1126,10 +1261,52 @@ const DEFAULT_NEGATIVE = [
   'text','watermark','signature','username','plastic skin','doll-like','airbrushed',
   'overexposure','harsh lighting','photorealistic','3d render','cgi','monochrome'
 ];
+// 刷新后要一并复原的表单控件
+const PERSIST_FIELDS = [
+  'imgSize','sampler','scheduler','steps','cfg','seed','autoFixSeed','loraName','loraWeight',
+  'hiresEnabled','hiresScale','hiresSteps','hiresDenoise','comfyUrl','ckptName',
+  'manualPosPrompt','manualNegPrompt'
+];
+
+// === STATE ===
+let selectedTags = {};   // {step1:[], step2a:[], ...}
+let selectedNegs = {};   // {neg_en:true}
+let currentStep = 1;
+let comfyConnected = false;
+let bridgeAvailable = false;
+let localMode = true;    // 浏览器是否有可能连上本机 127.0.0.1
+let forceLocal = false;  // 访客手动坚持"我就在本机"
+let pollTimer = null;
+let saveTimer = null;
+let genTimer = null;
+let genView = null;
+let genStartedAt = 0;
+let genExpected = 40;
+
+/* ============================ 小工具 ============================ */
+function byId(id){ return document.getElementById(id); }
 
 function promptText(id){
-  const el = document.getElementById(id);
+  const el = byId(id);
   return el ? el.value.trim() : '';
+}
+
+function numberField(id, fallback){
+  const el = byId(id);
+  const v = el ? parseFloat(el.value) : NaN;
+  return Number.isFinite(v) ? v : fallback;
+}
+
+function isChecked(id){
+  const el = byId(id);
+  return !!(el && el.checked);
+}
+
+// 提示条与复制都由 sanctuary.js 提供，这里只做一层薄封装保持调用点整洁。
+function toast(msg, kind){
+  if(window.XQ && typeof window.XQ.toast === 'function'){ window.XQ.toast(msg, kind); return; }
+  if(typeof window.gsToast === 'function'){ window.gsToast(msg); return; }
+  console.log(msg);
 }
 
 function orderedUnique(items){
@@ -1152,15 +1329,370 @@ function joinPromptParts(){
   })).join(', ');
 }
 
+/* ======================= 本机 / 公网环境探测 ======================= */
+// 公网访客的浏览器永远连不到 127.0.0.1，桥接按钮与 qiqi-bridge:// 对他们毫无意义。
+function detectLocalEnvironment(){
+  if(location.protocol === 'file:') return true;
+  const host = (location.hostname || '').toLowerCase().replace(/^\[|\]$/g,'');
+  if(host === '' || host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+  if(/\.local$/.test(host) || /^localhost\./.test(host)) return true;
+  if(/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if(/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if(/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  return false;
+}
+
+function applyEnvironment(){
+  localMode = forceLocal || detectLocalEnvironment();
+  document.querySelectorAll('[data-local-only]').forEach(node=>{ node.hidden = !localMode; });
+  const notice = byId('remoteNotice');
+  if(notice) notice.hidden = localMode;
+  const send = byId('sendBtn');
+  if(send){
+    send.disabled = !localMode;
+    send.title = localMode ? '' : '公网访问时浏览器无法连接本机 ComfyUI，请复制 Prompt 到自己电脑上使用';
+  }
+  if(!localMode){
+    updatePrepBridge(false, '公网访问');
+    updatePrepComfy(false, '需本机运行');
+    updateComfyIndicator(false, '公网访问模式');
+    setBridgeStatus('公网访问模式：向导、标签与 Prompt 生成可用，出图需要在本机打开这个页面。', 'off');
+  }
+}
+
+/* ============================ 持久化 ============================ */
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 250);
+}
+
+function saveState(){
+  saveTimer = null;
+  try{
+    const fields = {};
+    PERSIST_FIELDS.forEach(id=>{
+      const el = byId(id);
+      if(!el) return;
+      fields[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      v: 1,
+      step: currentStep,
+      tags: selectedTags,
+      negs: Object.keys(selectedNegs),
+      mode: getManualPromptMode(),
+      advanced: !!(byId('advancedPanel') && !byId('advancedPanel').hidden),
+      forceLocal,
+      fields
+    }));
+  }catch(e){ /* 隐私模式或 file:// 下 localStorage 可能不可用，静默降级 */ }
+}
+
+function readState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    return (data && typeof data === 'object') ? data : null;
+  }catch(e){ return null; }
+}
+
+function clearState(){
+  try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+}
+
+function restoreFields(fields){
+  if(!fields) return;
+  Object.keys(fields).forEach(id=>{
+    if(!PERSIST_FIELDS.includes(id)) return;
+    const el = byId(id);
+    if(!el) return;
+    if(el.type === 'checkbox') el.checked = !!fields[id];
+    else el.value = fields[id];
+  });
+}
+
+function bindEvents(){
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('input', handleFieldChange);
+  document.addEventListener('change', handleFieldChange);
+
+  const rail = byId('wizardProgress');
+  if(rail) rail.addEventListener('keydown', handleStepKeys);
+
+  const adv = byId('advancedToggle');
+  if(adv) adv.addEventListener('click', ()=>toggleAdvanced());
+
+  window.addEventListener('beforeunload', ()=>{ if(saveTimer) saveState(); });
+}
+
+/* ========================== 事件委托入口 ========================== */
+function handleDocumentClick(event){
+  const tagBtn = event.target.closest('.tag-option');
+  if(tagBtn){ toggleTag(tagBtn); return; }
+
+  const negBtn = event.target.closest('.neg-chip');
+  if(negBtn){ toggleNeg(negBtn); return; }
+
+  const actionBtn = event.target.closest('[data-action]');
+  if(actionBtn){ runAction(actionBtn.dataset.action, actionBtn); return; }
+
+  const dot = event.target.closest('.step-dot');
+  if(dot){ goStep(Number(dot.dataset.step)); }
+}
+
+function runAction(action, el){
+  switch(action){
+    case 'next': goStep(Number(el.dataset.step) + 1); break;
+    case 'prev': goStep(Number(el.dataset.step) - 1); break;
+    case 'reset-selection': resetSelection(); break;
+    case 'copy-prompt': copyPrompt(el); break;
+    case 'send': checkAndSend(); break;
+    case 'preset': applyParamPreset(el.dataset.preset); break;
+    case 'paste-manual': pasteManualPrompt(el.dataset.target); break;
+    case 'manual-mode': enableManualPrompt(el.dataset.mode); break;
+    case 'clear-manual': clearManualPrompt(); break;
+    case 'random-seed': randomizeSeed(); break;
+    case 'fix-seed': fixCurrentSeed(); break;
+    case 'reset-ckpt': resetCheckpoint(); break;
+    case 'bridge-start': openBridgeLauncher(); break;
+    case 'bridge-stop': openBridgeStopper(); break;
+    case 'comfy-start': startComfy(); break;
+    case 'comfy-stop': stopComfy(); break;
+    case 'comfy-web': openComfyWeb(); break;
+    case 'refresh': checkAll(); break;
+    case 'goto-prep': gotoPrep(); break;
+    case 'force-local': enableForceLocal(); break;
+    default: break;
+  }
+}
+
+function handleFieldChange(event){
+  const el = event.target;
+  if(!el || !el.tagName) return;
+
+  if(el.name === 'manualPromptMode'){ updateReview(); scheduleSave(); return; }
+
+  const id = el.id;
+  if(!id) return;
+  if(id === 'loraWeight') syncLoraLabel();
+  if(id === 'seed') updateSeedHint();
+  if(id === 'hiresEnabled' || id === 'hiresScale' || id === 'hiresSteps' || id === 'hiresDenoise' || id === 'imgSize') updateHiresHint();
+  if(id === 'manualPosPrompt' || id === 'manualNegPrompt') updateReview();
+  if(PERSIST_FIELDS.includes(id)) scheduleSave();
+}
+
+// 步骤点之间用方向键移动，遵循 roving tabindex
+function handleStepKeys(event){
+  const keys = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+  if(!keys.includes(event.key)) return;
+  const dot = event.target.closest('.step-dot');
+  if(!dot) return;
+  event.preventDefault();
+  const now = Number(dot.dataset.step);
+  let next = now;
+  if(event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = now - 1;
+  else if(event.key === 'ArrowRight' || event.key === 'ArrowDown') next = now + 1;
+  else if(event.key === 'Home') next = 1;
+  else next = TOTAL_STEPS;
+  goStep(next, {focus:true});
+}
+
+/* =========================== 标签渲染 =========================== */
+function renderTagGrid(key, tags){
+  const host = byId(key + 'Tags');
+  if(!host || !Array.isArray(tags)) return;
+  host.setAttribute('role','group');
+  host.setAttribute('aria-label', (GROUP_LABELS[key] || '标签') + ' 标签');
+
+  const frag = document.createDocumentFragment();
+  tags.filter(Boolean).forEach(t=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tag-option xq-spotlight';
+    btn.dataset.key = key;
+    btn.dataset.tag = t.en;
+    btn.setAttribute('aria-pressed', selectedTags[key].includes(t.en) ? 'true' : 'false');
+
+    const en = document.createElement('span');
+    en.className = 'tag-en';
+    en.textContent = t.en;
+
+    const zh = document.createElement('span');
+    zh.className = 'tag-zh';
+    zh.textContent = t.zh;
+    const check = document.createElement('span');
+    check.className = 'tag-check';
+    check.textContent = '✓';
+    check.setAttribute('aria-hidden','true');
+    zh.append(' ', check);
+
+    const desc = document.createElement('span');
+    desc.className = 'tag-desc';
+    desc.textContent = t.desc;
+
+    btn.append(en, zh, desc);
+    frag.append(btn);
+  });
+  host.replaceChildren(frag);
+}
+
+function renderNegChips(){
+  const host = byId('reviewNegTags');
+  if(!host) return;
+  const frag = document.createDocumentFragment();
+  NEG_DB.forEach(t=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'neg-chip';
+    btn.dataset.tag = t.en;
+    btn.title = t.desc;
+    btn.setAttribute('aria-pressed', selectedNegs[t.en] ? 'true' : 'false');
+    btn.textContent = t.zh + ' (' + t.en + ')';
+    frag.append(btn);
+  });
+  host.replaceChildren(frag);
+}
+
+/* =========================== 标签选择 =========================== */
+function toggleTag(el){
+  const key = el.dataset.key;
+  const tag = el.dataset.tag;
+  const arr = selectedTags[key];
+  if(!arr) return;
+  const idx = arr.indexOf(tag);
+  if(idx === -1){
+    arr.push(tag);
+    el.setAttribute('aria-pressed','true');
+    applyTagExclusions(key, tag);
+  }else{
+    arr.splice(idx, 1);
+    el.setAttribute('aria-pressed','false');
+  }
+  updateTagCount();
+  if(currentStep === TOTAL_STEPS) updateReview();
+  scheduleSave();
+}
+
+function applyTagExclusions(key, tag){
+  const groups = [
+    {key:'step1', tags:['1girl','1boy','2girls','multiple_girls','solo','no_humans','animal']},
+    {key:'step2a', tags:['large_breasts','huge_breasts','medium_breasts','small_breasts','flat_chest']},
+    {key:'step2c', tags:['black_hair','brown_hair','blonde_hair','silver_hair','white_hair','blue_hair','pink_hair','purple_hair','red_hair','green_hair','gradient_hair','multicolored_hair']},
+    {key:'step5a', tags:['blush','heavy_blush']},
+    {key:'step6c', tags:['detailed_background','simple_background','white_background']},
+    {key:'step3c', tags:['nude','lingerie']}
+  ];
+  groups.forEach(g=>{
+    if(g.key !== key || !g.tags.includes(tag)) return;
+    g.tags.forEach(other=>{
+      if(other !== tag) removeSelectedTag(key, other);
+    });
+  });
+}
+
+function removeSelectedTag(key, tag){
+  const arr = selectedTags[key];
+  if(!arr) return;
+  const idx = arr.indexOf(tag);
+  if(idx > -1) arr.splice(idx, 1);
+  const el = document.querySelector('.tag-option[data-key="' + key + '"][data-tag="' + tag + '"]');
+  if(el) el.setAttribute('aria-pressed','false');
+}
+
+function toggleNeg(el){
+  const tag = el.dataset.tag;
+  const on = el.getAttribute('aria-pressed') !== 'true';
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if(on) selectedNegs[tag] = true;
+  else delete selectedNegs[tag];
+  if(currentStep === TOTAL_STEPS) updateReview();
+  scheduleSave();
+}
+
+function resetSelection(){
+  TAG_ORDER.forEach(k=>{ selectedTags[k] = []; });
+  selectedNegs = {};
+  document.querySelectorAll('.tag-option[aria-pressed="true"], .neg-chip[aria-pressed="true"]')
+    .forEach(el=>el.setAttribute('aria-pressed','false'));
+  updateTagCount();
+  updateReview();
+  scheduleSave();
+  toast('已清空全部标签选择', 'ok');
+}
+
+function collectSelectedPositiveTags(){
+  const all = [];
+  TAG_ORDER.forEach(k=>{ (selectedTags[k] || []).forEach(t=>all.push(t)); });
+  return all;
+}
+
+function updateTagCount(){
+  const badge = byId('tagCount');
+  const num = byId('tagCountNum');
+  if(!badge || !num) return;
+  const n = collectSelectedPositiveTags().length;
+  if(num.textContent !== String(n)){
+    num.textContent = String(n);
+    badge.classList.remove('is-bumped');
+    void badge.offsetWidth;
+    badge.classList.add('is-bumped');
+  }
+}
+
+/* ============================ 步骤导航 ============================ */
+function goStep(n, options){
+  const opts = options || {};
+  const target = Math.min(TOTAL_STEPS, Math.max(1, Number(n) || 1));
+  const goingBack = target < currentStep;
+
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active','is-back'));
+  const panel = byId('step' + target);
+  if(panel){
+    if(goingBack && opts.animate !== false) panel.classList.add('is-back');
+    panel.classList.add('active');
+  }
+
+  currentStep = target;
+  updateWizardDots();
+  if(target === TOTAL_STEPS) updateReview();
+
+  if(opts.focus){
+    const dot = document.querySelector('.step-dot[data-step="' + target + '"]');
+    if(dot) dot.focus();
+  }
+  if(opts.scroll !== false && panel) panel.scrollIntoView({block:'start'});
+  scheduleSave();
+}
+
+function updateWizardDots(){
+  document.querySelectorAll('.step-dot').forEach(dot=>{
+    const n = Number(dot.dataset.step);
+    dot.classList.toggle('is-done', n < currentStep);
+    if(n === currentStep) dot.setAttribute('aria-current','step');
+    else dot.removeAttribute('aria-current');
+    dot.tabIndex = n === currentStep ? 0 : -1;
+  });
+  const fill = byId('wizardTrackFill');
+  if(fill) fill.style.width = ((currentStep - 1) / (TOTAL_STEPS - 1) * 100) + '%';
+}
+
+function gotoPrep(){
+  const prep = byId('prepPanel');
+  if(prep) prep.scrollIntoView({block:'center'});
+}
+
+/* ========================= Prompt 组装 ========================= */
 function getManualPromptMode(){
   const checked = document.querySelector('input[name="manualPromptMode"]:checked');
   return checked ? checked.value : 'off';
 }
 
-function setManualPromptMode(mode){
-  const el = document.querySelector(`input[name="manualPromptMode"][value="${mode}"]`);
+function setManualPromptMode(mode, options){
+  const el = document.querySelector('input[name="manualPromptMode"][value="' + mode + '"]');
   if(el) el.checked = true;
-  updateReview();
+  if(!(options && options.silent)) updateReview();
+  scheduleSave();
 }
 
 function isManualPromptEnabled(){
@@ -1173,14 +1705,6 @@ function getManualPositivePrompt(){
 
 function getManualNegativePrompt(){
   return isManualPromptEnabled() ? promptText('manualNegPrompt') : '';
-}
-
-function collectSelectedPositiveTags(){
-  const all=[];
-  TAG_ORDER.forEach(k=>{
-    (selectedTags[k] || []).forEach(t=>all.push(t));
-  });
-  return all;
 }
 
 function hasExplicitish(tags){
@@ -1213,43 +1737,9 @@ function getBasePositivePrompt(){
 }
 
 function getBaseNegativePrompt(){
-  const selected = Object.keys(selectedNegs || {});
-  return joinPromptParts(DEFAULT_NEGATIVE, selected);
+  return joinPromptParts(DEFAULT_NEGATIVE, Object.keys(selectedNegs || {}));
 }
 
-async function pasteManualPrompt(id){
-  const el = document.getElementById(id);
-  if(!el){return}
-  try{
-    const text = await navigator.clipboard.readText();
-    if(!text){toast('剪贴板里没有文字');return}
-    el.value = text.trim();
-    setManualPromptMode('append');
-    toast('✓ 已粘贴，默认设为“追加模式”；如果是完整 Prompt 可点“覆盖使用”');
-  }catch(e){
-    el.focus();
-    toast('浏览器不允许自动读取剪贴板，请按 Ctrl+V 粘贴');
-  }
-}
-
-function enableManualPrompt(mode='append'){
-  const pos = promptText('manualPosPrompt');
-  const neg = promptText('manualNegPrompt');
-  if(!pos && !neg){toast('先粘贴一段 Prompt 再启用');return}
-  setManualPromptMode(mode);
-  toast(mode === 'override' ? '✓ 已切换为覆盖模式' : '✓ 已切换为追加模式');
-}
-
-function clearManualPrompt(){
-  const pos = document.getElementById('manualPosPrompt');
-  const neg = document.getElementById('manualNegPrompt');
-  if(pos) pos.value = '';
-  if(neg) neg.value = '';
-  setManualPromptMode('off');
-  toast('已清空粘贴区，恢复星门标签');
-}
-
-// === GET POSITIVE PROMPT ===
 function getPositivePrompt(){
   const base = getBasePositivePrompt();
   const manual = getManualPositivePrompt();
@@ -1268,13 +1758,49 @@ function getNegativePrompt(){
   return base;
 }
 
-// === UPDATE REVIEW ===
+async function pasteManualPrompt(id){
+  const el = byId(id);
+  if(!el) return;
+  try{
+    const text = await navigator.clipboard.readText();
+    if(!text){ toast('剪贴板里没有文字'); return; }
+    el.value = text.trim();
+    setManualPromptMode('append');
+    toast('已粘贴，默认设为“追加模式”；如果是完整 Prompt 可点“覆盖使用”', 'ok');
+    scheduleSave();
+  }catch(e){
+    el.focus();
+    toast('浏览器不允许自动读取剪贴板，请按 Ctrl+V 粘贴', 'error');
+  }
+}
+
+function enableManualPrompt(mode){
+  const target = mode || 'append';
+  if(!promptText('manualPosPrompt') && !promptText('manualNegPrompt')){
+    toast('先粘贴一段 Prompt 再启用', 'error');
+    return;
+  }
+  setManualPromptMode(target);
+  toast(target === 'override' ? '已切换为覆盖模式' : '已切换为追加模式', 'ok');
+}
+
+function clearManualPrompt(){
+  const pos = byId('manualPosPrompt');
+  const neg = byId('manualNegPrompt');
+  if(pos) pos.value = '';
+  if(neg) neg.value = '';
+  setManualPromptMode('off');
+  toast('已清空粘贴区，恢复星门标签', 'ok');
+}
+
+/* ============================ 审阅面板 ============================ */
 function updateReview(){
   const posPrompt = getPositivePrompt();
   const negPrompt = getNegativePrompt();
   const allTags = collectSelectedPositiveTags();
   const mode = getManualPromptMode();
-  const hint = document.getElementById('manualModeHint');
+
+  const hint = byId('manualModeHint');
   if(hint){
     hint.textContent = mode === 'override'
       ? '当前：覆盖模式。发送时优先使用粘贴区完整 Prompt；粘贴区为空才回退自动 Prompt。'
@@ -1283,26 +1809,65 @@ function updateReview(){
         : '当前：不使用外部 Prompt。';
   }
 
-  if(mode !== 'off' && (promptText('manualPosPrompt') || promptText('manualNegPrompt'))){
-    const label = mode === 'override' ? '外部 Prompt：覆盖模式' : '外部 Prompt：追加模式';
-    document.getElementById('reviewPosTags').innerHTML = '<span class="review-tag">'+label+'</span>';
-  }else{
-    document.getElementById('reviewPosTags').innerHTML = allTags.length>0
-      ? allTags.map(t=>`<span class="review-tag">${t}</span>`).join('')
-      : '<span class="review-empty">还没选任何标签，回到前面步骤选几个吧～</span>';
+  const posTags = byId('reviewPosTags');
+  if(posTags){
+    if(mode !== 'off' && (promptText('manualPosPrompt') || promptText('manualNegPrompt'))){
+      posTags.replaceChildren(makeReviewTag(mode === 'override' ? '外部 Prompt：覆盖模式' : '外部 Prompt：追加模式'));
+    }else if(allTags.length > 0){
+      const frag = document.createDocumentFragment();
+      allTags.forEach(t=>frag.append(makeReviewTag(t)));
+      posTags.replaceChildren(frag);
+    }else{
+      const empty = document.createElement('span');
+      empty.className = 'review-empty';
+      empty.textContent = '还没选任何标签，回到前面步骤选几个吧～';
+      posTags.replaceChildren(empty);
+    }
   }
 
-  document.getElementById('reviewPosPrompt').textContent = posPrompt || '（空）';
-  document.getElementById('reviewNegPrompt').textContent = negPrompt;
+  const posBox = byId('reviewPosPrompt');
+  if(posBox) posBox.textContent = posPrompt || '（空）';
+  const negBox = byId('reviewNegPrompt');
+  if(negBox) negBox.textContent = negPrompt;
+
+  updateTagCount();
 }
 
-// === ADVANCED PARAM HELPERS ===
+function makeReviewTag(text){
+  const span = document.createElement('span');
+  span.className = 'review-tag';
+  span.textContent = text;
+  return span;
+}
+
+/* ========================== 高级参数区 ========================== */
+function toggleAdvanced(forceOpen){
+  const panel = byId('advancedPanel');
+  const btn = byId('advancedToggle');
+  if(!panel || !btn) return;
+  const open = typeof forceOpen === 'boolean' ? forceOpen : panel.hidden;
+  panel.hidden = !open;
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if(open){
+    // 重新触发展开动画：hidden 期间动画已经跑完了
+    panel.classList.remove('advanced-body');
+    void panel.offsetWidth;
+    panel.classList.add('advanced-body');
+  }
+  scheduleSave();
+}
+
 function setValue(id, value){
-  const el = document.getElementById(id);
+  const el = byId(id);
   if(!el) return;
   if(el.type === 'checkbox') el.checked = !!value;
   else el.value = value;
-  if(id === 'loraWeight') document.getElementById('loraVal').textContent = parseFloat(value).toFixed(2);
+  if(id === 'loraWeight') syncLoraLabel();
+}
+
+function syncLoraLabel(){
+  const label = byId('loraVal');
+  if(label) label.textContent = numberField('loraWeight', 0.4).toFixed(2);
 }
 
 function applyParamPreset(kind){
@@ -1325,38 +1890,40 @@ function applyParamPreset(kind){
   if(p.scale) setValue('hiresScale', p.scale);
   if(p.hiresSteps) setValue('hiresSteps', p.hiresSteps);
   if(p.denoise) setValue('hiresDenoise', p.denoise);
-  const hint = document.getElementById('presetHint');
+  const hint = byId('presetHint');
   if(hint) hint.textContent = p.hint;
   updateHiresHint();
   updateSeedHint();
-  toast('✓ 已应用预设：'+p.hint.split('：')[0]);
+  scheduleSave();
+  toast('已应用预设：' + p.hint.split('：')[0], 'ok');
 }
 
 function makeRandomSeed(){
-  return Math.floor(Math.random()*2147483647);
+  return Math.floor(Math.random() * 2147483647);
 }
 
 function randomizeSeed(){
-  setValue('seed','-1');
+  setValue('seed', '-1');
   updateSeedHint();
+  scheduleSave();
   toast('下一张会使用随机 Seed');
 }
 
 function fixCurrentSeed(){
-  const seedEl = document.getElementById('seed');
-  let v = seedEl ? seedEl.value.trim() : '-1';
+  let v = promptText('seed') || '-1';
   if(v === '-1' || !/^\d+$/.test(v)) v = String(makeRandomSeed());
   setValue('seed', v);
   updateSeedHint();
-  toast('已固定 Seed：'+v);
+  scheduleSave();
+  toast('已固定 Seed：' + v, 'ok');
 }
 
 function updateSeedHint(){
-  const hint = document.getElementById('seedHint');
-  const v = promptText('seed') || '-1';
+  const hint = byId('seedHint');
   if(!hint) return;
+  const v = promptText('seed') || '-1';
   if(v === '-1') hint.textContent = '当前 Seed：随机。出图时会生成一个数字；勾选自动写回后，可继续用同一构图微调。';
-  else if(/^\d+$/.test(v)) hint.textContent = '当前 Seed 已固定：'+v+'。同样尺寸/参数下可复现相近构图。';
+  else if(/^\d+$/.test(v)) hint.textContent = '当前 Seed 已固定：' + v + '。同样尺寸/参数下可复现相近构图。';
   else hint.textContent = 'Seed 需要填 -1 或纯数字；发送时会自动修正。';
 }
 
@@ -1364,49 +1931,67 @@ function roundToMultiple(n, m){
   return Math.max(m, Math.round(n / m) * m);
 }
 
-function getHiresTargetSize(w,h){
-  const scale = parseFloat(document.getElementById('hiresScale')?.value || '1.4');
-  return [roundToMultiple(w*scale, 16), roundToMultiple(h*scale, 16)];
+function getHiresTargetSize(w, h){
+  const scale = numberField('hiresScale', 1.4);
+  return [roundToMultiple(w * scale, 16), roundToMultiple(h * scale, 16)];
+}
+
+function getImageSize(){
+  const raw = (byId('imgSize') ? byId('imgSize').value : '') || '832×1216';
+  const parts = raw.split('×').map(Number);
+  const w = Number.isFinite(parts[0]) ? parts[0] : 832;
+  const h = Number.isFinite(parts[1]) ? parts[1] : 1216;
+  return [w, h];
 }
 
 function updateHiresHint(){
-  const hint = document.getElementById('hiresHint');
+  const hint = byId('hiresHint');
   if(!hint) return;
-  const size = document.getElementById('imgSize')?.value || '832×1216';
-  const [w,h] = size.split('×').map(Number);
-  const enabled = !!document.getElementById('hiresEnabled')?.checked;
-  if(!enabled){ hint.textContent = '高清精修未启用。'; return; }
-  const [tw,th] = getHiresTargetSize(w,h);
-  const denoise = document.getElementById('hiresDenoise')?.value || '0.32';
-  hint.textContent = `高清精修已启用：基础 ${w}×${h} → 精修 ${tw}×${th}，Denoise ${denoise}。如果爆显存，把倍率降到 1.25 或尺寸降一档。`;
+  if(!isChecked('hiresEnabled')){ hint.textContent = '高清精修未启用。'; return; }
+  const [w, h] = getImageSize();
+  const [tw, th] = getHiresTargetSize(w, h);
+  const denoise = numberField('hiresDenoise', 0.32);
+  hint.textContent = '高清精修已启用：基础 ' + w + '×' + h + ' → 精修 ' + tw + '×' + th
+    + '，Denoise ' + denoise + '。如果爆显存，把倍率降到 1.25 或尺寸降一档。';
 }
 
 function getSeedForRun(){
-  const seedEl = document.getElementById('seed');
-  let seedVal = seedEl ? seedEl.value.trim() : '-1';
-  let seed = (seedVal === '-1' || !/^\d+$/.test(seedVal)) ? makeRandomSeed() : parseInt(seedVal,10);
-  const autoFix = document.getElementById('autoFixSeed');
-  if(seedEl && autoFix && autoFix.checked && (seedVal === '-1' || !/^\d+$/.test(seedVal))){
+  const seedEl = byId('seed');
+  const seedVal = seedEl ? seedEl.value.trim() : '-1';
+  const needsRandom = seedVal === '-1' || !/^\d+$/.test(seedVal);
+  const seed = needsRandom ? makeRandomSeed() : parseInt(seedVal, 10);
+  if(seedEl && needsRandom && isChecked('autoFixSeed')){
     seedEl.value = String(seed);
     updateSeedHint();
+    scheduleSave();
   }
   return seed;
 }
 
+function getCheckpointName(){
+  return promptText('ckptName') || DEFAULT_CHECKPOINT;
+}
+
+function resetCheckpoint(){
+  setValue('ckptName', DEFAULT_CHECKPOINT);
+  scheduleSave();
+  toast('已恢复默认底模：' + DEFAULT_CHECKPOINT, 'ok');
+}
+
 function buildComfyWorkflow(pos, neg, w, h, seed){
-  const steps = parseInt(document.getElementById('steps').value);
-  const cfg = parseFloat(document.getElementById('cfg').value);
-  const sampler = document.getElementById('sampler').value;
-  const scheduler = document.getElementById('scheduler').value;
+  const steps = Math.round(numberField('steps', 30));
+  const cfg = numberField('cfg', 5);
+  const sampler = byId('sampler').value;
+  const scheduler = byId('scheduler').value;
   const workflow = {
-    "4":{inputs:{ckpt_name:"novaAnimeXL_ilV190.safetensors"},class_type:"CheckpointLoaderSimple"},
+    "4":{inputs:{ckpt_name:getCheckpointName()},class_type:"CheckpointLoaderSimple"},
     "5":{inputs:{width:w,height:h,batch_size:1},class_type:"EmptyLatentImage"}
   };
   let modelRef = ["4",0];
   let clipRef = ["4",1];
   const loraName = promptText('loraName');
   if(loraName){
-    const strength = parseFloat(document.getElementById('loraWeight').value || '0.4');
+    const strength = numberField('loraWeight', 0.4);
     workflow["10"] = {inputs:{model:modelRef,clip:clipRef,lora_name:loraName,strength_model:strength,strength_clip:strength},class_type:"LoraLoader"};
     modelRef = ["10",0];
     clipRef = ["10",1];
@@ -1415,11 +2000,10 @@ function buildComfyWorkflow(pos, neg, w, h, seed){
   workflow["7"] = {inputs:{text:neg,clip:clipRef},class_type:"CLIPTextEncode"};
   workflow["3"] = {inputs:{seed,steps,cfg,sampler_name:sampler,scheduler,denoise:1,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["5",0]},class_type:"KSampler"};
 
-  const hiresEnabled = !!document.getElementById('hiresEnabled')?.checked;
-  if(hiresEnabled){
+  if(isChecked('hiresEnabled')){
     const [tw,th] = getHiresTargetSize(w,h);
-    const hiresSteps = parseInt(document.getElementById('hiresSteps').value || '15');
-    const hiresDenoise = parseFloat(document.getElementById('hiresDenoise').value || '0.32');
+    const hiresSteps = Math.round(numberField('hiresSteps', 15));
+    const hiresDenoise = numberField('hiresDenoise', 0.32);
     workflow["20"] = {inputs:{samples:["3",0],upscale_method:"nearest-exact",width:tw,height:th,crop:"disabled"},class_type:"LatentUpscale"};
     workflow["21"] = {inputs:{seed,steps:hiresSteps,cfg,sampler_name:sampler,scheduler,denoise:hiresDenoise,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["20",0]},class_type:"KSampler"};
     workflow["8"] = {inputs:{samples:["21",0],vae:["4",2]},class_type:"VAEDecode"};
@@ -1430,205 +2014,203 @@ function buildComfyWorkflow(pos, neg, w, h, seed){
   return workflow;
 }
 
-// === COPY ===
-function fallbackCopyText(text){
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.setAttribute('readonly','');
-  ta.style.position = 'fixed';
-  ta.style.left = '-9999px';
-  ta.style.top = '0';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  let ok = false;
-  try{ok = document.execCommand('copy')}catch(e){ok = false}
-  document.body.removeChild(ta);
-  return ok;
+/* ============================== 复制 ============================== */
+function copyPrompt(sourceEl){
+  const text = getPositivePrompt() + '\nNegative prompt: ' + getNegativePrompt();
+  if(window.XQ && typeof window.XQ.copy === 'function'){ window.XQ.copy(text, sourceEl); return; }
+  if(typeof window.gsCopy === 'function'){ window.gsCopy(text, sourceEl); return; }
+  const box = byId('manualPosPrompt');
+  if(box){ box.value = text; box.focus(); box.select(); }
+  toast('请手动按 Ctrl+C 复制', 'error');
 }
 
-async function copyPrompt(){
-  const pos = getPositivePrompt();
-  const neg = getNegativePrompt();
-  const text = pos + '\nNegative prompt: ' + neg;
-  try{
-    await navigator.clipboard.writeText(text);
-    toast('✓ 已复制到剪贴板，可直接贴入 ComfyUI / SD / NovelAI');
-  }catch(e){
-    if(fallbackCopyText(text)){
-      toast('✓ 已复制到剪贴板');
-    }else{
-      const box = document.getElementById('manualPosPrompt');
-      if(box){box.value = text; box.focus(); box.select();}
-      toast('浏览器拒绝复制，已放到粘贴区，请手动 Ctrl+C');
+/* ======================= 桥接 / ComfyUI 控制 ======================= */
+const BRIDGE_ACTIONS = [
+  {action:'bridge-start', label:'🔌 启动桥接', cls:''},
+  {action:'bridge-stop', label:'⏏ 断开桥接', cls:'btn-violet'},
+  {action:'comfy-start', label:'▶ 启动 ComfyUI', cls:'btn-ok'},
+  {action:'comfy-stop', label:'⏹ 停止 ComfyUI', cls:'btn-danger'},
+  {action:'comfy-web', label:'🌐 WebUI', cls:'', compact:true},
+  {action:'refresh', label:'🔄 刷新状态', cls:'', compact:true, alwaysOn:true}
+];
+
+// 准备面板与第 7 步曾经各写一套同样的按钮；现在两处都由这里生成，只维护一份。
+function renderBridgeControls(){
+  document.querySelectorAll('[data-bridge-controls]').forEach(host=>{
+    const compact = host.dataset.bridgeControls === 'compact';
+    const frag = document.createDocumentFragment();
+    BRIDGE_ACTIONS.forEach(item=>{
+      if(compact && !item.compact) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-ghost btn-sm' + (item.cls ? ' ' + item.cls : '');
+      btn.dataset.action = item.action;
+      btn.textContent = item.label;
+      if(!item.alwaysOn) btn.setAttribute('data-local-only','');
+      frag.append(btn);
+    });
+    if(compact){
+      const jump = document.createElement('button');
+      jump.type = 'button';
+      jump.className = 'btn btn-ghost btn-sm';
+      jump.dataset.action = 'goto-prep';
+      jump.textContent = '⬆ 启停控制';
+      jump.title = '启动/停止桥接与 ComfyUI 的按钮统一放在页面顶部的准备工作面板';
+      jump.setAttribute('data-local-only','');
+      frag.append(jump);
     }
-  }
+    host.replaceChildren(frag);
+  });
 }
 
-// === COMFYUI (via Bridge) ===
-const BRIDGE_URL = 'http://127.0.0.1:8791';
-let bridgeAvailable = false;
-let currentPromptId = null;
-let pollTimer = null;
+function enableForceLocal(){
+  forceLocal = true;
+  applyEnvironment();
+  scheduleSave();
+  toast('已打开本机控制按钮，正在重新探测桥接…');
+  checkAll();
+}
 
-// 统一刷新所有状态
+function setStat(dotId, textId, statId, ok, text){
+  const dot = byId(dotId);
+  const label = byId(textId);
+  const wrap = byId(statId);
+  if(dot){ dot.classList.toggle('is-ok', ok); dot.classList.toggle('is-off', !ok); }
+  if(label) label.textContent = text;
+  if(wrap){ wrap.classList.toggle('is-ok', ok); wrap.classList.toggle('is-off', !ok); }
+}
+
+function updatePrepBridge(ok, text){
+  setStat('prepBridgeDot','prepBridgeText','prepBridgeStat', ok, text || (ok ? '桥接就绪' : '桥接未启动'));
+}
+
+function updatePrepComfy(ok, text){
+  setStat('prepComfyDot','prepComfyText','prepComfyStat', ok, text || (ok ? 'ComfyUI 运行中' : 'ComfyUI 未运行'));
+}
+
+function updateComfyIndicator(ok, text){
+  setStat('comfyDot','comfyText', null, ok, text || (ok ? 'ComfyUI 运行中' : 'ComfyUI 未运行'));
+  const el = byId('comfyText');
+  if(el){ el.classList.add('prep-stat'); el.classList.toggle('is-ok', ok); el.classList.toggle('is-off', !ok); }
+}
+
+function setBridgeStatus(text, tone){
+  const bs = byId('bridgeStatus');
+  if(!bs) return;
+  bs.textContent = text;
+  bs.classList.toggle('is-ok', tone === 'ok');
+  bs.classList.toggle('is-off', tone === 'off');
+}
+
 async function checkAll(){
+  if(!localMode){ applyEnvironment(); return; }
   await checkBridge();
-  checkComfy(false);
+  await checkComfy(false);
 }
 
-// 更新顶部准备面板的桥接状态
-function updatePrepBridge(ok){
-  const d = document.getElementById('prepBridgeDot');
-  const t = document.getElementById('prepBridgeText');
-  if(ok){
-    d.style.background = '#4a8'; d.style.animation = 'pulse 2s ease infinite';
-    t.textContent = '桥接就绪'; t.style.color = 'rgba(120,200,140,0.7)';
-  }else{
-    d.style.background = '#a44'; d.style.animation = 'none';
-    t.textContent = '桥接未启动'; t.style.color = 'rgba(200,120,120,0.7)';
-  }
-}
-
-// 更新顶部准备面板的 ComfyUI 状态
-function updatePrepComfy(ok){
-  const d = document.getElementById('prepComfyDot');
-  const t = document.getElementById('prepComfyText');
-  if(ok){
-    d.style.background = '#4a8'; d.style.animation = 'pulse 2s ease infinite';
-    t.textContent = 'ComfyUI 运行中'; t.style.color = 'rgba(120,200,140,0.7)';
-  }else{
-    d.style.background = '#a44'; d.style.animation = 'none';
-    t.textContent = 'ComfyUI 未运行'; t.style.color = 'rgba(200,120,120,0.7)';
-  }
-}
-
-// 检测桥接服务
 async function checkBridge(){
+  if(!localMode){ bridgeAvailable = false; return false; }
   try{
-    const r = await fetch(BRIDGE_URL+'/ping',{signal:AbortSignal.timeout(2000)});
+    const r = await fetch(BRIDGE_URL + '/ping', {signal:AbortSignal.timeout(2000)});
     if(r.ok){
       bridgeAvailable = true;
       updatePrepBridge(true);
-      const bs = document.getElementById('bridgeStatus');
-      if(bs){ bs.textContent = '🔌 桥接服务就绪 · 按钮可直接控制 ComfyUI'; bs.style.color = 'rgba(120,200,140,0.5)'; }
+      setBridgeStatus('🔌 桥接服务就绪 · 按钮可直接控制 ComfyUI', 'ok');
       return true;
     }
-  }catch{}
+  }catch(e){}
   bridgeAvailable = false;
   updatePrepBridge(false);
-  const bs = document.getElementById('bridgeStatus');
-  if(bs){ bs.textContent = '⚠ 桥接服务未启动 · 请双击 start.bat 启动'; bs.style.color = 'rgba(200,120,120,0.5)'; }
+  setBridgeStatus('⚠ 桥接服务未启动 · 双击本机的 start.bat，或点上面的「启动桥接」', 'off');
   return false;
 }
 
-// 检测 ComfyUI 是否在运行
-async function checkComfy(showToast=true){
-  const url = document.getElementById('comfyUrl').value.trim();
-  const sendBtn = document.getElementById('sendBtn');
+async function checkComfy(showToast){
+  if(!localMode){ applyEnvironment(); return; }
 
   if(bridgeAvailable){
     try{
-      const r = await fetch(BRIDGE_URL+'/status',{signal:AbortSignal.timeout(3000)});
+      const r = await fetch(BRIDGE_URL + '/status', {signal:AbortSignal.timeout(3000)});
       const data = await r.json();
-      if(data.running){
-        comfyConnected = true;
-        updatePrepComfy(true);
-        updateComfyIndicator(true);
-        sendBtn.disabled = false;
-        if(showToast) toast('✓ ComfyUI 运行中');
+      if(data && data.running){
+        setComfyConnected(true);
+        if(showToast) toast('ComfyUI 运行中', 'ok');
         return;
       }
-    }catch{}
+    }catch(e){}
   }
 
   try{
-    const resp = await fetch(url+'/system_stats',{signal:AbortSignal.timeout(3000)});
+    const url = promptText('comfyUrl') || DEFAULT_COMFY_URL;
+    const resp = await fetch(url + '/system_stats', {signal:AbortSignal.timeout(3000)});
     if(resp.ok){
-      comfyConnected = true;
-      updatePrepComfy(true);
-      updateComfyIndicator(true);
-      sendBtn.disabled = false;
-      if(showToast) toast('✓ ComfyUI 已连接');
+      setComfyConnected(true);
+      if(showToast) toast('ComfyUI 已连接', 'ok');
       return;
     }
-  }catch{}
+  }catch(e){}
 
-  comfyConnected = false;
-  updatePrepComfy(false);
-  updateComfyIndicator(false);
-  sendBtn.disabled = true;
+  setComfyConnected(false);
+  if(showToast) toast('没有检测到 ComfyUI，请先启动', 'error');
 }
 
-// 更新步骤7的 ComfyUI 指示器
-function updateComfyIndicator(ok){
-  const dot = document.getElementById('comfyDot');
-  const text = document.getElementById('comfyText');
-  if(!dot || !text) return;
-  if(ok){
-    dot.className = 'dot-ok';
-    text.textContent = 'ComfyUI 运行中';
-    text.style.color = 'rgba(120,200,140,0.7)';
-  }else{
-    dot.className = 'dot-off';
-    text.textContent = 'ComfyUI 未运行';
-    text.style.color = 'rgba(200,120,120,0.7)';
-  }
+function setComfyConnected(ok){
+  comfyConnected = ok;
+  updatePrepComfy(ok);
+  updateComfyIndicator(ok);
+  const sendBtn = byId('sendBtn');
+  if(sendBtn) sendBtn.disabled = !ok;
 }
 
-// 启动 ComfyUI（通过桥接服务）
 async function startComfy(){
-  if(!bridgeAvailable){
-    toast('⚠ 桥接服务未启动，请先双击 start.bat');
-    return;
-  }
-  toast('正在启动 ComfyUI（约30-60秒）……');
+  if(!localMode){ toast('公网访问时无法启动本机 ComfyUI', 'error'); return; }
+  if(!bridgeAvailable){ toast('桥接服务未启动，请先点「启动桥接」或双击 start.bat', 'error'); return; }
+  toast('正在启动 ComfyUI（约 30-60 秒）……');
   try{
-    const r = await fetch(BRIDGE_URL+'/start',{method:'POST',signal:AbortSignal.timeout(10000)});
+    const r = await fetch(BRIDGE_URL + '/start', {method:'POST', signal:AbortSignal.timeout(10000)});
     const data = await r.json();
     if(data.status === 'already_running'){
-      toast('ComfyUI 已经在运行了');
+      toast('ComfyUI 已经在运行了', 'ok');
       checkComfy(false);
       return;
     }
     if(data.status === 'starting'){
-      let a = 0;
-      const p = setInterval(async()=>{
-        a++;
+      let attempts = 0;
+      const timer = setInterval(async()=>{
+        attempts++;
         try{
-          const sr = await fetch(document.getElementById('comfyUrl').value.trim()+'/system_stats',{signal:AbortSignal.timeout(2000)});
-          if(sr.ok){clearInterval(p);checkComfy(false);toast('✓ ComfyUI 启动成功！')}
-        }catch{}
-        if(a > 30){clearInterval(p);toast('⚠ 启动超时，请检查 ComfyUI 窗口')}
+          const url = promptText('comfyUrl') || DEFAULT_COMFY_URL;
+          const sr = await fetch(url + '/system_stats', {signal:AbortSignal.timeout(2000)});
+          if(sr.ok){ clearInterval(timer); checkComfy(false); toast('ComfyUI 启动成功！', 'ok'); return; }
+        }catch(e){}
+        if(attempts > 30){ clearInterval(timer); toast('启动超时，请检查 ComfyUI 窗口', 'error'); }
       }, 3000);
-    }else{
-      toast('启动失败: '+ (data.message || '未知错误'));
+      return;
     }
+    toast('启动失败：' + (data.message || '未知错误'), 'error');
   }catch(e){
-    toast('✗ 桥接服务通信失败: '+e.message);
+    toast('桥接服务通信失败：' + e.message, 'error');
   }
 }
 
-// 停止 ComfyUI（通过桥接服务）
 async function stopComfy(){
-  if(!bridgeAvailable){
-    toast('⚠ 桥接服务未启动，请先双击 start.bat');
-    return;
-  }
+  if(!localMode){ toast('公网访问时无法控制本机 ComfyUI', 'error'); return; }
+  if(!bridgeAvailable){ toast('桥接服务未启动，请先点「启动桥接」或双击 start.bat', 'error'); return; }
   toast('正在停止 ComfyUI……');
   try{
-    const r = await fetch(BRIDGE_URL+'/stop',{method:'POST',signal:AbortSignal.timeout(10000)});
+    const r = await fetch(BRIDGE_URL + '/stop', {method:'POST', signal:AbortSignal.timeout(10000)});
     const data = await r.json();
     if(data.status === 'stopped' || data.status === 'not_running'){
-      toast(data.message || 'ComfyUI 已停止');
+      toast(data.message || 'ComfyUI 已停止', 'ok');
     }
     setTimeout(()=>checkComfy(false), 2000);
   }catch(e){
-    toast('✗ 桥接服务通信失败: '+e.message);
+    toast('桥接服务通信失败：' + e.message, 'error');
   }
 }
 
 function openBridgeLauncher(){
+  if(!localMode){ toast('qiqi-bridge:// 只对本机有效', 'error'); return; }
   window.location.href = 'qiqi-bridge://start';
   toast('已请求启动本地桥接，若浏览器询问请选择打开。');
   setTimeout(()=>checkAll(), 1500);
@@ -1636,6 +2218,7 @@ function openBridgeLauncher(){
 }
 
 function openBridgeStopper(){
+  if(!localMode){ toast('qiqi-bridge:// 只对本机有效', 'error'); return; }
   window.location.href = 'qiqi-bridge://stop';
   toast('已请求关闭本地桥接，状态稍后刷新。');
   setTimeout(()=>checkAll(), 1500);
@@ -1643,149 +2226,336 @@ function openBridgeStopper(){
 }
 
 function openComfyWeb(){
-  window.open(document.getElementById('comfyUrl').value.trim(), '_blank');
-}
-
-// 发送出图任务到 ComfyUI + 轮询结果
-async function checkAndSend(){
-  if(!comfyConnected){toast('请先启动并连接 ComfyUI');return}
-  const pos = getPositivePrompt();
-  if(!pos||pos.split(',').length<3){toast('请至少选几个标签再出图哦～');return}
-  const neg = getNegativePrompt();
-  const size = document.getElementById('imgSize').value;
-  const [w,h] = size.split('×').map(Number);
-  const seed = getSeedForRun();
-  const workflow = buildComfyWorkflow(pos, neg, w, h, seed);
-
-  // 显示加载状态
-  const out = document.getElementById('outputContent');
-  out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">正在提交任务... Seed: '+seed+'</div></div>';
-
-  try{
-    const targetUrl = bridgeAvailable ? BRIDGE_URL+'/prompt' : document.getElementById('comfyUrl').value.trim()+'/prompt';
-    const resp = await fetch(targetUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:workflow})});
-    if(resp.ok){
-      const data = await resp.json();
-      if(data.prompt_id){
-        currentPromptId = data.prompt_id;
-        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... (ID: '+data.prompt_id.slice(0,8)+')</div><div style="font-size:0.68rem;color:rgba(212,212,232,0.25);margin-top:0.3rem">一般需要 20-40 秒；高清精修会更慢</div></div>';
-        pollResult(data.prompt_id);
-      }else if(data.error){
-        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ '+data.error+'</div>';
-        toast('✗ '+data.error);
-      }else{
-        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 提交失败</div>';
-      }
-    }else{
-      out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 提交失败 ('+resp.status+')</div>';
-    }
-  }catch(e){
-    out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 网络错误: '+e.message+'</div>';
-  }
+  window.open(promptText('comfyUrl') || DEFAULT_COMFY_URL, '_blank', 'noopener');
 }
 
 function getComfyBaseUrl(){
-  return bridgeAvailable ? BRIDGE_URL : document.getElementById('comfyUrl').value.trim();
+  return bridgeAvailable ? BRIDGE_URL : (promptText('comfyUrl') || DEFAULT_COMFY_URL);
+}
+
+/* =========================== 出图与轮询 =========================== */
+// 用步数、尺寸和精修开关估一个预期耗时，进度条据此做指数逼近，比假匀速真实。
+function estimateRunSeconds(){
+  const [w,h] = getImageSize();
+  const area = (w * h) / (832 * 1216);
+  let seconds = Math.round(numberField('steps', 30)) * 0.85 * area + 6;
+  if(isChecked('hiresEnabled')){
+    const scale = numberField('hiresScale', 1.4);
+    seconds += Math.round(numberField('hiresSteps', 15)) * 0.85 * area * scale * scale;
+  }
+  return Math.max(12, Math.round(seconds));
+}
+
+function buildGenBox(labelText){
+  const box = document.createElement('div');
+  box.className = 'gen-box';
+
+  const ring = document.createElement('div');
+  ring.className = 'gen-ring';
+
+  const bar = document.createElement('div');
+  bar.className = 'gen-bar';
+  const fill = document.createElement('div');
+  fill.className = 'gen-bar__fill';
+  const sheen = document.createElement('div');
+  sheen.className = 'gen-bar__sheen';
+  bar.append(fill, sheen);
+
+  const label = document.createElement('div');
+  label.className = 'gen-label';
+  label.textContent = labelText;
+
+  const time = document.createElement('div');
+  time.className = 'gen-time';
+  time.textContent = '0s';
+
+  box.append(ring, bar, label, time);
+  return {box, fill, label, time};
+}
+
+function startGenProgress(labelText){
+  const out = byId('outputContent');
+  if(!out) return;
+  stopGenProgress();
+  genView = buildGenBox(labelText);
+  out.replaceChildren(genView.box);
+  genStartedAt = Date.now();
+  genExpected = estimateRunSeconds();
+  tickGenProgress();
+  genTimer = setInterval(tickGenProgress, 300);
+}
+
+function tickGenProgress(){
+  if(!genView) return;
+  const elapsed = (Date.now() - genStartedAt) / 1000;
+  const ratio = 1 - Math.exp(-elapsed / (genExpected * 0.52));
+  genView.fill.style.width = (Math.min(0.96, ratio) * 100).toFixed(1) + '%';
+  genView.time.textContent = Math.round(elapsed) + 's · 预计约 ' + genExpected + 's';
+}
+
+function setGenLabel(text){
+  if(genView) genView.label.textContent = text;
+}
+
+function stopGenProgress(){
+  if(genTimer){ clearInterval(genTimer); genTimer = null; }
+  genView = null;
+}
+
+function finishGenProgress(){
+  if(genView) genView.fill.style.width = '100%';
+  if(genTimer){ clearInterval(genTimer); genTimer = null; }
+}
+
+function outMessage(cls, text){
+  const out = byId('outputContent');
+  if(!out) return;
+  stopGenProgress();
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = text;
+  out.replaceChildren(div);
+}
+
+function stopPolling(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function checkAndSend(){
+  if(!localMode){ toast('公网访问时无法出图，请复制 Prompt 到本机使用', 'error'); return; }
+  if(!comfyConnected){ toast('请先启动并连接 ComfyUI', 'error'); return; }
+
+  // 自动 Prompt 永远带 4 个质量词，靠逗号数量判断等于没判断，改成看真正选了几个标签。
+  const chosen = collectSelectedPositiveTags().length;
+  const manual = getManualPositivePrompt();
+  if(chosen < 2 && !manual){ toast('至少选 2 个标签，或在粘贴区填一段外部 Prompt', 'error'); return; }
+
+  const pos = getPositivePrompt();
+  const neg = getNegativePrompt();
+  if(!pos){ toast('正向 Prompt 是空的，先选几个标签吧', 'error'); return; }
+
+  const [w,h] = getImageSize();
+  const seed = getSeedForRun();
+  const workflow = buildComfyWorkflow(pos, neg, w, h, seed);
+
+  const sendBtn = byId('sendBtn');
+  if(sendBtn) sendBtn.classList.add('is-busy');
+  stopPolling();
+  startGenProgress('正在提交任务… Seed: ' + seed);
+
+  try{
+    const targetUrl = (bridgeAvailable ? BRIDGE_URL : (promptText('comfyUrl') || DEFAULT_COMFY_URL)) + '/prompt';
+    const resp = await fetch(targetUrl, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:workflow})
+    });
+    if(!resp.ok){ outMessage('out-error', '✗ 提交失败（HTTP ' + resp.status + '）'); return; }
+
+    const data = await resp.json();
+    if(data && data.prompt_id){
+      setGenLabel('生成中… 任务 ' + String(data.prompt_id).slice(0,8));
+      pollResult(data.prompt_id);
+    }else if(data && data.error){
+      outMessage('out-error', '✗ ' + (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)));
+      toast('提交被 ComfyUI 拒绝', 'error');
+    }else{
+      outMessage('out-error', '✗ 提交失败，ComfyUI 没有返回任务号');
+    }
+  }catch(e){
+    outMessage('out-error', '✗ 网络错误：' + e.message);
+  }finally{
+    if(sendBtn) sendBtn.classList.remove('is-busy');
+  }
 }
 
 function buildComfyViewUrl(img){
-  const base = getComfyBaseUrl();
   const qs = 'filename=' + encodeURIComponent(img.filename)
     + '&subfolder=' + encodeURIComponent(img.subfolder || '')
     + '&type=' + encodeURIComponent(img.type || 'output')
     + '&t=' + Date.now();
-  return base + '/view?' + qs;
+  return getComfyBaseUrl() + '/view?' + qs;
 }
 
 function findOutputImage(entry){
   if(!entry || !entry.outputs) return null;
-  if(entry.outputs['9'] && entry.outputs['9'].images && entry.outputs['9'].images.length>0){
-    return entry.outputs['9'].images[0];
-  }
+  const saveNode = entry.outputs['9'];
+  if(saveNode && Array.isArray(saveNode.images) && saveNode.images.length > 0) return saveNode.images[0];
   for(const nodeId of Object.keys(entry.outputs)){
     const out = entry.outputs[nodeId];
-    if(out && out.images && out.images.length>0) return out.images[0];
+    if(out && Array.isArray(out.images) && out.images.length > 0) return out.images[0];
   }
   return null;
 }
 
-function renderOutputImage(out, promptId, img){
+function renderOutputImage(promptId, img){
+  const out = byId('outputContent');
+  if(!out) return;
+  stopGenProgress();
+
   const imgUrl = buildComfyViewUrl(img);
-  out.innerHTML = '<div style="text-align:center">'
-    + '<div id="imageLoadingHint" style="font-size:0.75rem;color:rgba(212,212,232,0.45);padding:0.7rem">图片已生成，正在载入预览...</div>'
-    + '<img src="'+imgUrl+'" alt="生成结果" style="display:none;max-width:100%;max-height:70vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" '
-    + 'onload="this.style.display=\'block\';var h=document.getElementById(\'imageLoadingHint\');if(h)h.style.display=\'none\';" '
-    + 'onerror="var h=document.getElementById(\'imageLoadingHint\');if(h){h.style.display=\'block\';h.innerHTML=\'图片已生成，但网页预览载入失败。请点下面按钮打开 ComfyUI WebUI 或检查桥接 /view。\';}">'
-    + '<div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.7rem">'
-    + '<a class="btn btn-ghost btn-sm" href="'+imgUrl+'" target="_blank" rel="noreferrer">🖼 打开原图</a>'
-    + '<button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 打开 ComfyUI</button>'
-    + '</div>'
-    + '<div style="font-size:0.68rem;color:rgba(212,212,232,0.3);margin-top:0.5rem">文件：'+img.filename+' · prompt_id: '+promptId+'</div>'
-    + '</div>';
+  const wrap = document.createElement('div');
+  wrap.className = 'text-center';
+
+  const hint = document.createElement('div');
+  hint.className = 'gen-label';
+  hint.textContent = '图片已生成，正在载入预览…';
+
+  const shot = document.createElement('img');
+  shot.className = 'out-shot';
+  shot.alt = '生成结果';
+  shot.style.display = 'none';
+  shot.addEventListener('load', ()=>{ shot.style.display = 'block'; hint.remove(); });
+  shot.addEventListener('error', ()=>{
+    hint.textContent = '图片已生成，但网页预览载入失败。请打开 ComfyUI WebUI，或检查桥接的 /view 接口。';
+  });
+  shot.src = imgUrl;
+
+  const actions = document.createElement('div');
+  actions.className = 'out-actions';
+  const link = document.createElement('a');
+  link.className = 'btn btn-ghost btn-sm';
+  link.href = imgUrl;
+  link.target = '_blank';
+  link.rel = 'noreferrer noopener';
+  link.textContent = '🖼 打开原图';
+  const openBtn = document.createElement('button');
+  openBtn.type = 'button';
+  openBtn.className = 'btn btn-ghost btn-sm';
+  openBtn.dataset.action = 'comfy-web';
+  openBtn.textContent = '🌐 打开 ComfyUI';
+  actions.append(link, openBtn);
+
+  const meta = document.createElement('div');
+  meta.className = 'out-meta';
+  meta.textContent = '文件：' + img.filename + ' · prompt_id: ' + promptId;
+
+  wrap.append(hint, shot, actions, meta);
+  out.replaceChildren(wrap);
 }
 
-// 轮询出图结果
-async function pollResult(promptId){
-  if(pollTimer) clearInterval(pollTimer);
+function pollResult(promptId){
+  stopPolling();
   let attempts = 0;
-  const maxAttempts = 200; // 最多等10分钟，高清精修会比较慢
+  const maxAttempts = 200; // 最多等 10 分钟，高清精修会比较慢
 
   pollTimer = setInterval(async()=>{
     attempts++;
-    const out = document.getElementById('outputContent');
     try{
-      const url = bridgeAvailable
-        ? BRIDGE_URL+'/history/'+promptId
-        : document.getElementById('comfyUrl').value.trim()+'/history/'+promptId;
-
-      const r = await fetch(url,{signal:AbortSignal.timeout(5000)});
-      if(!r.ok){ if(attempts>=maxAttempts) showPollTimeout(out,promptId); return; }
+      const base = bridgeAvailable ? BRIDGE_URL : (promptText('comfyUrl') || DEFAULT_COMFY_URL);
+      const r = await fetch(base + '/history/' + promptId, {signal:AbortSignal.timeout(5000)});
+      if(!r.ok){ if(attempts >= maxAttempts) showPollTimeout(); return; }
 
       const data = await r.json();
-      const entry = data[promptId];
+      const entry = data ? data[promptId] : null;
 
-      // ComfyUI returns {} when task hasn't started, entry=undefined when still queued
+      // ComfyUI 在任务还没开始时返回 {}，排队中则查不到这个 id
       if(!entry || Object.keys(entry).length === 0){
-        // Still queued
-        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">排队中... ('+Math.round(attempts*3)+'s)</div></div>';
+        setGenLabel('排队中…');
+        if(attempts >= maxAttempts) showPollTimeout();
         return;
       }
 
-      // Check if outputs are available
       const img = findOutputImage(entry);
       if(img){
-        clearInterval(pollTimer);
-        pollTimer = null;
-        renderOutputImage(out, promptId, img);
-        toast('✓ 出图完成！');
-      }else if(entry.status && entry.status.status_str === 'error'){
-        clearInterval(pollTimer);
-        pollTimer = null;
-        out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c08080;font-size:0.8rem">✗ 生成出错</div>';
-      }else{
-        // In progress
-        const progress = entry.status ? Math.round((entry.status.exec_info.queue_remaining||0)/10*100) : '';
-        out.innerHTML = '<div style="text-align:center;padding:2rem"><div style="width:32px;height:32px;border:3px solid rgba(232,168,96,0.15);border-top-color:#e8a860;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div><div style="font-size:0.8rem;color:rgba(212,212,232,0.5)">生成中... ('+Math.round(attempts*3)+'s)</div></div>';
+        stopPolling();
+        finishGenProgress();
+        renderOutputImage(promptId, img);
+        toast('出图完成！', 'ok');
+        return;
       }
+
+      const status = entry.status || null;
+      if(status && status.status_str === 'error'){
+        stopPolling();
+        outMessage('out-error', '✗ 生成出错，请到 ComfyUI 窗口查看具体报错');
+        toast('生成出错', 'error');
+        return;
+      }
+
+      // exec_info 只在部分版本/部分阶段存在，缺失时不能直接点属性
+      const queued = status && status.exec_info && Number(status.exec_info.queue_remaining);
+      setGenLabel(Number.isFinite(queued) && queued > 0 ? '生成中… 队列还有 ' + queued + ' 个任务' : '生成中…');
+      if(attempts >= maxAttempts) showPollTimeout();
     }catch(e){
-      if(attempts>=maxAttempts) showPollTimeout(out,promptId);
+      if(attempts >= maxAttempts) showPollTimeout();
     }
   }, 3000);
 }
 
-function showPollTimeout(out,promptId){
-  clearInterval(pollTimer);
-  pollTimer = null;
-  out.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#c0a040;font-size:0.8rem">⏳ 网页等待超时，但任务可能仍在 ComfyUI 里跑。<br><span style="font-size:0.68rem;color:rgba(212,212,232,0.3)">高清精修很慢时请打开 ComfyUI WebUI 查看。</span><div style="margin-top:0.8rem"><button class="btn btn-ghost btn-sm" onclick="openComfyWeb()">🌐 打开 ComfyUI</button></div></div>';
+function showPollTimeout(){
+  stopPolling();
+  stopGenProgress();
+  const out = byId('outputContent');
+  if(!out) return;
+
+  const box = document.createElement('div');
+  box.className = 'out-warn';
+  const line1 = document.createElement('div');
+  line1.textContent = '⏳ 网页等待超时，但任务可能仍在 ComfyUI 里跑。';
+  const line2 = document.createElement('div');
+  line2.className = 'out-meta';
+  line2.textContent = '高清精修很慢时，请直接打开 ComfyUI WebUI 查看进度。';
+  const actions = document.createElement('div');
+  actions.className = 'out-actions';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-ghost btn-sm';
+  btn.dataset.action = 'comfy-web';
+  btn.textContent = '🌐 打开 ComfyUI';
+  actions.append(btn);
+
+  box.append(line1, line2, actions);
+  out.replaceChildren(box);
 }
 
-// === TOAST ===
-function toast(msg){
-  const el=document.createElement('div');el.className='toast';el.textContent=msg;
-  document.body.appendChild(el);setTimeout(()=>el.remove(),2800);
-}
+/* ============================== INIT ============================== */
+/* 放在脚本最末尾：init 会读到本文件里所有的 const，提前执行会踩暂时性死区。 */
+(function init(){
+  TAG_ORDER.forEach(k=>{ selectedTags[k] = []; });
+
+  const saved = readState();
+  if(saved){
+    if(saved.tags && typeof saved.tags === 'object'){
+      TAG_ORDER.forEach(k=>{
+        if(Array.isArray(saved.tags[k])) selectedTags[k] = saved.tags[k].filter(t=>typeof t === 'string');
+      });
+    }
+    if(Array.isArray(saved.negs)) saved.negs.forEach(t=>{ if(typeof t === 'string') selectedNegs[t] = true; });
+    forceLocal = !!saved.forceLocal;
+  }
+
+  Object.entries(TAG_DB).forEach(([key, tags])=>renderTagGrid(key, tags));
+  renderNegChips();
+  renderBridgeControls();
+
+  const ckpt = byId('ckptName');
+  if(ckpt && !ckpt.value) ckpt.value = DEFAULT_CHECKPOINT;
+
+  if(saved){
+    restoreFields(saved.fields);
+    if(saved.mode) setManualPromptMode(saved.mode, {silent:true});
+    if(saved.advanced) toggleAdvanced(true);
+  }
+
+  applyEnvironment();
+  bindEvents();
+
+  syncLoraLabel();
+  updateSeedHint();
+  updateHiresHint();
+  updateReview();
+  goStep(saved && saved.step ? saved.step : 1, {scroll:false, animate:false});
+
+  if(saved) toast('已恢复上次的选择与参数');
+
+  // 自动探测桥接与 ComfyUI
+  setTimeout(()=>checkAll(), 800);
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>
 

@@ -21,7 +21,6 @@ https://stardustlc666.github.io/xingqiong-hub/
 在仓库目录检查并提交需要发布的静态文件：
 
 ```powershell
-Set-Location 'E:\Codex\github-pages\xingqiong-hub'
 git status --short
 git add -A
 git commit -m "Update Xingqiong Hub"
@@ -52,13 +51,22 @@ curl.exe -L --fail --silent --show-error --output NUL --write-out "HTTP %{http_c
 curl.exe -I https://stardustlc666.github.io/xingqiong-hub/
 ```
 
+## 发布前自检
+
+仓库自带一个零依赖检查脚本，CI（`.github/workflows/static-checks.yml`）也跑同一个：
+
+```bash
+node scripts/check-static-site.mjs
+```
+
+它会校验所有本地链接与锚点、每个 JS 文件与内联脚本的语法、以及 JSON 是否可解析。
+
 ## 本地预览
 
-发布前可直接预览仓库根目录：
+仓库内置一个零依赖静态服务（会把找不到的路径回退到 `404.html`，与 GitHub Pages 行为一致）：
 
-```powershell
-Set-Location 'E:\Codex\github-pages\xingqiong-hub'
-py -3 -m http.server 18446 --bind 127.0.0.1
+```bash
+node scripts/dev-server.mjs 18446
 ```
 
 然后访问 `http://127.0.0.1:18446/`。这只是发布前检查方式，不参与公网部署。

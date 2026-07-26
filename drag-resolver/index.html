@@ -3,271 +3,679 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drag Resolver · 拖拽冲突排查</title>
+<title>Drag Resolver · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="ComfyUI 拖拽导入失败时的排障台：定位冲突插件、浏览器设置与工作流问题。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/drag-resolver/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="Drag Resolver · 星穹枢庭">
+  <meta property="og:description" content="ComfyUI 拖拽导入失败时的排障台：定位冲突插件、浏览器设置与工作流问题。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/drag-resolver/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-/* === DRAG TEST AREA === */
+[hidden] { display: none !important; }
+
+/* === 拖拽诊断窗 === */
+.drag-lab { display: grid; gap: 0.7rem; }
+
 .drag-test-box {
-  width: 100%;
-  min-height: 140px;
-  border: 2px dashed rgba(200,200,224,0.12);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.6rem;
-  transition: all 0.3s;
-  background: rgba(10,10,24,0.3);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; width: 100%; min-height: 172px;
+  flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 1.4rem 1rem;
+  border: 2px dashed var(--xq-line-soft); border-radius: var(--xq-r-lg);
+  background: rgba(8, 10, 22, 0.44); color: inherit;
+  cursor: pointer; font-family: inherit; text-align: center;
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-ease);
 }
+.drag-test-box:hover { border-color: var(--xq-line-strong); transform: translateY(-2px); }
 .drag-test-box.highlight {
-  border-color: #e8a860;
-  background: rgba(232,168,96,0.05);
-  box-shadow: inset 0 0 40px rgba(232,168,96,0.06);
+  border-color: var(--xq-gold); border-style: solid;
+  background: var(--xq-accent-soft);
+  box-shadow: var(--xq-glow-gold), inset 0 0 46px rgba(232, 168, 96, 0.1);
+  transform: translateY(-2px);
 }
-.drag-test-box p { color: rgba(200,200,224,0.35); font-size: 0.82rem; letter-spacing: 0.05em; }
+
+/* 雷达扫掠：诊断仪的隐喻，悬停/拖入时转速与亮度一起提上来 */
+.drag-test-box::before {
+  position: absolute; z-index: -1; top: 50%; left: 50%;
+  width: 168%; aspect-ratio: 1; content: "";
+  background: conic-gradient(from 0deg, rgba(232, 168, 96, 0.22) 0deg, rgba(232, 168, 96, 0.04) 34deg, transparent 78deg);
+  opacity: 0.4; pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: radarSweep 7s linear infinite;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+.drag-test-box:hover::before { opacity: 0.66; }
+.drag-test-box.highlight::before { opacity: 1; animation-duration: 2.1s; }
+
+/* CRT 扫描线 + 一条缓慢下行的亮带 */
+.drag-test-box::after {
+  position: absolute; z-index: -1; inset: 0; content: "";
+  background:
+    repeating-linear-gradient(0deg, rgba(116, 196, 212, 0.055) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, transparent 42%, rgba(232, 168, 96, 0.16) 50%, transparent 58%);
+  background-repeat: repeat, no-repeat;
+  background-size: 100% 100%, 100% 240%;
+  opacity: 0.55; pointer-events: none;
+  animation: crtScan 5.4s linear infinite;
+}
+.drag-test-box.highlight::after { opacity: 0.9; animation-duration: 2.4s; }
+
+@keyframes radarSweep { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes crtScan {
+  from { background-position: 0 0, 0 -140%; }
+  to { background-position: 0 0, 0 240%; }
+}
+
+.drag-glyph { font-size: 1.9rem; line-height: 1; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)); }
+.drag-title { color: var(--xq-text-muted); font-family: var(--xq-font-mono); font-size: 0.8rem; letter-spacing: 0.05em; }
+.drag-sub { color: var(--xq-text-faint); font-size: 0.72rem; letter-spacing: 0.04em; }
+.drag-test-box.highlight .drag-title { color: var(--xq-gold-bright); }
+
+/* 落点迸发的金色粒子 */
+.drag-spark {
+  position: absolute; z-index: 1; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--xq-gold-bright), rgba(232, 168, 96, 0) 70%);
+  pointer-events: none;
+  animation: sparkFly 780ms var(--xq-ease-out) var(--spark-delay, 0ms) forwards;
+}
+@keyframes sparkFly {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.2); }
+}
+
+/* 拿不到文件时的红色脉冲边框 */
+.drag-test-box.is-reject { animation: rejectPulse 720ms var(--xq-ease) both; }
+@keyframes rejectPulse {
+  0% { border-color: var(--xq-danger); box-shadow: 0 0 0 0 rgba(224, 125, 112, 0.5), inset 0 0 44px rgba(224, 125, 112, 0.16); }
+  70% { border-color: var(--xq-danger); }
+  100% { border-color: var(--xq-line-soft); box-shadow: 0 0 0 20px rgba(224, 125, 112, 0), inset 0 0 0 rgba(224, 125, 112, 0); }
+}
+
+/* === 事件流日志 === */
+.drag-log-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .drag-events-log {
-  max-height: 120px;
-  overflow-y: auto;
-  font-size: 0.72rem;
-  font-family: 'Consolas','Courier New',monospace;
-  color: rgba(200,200,224,0.45);
-  margin-top: 0.5rem;
-  line-height: 1.8;
+  max-height: 156px; overflow-y: auto;
+  padding: 0.35rem 0.2rem;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(6, 8, 18, 0.5);
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono); font-size: 0.72rem; line-height: 1.8;
 }
-.drag-events-log .event-line { padding: 0.1rem 0.4rem; border-radius: 4px; }
-.drag-events-log .event-line.enter { color: #78c878; }
-.drag-events-log .event-line.leave { color: #cc8080; }
-.drag-events-log .event-line.drop { color: #e8a860; }
-.drag-events-log .event-line.over { color: #8ca0dc; }
+.event-line {
+  display: flex; gap: 0.55rem; padding: 0.1rem 0.5rem;
+  border-radius: var(--xq-r-sm);
+  animation: lineIn 280ms var(--xq-ease-out) both;
+}
+.event-line .ev-time { flex: 0 0 auto; color: var(--xq-text-faint); }
+.event-line .ev-text { min-width: 0; overflow-wrap: anywhere; }
+.event-line.idle { color: var(--xq-text-faint); }
+.event-line.enter { color: var(--xq-mint); }
+.event-line.leave { color: var(--xq-coral); }
+.event-line.over { color: var(--xq-cyan); }
+.event-line.warn { color: var(--xq-warn); background: rgba(226, 178, 86, 0.08); }
+.event-line.drop { color: var(--xq-gold); background: var(--xq-gold-wash); }
+@keyframes lineIn { from { opacity: 0; transform: translateY(-6px); } }
 
-/* === CONFLICT TABLE === */
-.conflict-grid {
-  display: grid;
-  gap: 0.8rem;
+/* === 冲突插件数据库 === */
+.conflict-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.9rem; }
+.conflict-toolbar .chip { font-family: inherit; }
+.chip[aria-pressed="true"] {
+  border-color: var(--xq-gold); background: rgba(232, 168, 96, 0.22);
+  box-shadow: 0 0 0 1px rgba(232, 168, 96, 0.2), 0 6px 20px rgba(232, 168, 96, 0.16);
+  color: var(--xq-gold-bright);
 }
+.conflict-count { margin-left: auto; color: var(--xq-text-faint); font-size: 0.74rem; }
+
+.conflict-grid { display: grid; gap: 0.7rem; }
 .conflict-item {
-  background: rgba(16,16,36,0.5);
-  border: 1px solid rgba(255,215,150,0.06);
-  border-radius: 12px;
-  padding: 1rem 1.2rem;
-  transition: border-color 0.3s;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.6rem 1rem;
-  align-items: start;
-}
-.conflict-item:hover { border-color: rgba(232,168,96,0.2); }
-.conflict-name {
-  font-family: 'Consolas','Courier New',monospace;
-  font-size: 0.88rem;
-  color: #e8a860;
-  grid-column: 1;
-}
-.conflict-severity {
-  grid-column: 2;
-  grid-row: 1;
-  font-size: 0.68rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 10px;
-  align-self: start;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-.sev-high { background:rgba(255,80,80,0.12); color:#e06060; border:1px solid rgba(255,80,80,0.2); }
-.sev-med  { background:rgba(232,168,96,0.1); color:#e0b860; border:1px solid rgba(232,168,96,0.2); }
-.sev-low  { background:rgba(120,200,120,0.08); color:#80c080; border:1px solid rgba(120,200,120,0.15); }
-.conflict-symptom {
-  font-size: 0.78rem;
-  color: rgba(200,200,224,0.5);
-  grid-column: 1;
-  line-height: 1.6;
-}
-.conflict-fix {
-  font-size: 0.76rem;
-  color: rgba(180,200,180,0.5);
-  grid-column: 1/-1;
-  background: rgba(10,10,24,0.3);
-  padding: 0.5rem 0.8rem;
-  border-radius: 8px;
-  line-height: 1.6;
-}
-.conflict-fix::before { content: '💡 '; }
-
-/* === SCAN ANIMATION === */
-.scan-progress {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.04);
   overflow: hidden;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: var(--xq-surface);
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease),
+    transform var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease);
+}
+.conflict-item:hover { border-color: var(--xq-line-strong); box-shadow: var(--xq-shadow-md); transform: translateY(-2px); }
+.conflict-item[open] { border-color: var(--xq-line-strong); background: var(--xq-surface-strong); }
+.conflict-item.is-flagged { border-color: var(--xq-gold); animation: flagPulse 1.4s var(--xq-ease) 2; }
+@keyframes flagPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 96, 0); }
+  40% { box-shadow: 0 0 0 4px rgba(232, 168, 96, 0.18); }
+}
+
+.conflict-head {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.8rem 1rem;
+  cursor: pointer; list-style: none;
+}
+.conflict-head::-webkit-details-marker { display: none; }
+.conflict-head:focus-visible { outline-offset: -3px; }
+.conflict-name {
+  min-width: 0; flex: 1 1 auto;
+  color: var(--xq-gold); font-family: var(--xq-font-mono); font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.conflict-caret { flex: 0 0 auto; color: var(--xq-text-faint); font-size: 0.7rem; transition: transform var(--xq-dur) var(--xq-ease); }
+.conflict-item[open] .conflict-caret { transform: rotate(180deg); }
+
+.conflict-severity {
+  flex: 0 0 auto;
+  padding: 0.14rem 0.6rem; border-radius: var(--xq-r-pill);
+  font-size: 0.66rem; letter-spacing: 0.04em; white-space: nowrap;
+}
+.sev-high { border: 1px solid rgba(224, 125, 112, 0.34); background: rgba(224, 125, 112, 0.14); color: #e89a90; animation: sevBreathe 3.2s var(--xq-ease) infinite; }
+.sev-med { border: 1px solid rgba(232, 168, 96, 0.28); background: var(--xq-gold-wash); color: #e0b860; }
+.sev-low { border: 1px solid rgba(126, 200, 168, 0.22); background: rgba(126, 200, 168, 0.1); color: var(--xq-mint); }
+@keyframes sevBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 125, 112, 0.05); }
+  50% { box-shadow: 0 0 14px 1px rgba(224, 125, 112, 0.4); }
+}
+
+.conflict-body {
+  display: grid; gap: 0.6rem;
+  padding: 0 1rem 0.95rem;
+  animation: bodyIn 320ms var(--xq-ease-out) both;
+}
+@keyframes bodyIn { from { opacity: 0; transform: translateY(-6px); } }
+.conflict-symptom { color: var(--xq-text-muted); font-size: 0.78rem; line-height: 1.7; }
+.conflict-fix {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-sm);
+  background: rgba(6, 8, 18, 0.5);
+  color: var(--xq-text-soft); font-size: 0.76rem; line-height: 1.7;
+}
+.conflict-fix::before { content: "💡 "; }
+.conflict-cmd { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.conflict-cmd code {
+  min-width: 0; flex: 1 1 16rem;
+  padding: 0.4rem 0.7rem; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-sm);
+  background: rgba(6, 8, 18, 0.66); color: #ecc99c;
+  font-size: 0.74rem; overflow-wrap: anywhere;
+}
+
+/* === 模拟扫描 === */
+.scan-status { color: var(--xq-text-muted); font-size: 0.78rem; }
+.scan-progress {
+  height: 5px; overflow: hidden;
+  border-radius: var(--xq-r-pill);
   margin: 1rem 0 0.5rem;
-  display: none;
+  background: rgba(255, 255, 255, 0.05);
 }
 .scan-progress .bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #e8a860, #f0d080);
-  border-radius: 2px;
-  transition: width 0.2s ease;
+  position: relative; height: 100%; width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold) 50%, var(--xq-gold-bright));
+  box-shadow: 0 0 14px rgba(232, 168, 96, 0.5);
+  transition: width var(--xq-dur) var(--xq-ease);
 }
+.scan-progress .bar::after {
+  position: absolute; inset: 0; content: "";
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: barShimmer 1.3s linear infinite;
+}
+@keyframes barShimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
 .scan-log {
-  display: none;
-  font-family: 'Consolas','Courier New',monospace;
-  font-size: 0.7rem;
-  color: rgba(200,200,224,0.3);
-  max-height: 160px;
-  overflow-y: auto;
-  line-height: 1.8;
+  max-height: 176px; overflow-y: auto;
+  padding: 0.4rem 0.2rem;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
   margin-top: 0.5rem;
+  background: rgba(6, 8, 18, 0.5);
+  font-family: var(--xq-font-mono); font-size: 0.7rem; line-height: 1.8;
 }
-.scan-result-badge {
-  display: none;
-  margin-top: 0.6rem;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  font-size: 0.82rem;
-  text-align: center;
+.scan-line { padding: 0.05rem 0.55rem; color: var(--xq-text-faint); animation: lineIn 240ms var(--xq-ease-out) both; }
+.scan-line.hit { color: var(--xq-gold); padding-left: 1.5rem; }
+.scan-line.done { color: var(--xq-mint); }
+
+.scan-result {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  margin-top: 0.7rem;
+  font-size: 0.82rem; text-align: center;
+  animation: bodyIn 360ms var(--xq-ease-out) both;
+}
+.scan-result.is-warn { border-color: rgba(232, 168, 96, 0.3); background: var(--xq-gold-wash); color: var(--xq-gold); }
+.scan-result.is-ok { border-color: rgba(126, 200, 168, 0.26); background: rgba(126, 200, 168, 0.09); color: var(--xq-mint); }
+
+/* === 响应式 === */
+@media (max-width: 560px) {
+  .drag-test-box { min-height: 148px; padding: 1.1rem 0.8rem; }
+  .drag-glyph { font-size: 1.5rem; }
+  .conflict-head { flex-wrap: wrap; padding: 0.7rem 0.8rem; }
+  .conflict-name { flex: 1 1 100%; order: -1; }
+  .conflict-body { padding: 0 0.8rem 0.85rem; }
+  .conflict-count { flex: 1 1 100%; margin-left: 0; }
+  .conflict-cmd code { flex: 1 1 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drag-test-box::before,
+  .drag-test-box::after,
+  .drag-test-box.is-reject,
+  .conflict-item.is-flagged,
+  .sev-high,
+  .scan-progress .bar::after,
+  .event-line,
+  .scan-line,
+  .conflict-body,
+  .scan-result { animation: none; }
+  .drag-test-box:hover,
+  .conflict-item:hover { transform: none; }
+  .drag-test-box.is-reject { border-color: var(--xq-danger); }
 }
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
   <header class="page-header">
     <h1>⚡ Drag Resolver</h1>
     <p class="subtitle">ComfyUI 拖拽失效一键排查 · 冲突检测与修复方案</p>
   </header>
 
-  <!-- DRAG TEST ZONE -->
-  <div class="panel fade-in">
+  <!-- 拖拽行为测试 -->
+  <section class="panel fade-in" data-xq-reveal>
     <div class="panel-title">🧪 拖拽行为测试区</div>
-    <p class="text-muted mb-1">将任意文件拖入下方区域，观察浏览器原生拖拽事件是否正常触发（模拟 ComfyUI 行为诊断）</p>
-    <div class="drag-test-box" id="dragBox">
-      <span style="font-size:1.8rem;">🎯</span>
-      <p>Drop files here to test drag events</p>
-    </div>
-    <div class="drag-events-log" id="eventLog">
-      <span style="color:rgba(200,200,224,0.2);">等待拖拽事件...</span>
-    </div>
-  </div>
+    <p class="text-muted mb-1" id="dragHint">
+      把任意文件拖进下面的诊断窗，观察浏览器原生拖拽事件是否逐个触发（模拟 ComfyUI 的接收链路）。
+      不方便拖拽时，聚焦诊断窗后按回车或空格，可以跑一次模拟自检。
+    </p>
+    <div class="drag-lab">
+      <button type="button" class="drag-test-box" id="dragBox" aria-describedby="dragHint">
+        <span class="drag-glyph" aria-hidden="true">🎯</span>
+        <span class="drag-title">Drop files here to test drag events</span>
+        <span class="drag-sub">拖入任意文件 · 或按回车跑一次模拟自检</span>
+      </button>
 
-  <!-- CONFLICT DB -->
-  <div class="panel fade-in d2">
+      <div class="drag-log-head">
+        <span class="text-muted">事件流 · 最新 50 条</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="clearLog">✕ 清空日志</button>
+      </div>
+
+      <!-- 拖拽事件按帧刷新，交给读屏器朗读只会淹没上下文，这里只保留可聚焦的日志容器 -->
+      <div class="drag-events-log" id="eventLog" role="log" aria-live="off" aria-label="拖拽事件流" tabindex="0">
+        <div class="event-line idle" data-idle>等待拖拽事件…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 冲突插件数据库 -->
+  <section class="panel fade-in d2" data-xq-reveal>
     <div class="panel-title">🔍 冲突插件数据库</div>
+    <div class="conflict-toolbar" id="sevFilter" role="group" aria-label="按严重度筛选冲突插件"></div>
     <div class="conflict-grid" id="conflictGrid"></div>
-  </div>
+  </section>
 
-  <!-- SIMULATED SCAN -->
-  <div class="panel fade-in d3">
+  <!-- 模拟扫描 -->
+  <section class="panel fade-in d3" data-xq-reveal>
     <div class="panel-title">🛰️ 模拟文件系统扫描</div>
     <p class="text-muted mb-1">
-      注意：纯前端演示，不会真的读取你的硬盘文件。模拟扫描 <code>ComfyUI/custom_nodes/</code> 目录下的已知冲突插件。
+      注意：纯前端演示，不会真的读取你的硬盘文件。每次扫描会随机生成一份
+      <code>ComfyUI/custom_nodes/</code> 目录快照，所以既可能扫出冲突，也可能干干净净。
     </p>
     <div class="flex-row">
-      <button class="btn btn-primary" id="scanBtn">🔬 启动模拟扫描</button>
-      <span class="text-muted" id="scanStatus" style="margin-left:0.5rem;"></span>
+      <button class="btn btn-primary" type="button" id="scanBtn">🔬 启动模拟扫描</button>
+      <span class="scan-status" id="scanStatus" role="status" aria-live="polite"></span>
     </div>
-    <div class="scan-progress" id="scanProgress"><div class="bar" id="scanBar"></div></div>
-    <div class="scan-log" id="scanLog"></div>
-    <div class="scan-result-badge" id="scanResult"></div>
-  </div>
+    <div class="scan-progress" id="scanProgress" role="progressbar" aria-label="扫描进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><div class="bar" id="scanBar"></div></div>
+    <div class="scan-log" id="scanLog" aria-label="扫描日志" hidden></div>
+    <p class="scan-result" id="scanResult" role="status" aria-live="polite" hidden></p>
+  </section>
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
-(function(){
+(function () {
   'use strict';
 
-  // === DRAG TEST ===
+  const stillQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function toast(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else if (typeof window.gsToast === 'function') window.gsToast(message);
+  }
+
+  function copyText(text, source) {
+    if (window.XQ && typeof window.XQ.copy === 'function') return window.XQ.copy(text, source);
+    if (typeof window.gsCopy === 'function') return window.gsCopy(text, source);
+    return false;
+  }
+
+  /* ============================================================ 拖拽诊断窗 */
   const dragBox = document.getElementById('dragBox');
   const eventLog = document.getElementById('eventLog');
-  const events = [];
-  function logEvent(type, msg) {
-    const t = new Date().toLocaleTimeString();
-    events.unshift(`<div class="event-line ${type}">[${t}] ${msg}</div>`);
-    if (events.length > 50) events.pop();
-    eventLog.innerHTML = events.join('');
-  }
-  eventLog.innerHTML = '';
+  const MAX_LINES = 50;
 
-  dragBox.addEventListener('dragenter', e => { e.preventDefault(); dragBox.classList.add('highlight'); logEvent('enter','dragenter ✓ 拖入区域'); });
-  dragBox.addEventListener('dragover', e => { e.preventDefault(); logEvent('over','dragover — 悬停中'); });
-  dragBox.addEventListener('dragleave', () => { dragBox.classList.remove('highlight'); logEvent('leave','dragleave — 离开区域'); });
-  dragBox.addEventListener('drop', e => {
-    e.preventDefault();
-    dragBox.classList.remove('highlight');
-    const files = e.dataTransfer.files;
-    logEvent('drop',`drop ✓ 接收到 ${files.length} 个文件 (${Array.from(files).map(f=>f.name).join(', ')})`);
+  function logEvent(type, message) {
+    const idle = eventLog.querySelector('[data-idle]');
+    if (idle) idle.remove();
+
+    const line = document.createElement('div');
+    line.className = 'event-line ' + type;
+
+    const time = document.createElement('span');
+    time.className = 'ev-time';
+    time.textContent = new Date().toLocaleTimeString();
+
+    // 文件名来自用户拖入的任意文件，只走 textContent，不进 innerHTML
+    const text = document.createElement('span');
+    text.className = 'ev-text';
+    text.textContent = message;
+
+    line.append(time, text);
+    eventLog.prepend(line);
+    while (eventLog.childElementCount > MAX_LINES) eventLog.lastElementChild.remove();
+  }
+
+  /** 落点迸发的金色粒子；坐标缺省时从诊断窗中心发散。 */
+  function burst(clientX, clientY) {
+    if (stillQuery.matches) return;
+    const rect = dragBox.getBoundingClientRect();
+    const originX = typeof clientX === 'number' ? clientX - rect.left : rect.width / 2;
+    const originY = typeof clientY === 'number' ? clientY - rect.top : rect.height / 2;
+    const count = 20;
+
+    for (let i = 0; i < count; i += 1) {
+      const spark = document.createElement('span');
+      spark.className = 'drag-spark';
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const distance = 44 + Math.random() * 76;
+      spark.style.left = originX + 'px';
+      spark.style.top = originY + 'px';
+      spark.style.setProperty('--dx', Math.cos(angle) * distance + 'px');
+      spark.style.setProperty('--dy', Math.sin(angle) * distance + 'px');
+      spark.style.setProperty('--spark-delay', Math.round(Math.random() * 90) + 'ms');
+      dragBox.append(spark);
+      setTimeout(() => spark.remove(), 950);
+    }
+  }
+
+  function reject() {
+    dragBox.classList.remove('is-reject');
+    void dragBox.offsetWidth;
+    dragBox.classList.add('is-reject');
+    setTimeout(() => dragBox.classList.remove('is-reject'), 760);
+  }
+
+  dragBox.addEventListener('dragenter', (event) => {
+    event.preventDefault();
+    dragBox.classList.add('highlight');
+    logEvent('enter', 'dragenter ✓ 拖入区域');
   });
 
-  // === CONFLICT PLUGINS ===
+  // dragover 每帧都会触发，不节流的话 50 条上限会被悬停日志瞬间冲掉
+  let lastOverAt = 0;
+  dragBox.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    const now = performance.now();
+    if (now - lastOverAt < 300) return;
+    lastOverAt = now;
+    logEvent('over', 'dragover — 悬停中');
+  });
+
+  dragBox.addEventListener('dragleave', (event) => {
+    if (event.relatedTarget && dragBox.contains(event.relatedTarget)) return;
+    dragBox.classList.remove('highlight');
+    logEvent('leave', 'dragleave — 离开区域');
+  });
+
+  dragBox.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dragBox.classList.remove('highlight');
+
+    const files = event.dataTransfer ? Array.from(event.dataTransfer.files) : [];
+    if (!files.length) {
+      reject();
+      logEvent('warn', 'drop ✗ 没有拿到文件 — 拖的不是文件，或事件已被扩展/插件拦截');
+      toast('这次 drop 没有携带文件', 'error');
+      return;
+    }
+
+    burst(event.clientX, event.clientY);
+    logEvent('drop', 'drop ✓ 接收到 ' + files.length + ' 个文件：' + files.map((file) => file.name).join('、'));
+
+    const png = files.filter((file) => /\.png$/i.test(file.name)).length;
+    if (png > 0) logEvent('drop', '其中 ' + png + ' 个 PNG — 若 ComfyUI 里拖不进去，问题就在插件层而不是浏览器');
+  });
+
+  // 诊断窗本身是按钮：不方便拖拽或用键盘操作时，跑一遍模拟事件链
+  let selfTesting = false;
+  dragBox.addEventListener('click', () => {
+    if (selfTesting) return;
+    selfTesting = true;
+    dragBox.classList.add('highlight');
+    logEvent('enter', 'dragenter ✓ 模拟自检开始');
+
+    setTimeout(() => logEvent('over', 'dragover — 模拟悬停'), 240);
+    setTimeout(() => {
+      dragBox.classList.remove('highlight');
+      logEvent('drop', 'drop ✓ 模拟落点 · workflow_demo.png（自检信号，未读取任何真实文件）');
+      burst();
+      toast('自检完成：本页的拖放事件链正常', 'ok');
+      selfTesting = false;
+    }, 620);
+  });
+
+  document.getElementById('clearLog').addEventListener('click', () => {
+    const idle = document.createElement('div');
+    idle.className = 'event-line idle';
+    idle.setAttribute('data-idle', '');
+    idle.textContent = '等待拖拽事件…';
+    eventLog.replaceChildren(idle);
+    toast('事件流已清空');
+  });
+
+  /* ========================================================== 冲突插件数据 */
+  const SEVERITY = {
+    high: { label: '🔴 高风险', cls: 'sev-high' },
+    med: { label: '🟡 中等', cls: 'sev-med' },
+    low: { label: '🟢 低风险', cls: 'sev-low' }
+  };
+
   const conflicts = [
     {
       name: 'pysssss-workflows',
-      severity: 'high', sevClass: 'sev-high',
+      severity: 'high',
       symptom: '安装后 ComfyUI 完全无法拖入 PNG 工作流图片。该插件注册了自定义的 drop handler，与 ComfyUI 原生 handler 冲突，导致 drop 事件被拦截。',
-      fix: '在 custom_nodes/pysssss-workflows/ 下找到 __init__.py，注释掉 <code>addEventListener("drop",...)</code> 相关代码段；或直接禁用该插件。'
+      fix: '在 custom_nodes/pysssss-workflows/ 下找到 __init__.py，注释掉 addEventListener("drop", ...) 相关代码段；或直接禁用该插件。',
+      cmd: 'cd ComfyUI/custom_nodes && mv pysssss-workflows pysssss-workflows.disabled'
     },
     {
       name: 'rgthree-comfy',
-      severity: 'high', sevClass: 'sev-high',
+      severity: 'high',
       symptom: '拖拽 PNG 到画布时，浏览器弹出新标签页打开图片而非加载工作流。rgthree 的全局 drag&drop 监听器劫持了默认行为。',
-      fix: '在 rgthree 设置面板中关闭"Enable image drag import"选项；或更新到最新版本（>=v2.2.0 已修复此问题）。'
+      fix: '在 rgthree 设置面板中关闭“Enable image drag import”选项；或更新到最新版本（>=v2.2.0 已修复此问题）。',
+      cmd: 'cd ComfyUI/custom_nodes/rgthree-comfy && git pull && pip install -r requirements.txt'
     },
     {
       name: 'ComfyUI-Manager',
-      severity: 'med', sevClass: 'sev-med',
+      severity: 'med',
       symptom: '部分版本中，Manager 的前端 JS 拦截了拖放事件，导致拖入的 workflow PNG 只在 Manager 面板中显示而非加载到画布。',
-      fix: '升级 ComfyUI-Manager 到最新版本。临时方案：使用"Load"按钮手动选择文件，跳过拖放。'
+      fix: '升级 ComfyUI-Manager 到最新版本。临时方案：使用“Load”按钮手动选择文件，跳过拖放。',
+      cmd: 'cd ComfyUI/custom_nodes/ComfyUI-Manager && git pull'
     },
     {
       name: 'efficiency-nodes-comfyui',
-      severity: 'low', sevClass: 'sev-low',
+      severity: 'low',
       symptom: '偶发性拖拽失效，通常只在打开多个浏览器标签页时出现。不是直接冲突，而是事件冒泡链被效率节点的 DOM 结构打断。',
-      fix: '刷新页面即可恢复。如频繁出现，检查是否有两个以上 ComfyUI 标签页同时打开。'
+      fix: '刷新页面即可恢复。如频繁出现，检查是否有两个以上 ComfyUI 标签页同时打开。',
+      cmd: '# 关掉多余的 ComfyUI 标签页，然后硬刷新：Ctrl + Shift + R'
     },
     {
       name: 'comfyui-workspace-manager',
-      severity: 'med', sevClass: 'sev-med',
+      severity: 'med',
       symptom: '工作区管理插件的浮动面板覆盖在画布上方，拖入 PNG 时文件落入面板而非画布。面板的 z-index 高于画布导致事件被截获。',
-      fix: '关闭工作区管理面板或将其最小化后再拖放。建议在插件设置中调整面板默认显示状态。'
+      fix: '关闭工作区管理面板或将其最小化后再拖放。建议在插件设置中调整面板默认显示状态。',
+      cmd: 'cd ComfyUI/custom_nodes && mv comfyui-workspace-manager comfyui-workspace-manager.disabled'
     },
     {
       name: 'TiledDiffusion (WebUI 混用)',
-      severity: 'low', sevClass: 'sev-low',
+      severity: 'low',
       symptom: '如果同时运行了 Stable Diffusion WebUI 和 ComfyUI，浏览器的某些全局扩展可能干扰 ComfyUI 页面的拖放事件。',
-      fix: '在独立的浏览器配置文件或无痕窗口中打开 ComfyUI；禁用可能干扰的浏览器扩展（如拖拽翻译、手势控制等）。'
+      fix: '在独立的浏览器配置文件或无痕窗口中打开 ComfyUI；禁用可能干扰的浏览器扩展（如拖拽翻译、手势控制等）。',
+      cmd: 'chrome.exe --user-data-dir="%TEMP%/comfy-clean" --disable-extensions http://127.0.0.1:8188'
     },
     {
       name: 'comfyui-browser-extensions',
-      severity: 'med', sevClass: 'sev-med',
-      symptom: '浏览器安装了"超级拖拽"、"拖拽搜索"、"手势导航"等扩展时，这些扩展可能拦截 ComfyUI 页面上的拖放事件。',
-      fix: '将 ComfyUI 的 localhost 地址加入浏览器扩展的白名单；或在访问 ComfyUI 时暂时禁用相关扩展。'
+      severity: 'med',
+      symptom: '浏览器安装了“超级拖拽”、“拖拽搜索”、“手势导航”等扩展时，这些扩展可能拦截 ComfyUI 页面上的拖放事件。',
+      fix: '将 ComfyUI 的 localhost 地址加入浏览器扩展的白名单；或在访问 ComfyUI 时暂时禁用相关扩展。',
+      cmd: '# Chrome：chrome://extensions → 该扩展详情 → 网站访问权限 → 移除 127.0.0.1:8188'
     },
     {
       name: 'WAS-Node-Suite',
-      severity: 'low', sevClass: 'sev-low',
+      severity: 'low',
       symptom: 'WAS 套件在特定配置下会在页面上注入额外的 DOM 层，极少数情况下干扰拖放 target 的识别。仅在特定浏览器+操作系统组合中出现。',
-      fix: '更新 WAS-Node-Suite 到最新版本（>=v1.4）；如仍有问题，在 WAS Suite 设置中关闭"UI Enhancements"。'
+      fix: '更新 WAS-Node-Suite 到最新版本（>=v1.4）；如仍有问题，在 WAS Suite 设置中关闭“UI Enhancements”。',
+      cmd: 'cd ComfyUI/custom_nodes/was-node-suite-comfyui && git pull'
     }
   ];
 
-  // === RENDER CONFLICTS ===
   const conflictGrid = document.getElementById('conflictGrid');
-  conflictGrid.innerHTML = conflicts.map(c => `
-    <div class="conflict-item">
-      <div class="conflict-name">📦 ${c.name}</div>
-      <div class="conflict-severity ${c.sevClass}">${c.severity==='high'?'🔴 高风险':c.severity==='med'?'🟡 中等':'🟢 低风险'}</div>
-      <div class="conflict-symptom">${c.symptom}</div>
-      <div class="conflict-fix">${c.fix}</div>
-    </div>
-  `).join('');
+  const sevFilter = document.getElementById('sevFilter');
+  const cardByName = new Map();
+  let activeSeverity = 'all';
 
-  // === SIMULATED SCAN ===
+  function buildCard(item) {
+    const card = document.createElement('details');
+    card.className = 'conflict-item';
+    card.dataset.severity = item.severity;
+    card.dataset.name = item.name;
+
+    const head = document.createElement('summary');
+    head.className = 'conflict-head';
+
+    const name = document.createElement('span');
+    name.className = 'conflict-name';
+    name.textContent = '📦 ' + item.name;
+
+    const badge = document.createElement('span');
+    const severity = SEVERITY[item.severity] || SEVERITY.low;
+    badge.className = 'conflict-severity ' + severity.cls;
+    badge.textContent = severity.label;
+
+    const caret = document.createElement('span');
+    caret.className = 'conflict-caret';
+    caret.setAttribute('aria-hidden', 'true');
+    caret.textContent = '▼';
+
+    head.append(name, badge, caret);
+
+    const body = document.createElement('div');
+    body.className = 'conflict-body';
+
+    const symptom = document.createElement('p');
+    symptom.className = 'conflict-symptom';
+    symptom.textContent = item.symptom;
+
+    const fix = document.createElement('p');
+    fix.className = 'conflict-fix';
+    fix.textContent = item.fix;
+
+    const cmdRow = document.createElement('div');
+    cmdRow.className = 'conflict-cmd';
+
+    const cmd = document.createElement('code');
+    cmd.textContent = item.cmd;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn-ghost btn-sm';
+    copyBtn.dataset.cmd = item.cmd;
+    copyBtn.setAttribute('aria-label', '复制 ' + item.name + ' 的修复命令');
+    copyBtn.textContent = '📋 复制修复命令';
+
+    cmdRow.append(cmd, copyBtn);
+    body.append(symptom, fix, cmdRow);
+    card.append(head, body);
+
+    cardByName.set(item.name, card);
+    return card;
+  }
+
+  function renderConflicts() {
+    const fragment = document.createDocumentFragment();
+    conflicts.forEach((item) => fragment.append(buildCard(item)));
+    conflictGrid.replaceChildren(fragment);
+  }
+
+  function renderFilter() {
+    const entries = [
+      { id: 'all', label: '全部', count: conflicts.length },
+      { id: 'high', label: '🔴 高风险', count: conflicts.filter((item) => item.severity === 'high').length },
+      { id: 'med', label: '🟡 中等', count: conflicts.filter((item) => item.severity === 'med').length },
+      { id: 'low', label: '🟢 低风险', count: conflicts.filter((item) => item.severity === 'low').length }
+    ];
+
+    const fragment = document.createDocumentFragment();
+    entries.forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chip';
+      button.dataset.severity = entry.id;
+      button.setAttribute('aria-pressed', String(entry.id === activeSeverity));
+      button.textContent = entry.label + ' · ' + entry.count;
+      fragment.append(button);
+    });
+
+    const count = document.createElement('span');
+    count.className = 'conflict-count';
+    count.id = 'conflictCount';
+    count.setAttribute('role', 'status');
+    count.setAttribute('aria-live', 'polite');
+    fragment.append(count);
+
+    sevFilter.replaceChildren(fragment);
+  }
+
+  function applyFilter() {
+    let shown = 0;
+    conflictGrid.querySelectorAll('.conflict-item').forEach((card) => {
+      const match = activeSeverity === 'all' || card.dataset.severity === activeSeverity;
+      card.hidden = !match;
+      if (match) shown += 1;
+    });
+
+    sevFilter.querySelectorAll('.chip').forEach((chip) => {
+      chip.setAttribute('aria-pressed', String(chip.dataset.severity === activeSeverity));
+    });
+
+    const count = document.getElementById('conflictCount');
+    if (count) count.textContent = '显示 ' + shown + ' / ' + conflicts.length + ' 条';
+  }
+
+  sevFilter.addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    activeSeverity = chip.dataset.severity;
+    applyFilter();
+  });
+
+  conflictGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-cmd]');
+    if (!button) return;
+    copyText(button.dataset.cmd, button);
+  });
+
+  renderFilter();
+  renderConflicts();
+  applyFilter();
+
+  /* ============================================================== 模拟扫描 */
   const scanBtn = document.getElementById('scanBtn');
   const scanProgress = document.getElementById('scanProgress');
   const scanBar = document.getElementById('scanBar');
@@ -276,68 +684,128 @@
   const scanResult = document.getElementById('scanResult');
   let scanning = false;
 
-  const fakeDirs = [
-    'ComfyUI/custom_nodes/ComfyUI-Manager/', 'ComfyUI/custom_nodes/pysssss-workflows/',
-    'ComfyUI/custom_nodes/rgthree-comfy/', 'ComfyUI/custom_nodes/efficiency-nodes-comfyui/',
-    'ComfyUI/custom_nodes/comfyui-workspace-manager/', 'ComfyUI/custom_nodes/WAS-Node-Suite/',
-    'ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus/', 'ComfyUI/custom_nodes/ComfyUI-KJNodes/',
-    'ComfyUI/custom_nodes/ComfyUI-AnimateDiff-Evolved/', 'ComfyUI/custom_nodes/ComfyUI-Impact-Pack/',
-    'ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale/', 'ComfyUI/custom_nodes/comfyui_controlnet_aux/',
-    'ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/', 'ComfyUI/custom_nodes/ComfyUI_TiledKSampler/',
+  /** 与冲突数据库无关的“干净”目录，用来撑出一份像样的快照。 */
+  const NEUTRAL_DIRS = [
+    'ComfyUI/custom_nodes/ComfyUI_IPAdapter_plus/',
+    'ComfyUI/custom_nodes/ComfyUI-KJNodes/',
+    'ComfyUI/custom_nodes/ComfyUI-AnimateDiff-Evolved/',
+    'ComfyUI/custom_nodes/ComfyUI-Impact-Pack/',
+    'ComfyUI/custom_nodes/ComfyUI_UltimateSDUpscale/',
+    'ComfyUI/custom_nodes/comfyui_controlnet_aux/',
+    'ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite/',
+    'ComfyUI/custom_nodes/ComfyUI_TiledKSampler/'
   ];
+
+  /** 可能被“装上”的冲突目录，name 直接对应冲突数据库条目。 */
+  const CONFLICT_DIRS = [
+    { dir: 'ComfyUI/custom_nodes/pysssss-workflows/', name: 'pysssss-workflows' },
+    { dir: 'ComfyUI/custom_nodes/rgthree-comfy/', name: 'rgthree-comfy' },
+    { dir: 'ComfyUI/custom_nodes/ComfyUI-Manager/', name: 'ComfyUI-Manager' },
+    { dir: 'ComfyUI/custom_nodes/efficiency-nodes-comfyui/', name: 'efficiency-nodes-comfyui' },
+    { dir: 'ComfyUI/custom_nodes/comfyui-workspace-manager/', name: 'comfyui-workspace-manager' },
+    { dir: 'ComfyUI/custom_nodes/WAS-Node-Suite/', name: 'WAS-Node-Suite' }
+  ];
+
+  function shuffle(list) {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const swap = copy[i];
+      copy[i] = copy[j];
+      copy[j] = swap;
+    }
+    return copy;
+  }
+
+  /** 每次抽 0~4 个冲突目录：固定塞满冲突的话，“未检测到冲突”那条分支永远走不到。 */
+  function buildSnapshot() {
+    const picked = shuffle(CONFLICT_DIRS).slice(0, Math.floor(Math.random() * 5));
+    const clean = NEUTRAL_DIRS.map((dir) => ({ dir: dir, name: null }));
+    return shuffle(clean.concat(picked));
+  }
+
+  function appendScanLine(text, tone) {
+    const line = document.createElement('div');
+    line.className = tone ? 'scan-line ' + tone : 'scan-line';
+    line.textContent = text;
+    scanLog.append(line);
+    scanLog.scrollTop = scanLog.scrollHeight;
+  }
+
+  function setProgress(percent) {
+    scanBar.style.width = percent + '%';
+    scanProgress.setAttribute('aria-valuenow', String(percent));
+  }
 
   scanBtn.addEventListener('click', async () => {
     if (scanning) return;
     scanning = true;
     scanBtn.disabled = true;
-    scanProgress.style.display = 'block';
-    scanLog.style.display = 'block';
-    scanResult.style.display = 'none';
-    scanBar.style.width = '0%';
-    scanLog.innerHTML = '';
-    scanStatus.textContent = '正在扫描...';
+    scanBtn.textContent = '🔬 扫描中…';
 
-    const foundConflicts = [];
-    const total = fakeDirs.length;
+    scanProgress.hidden = false;
+    scanLog.hidden = false;
+    scanResult.hidden = true;
+    scanResult.className = 'scan-result';
+    scanLog.replaceChildren();
+    setProgress(0);
+    scanStatus.textContent = '正在扫描 custom_nodes/ …';
 
-    for (let i = 0; i < total; i++) {
-      await new Promise(r => setTimeout(r, 180 + Math.random() * 200));
-      const dir = fakeDirs[i];
-      const pct = Math.round(((i+1)/total)*100);
-      scanBar.style.width = pct + '%';
-      scanLog.innerHTML += `<div style="color:rgba(200,200,224,0.25);">📁 扫描 ${dir}</div>`;
+    conflictGrid.querySelectorAll('.is-flagged').forEach((card) => card.classList.remove('is-flagged'));
 
-      // Check if this is a known conflict
-      const matched = conflicts.find(c => dir.toLowerCase().includes(c.name.toLowerCase().replace(/[^a-z0-9-]/g,'')));
-      if (matched) {
-        foundConflicts.push(matched);
-        scanLog.innerHTML += `<div style="color:#e8a860;margin-left:1rem;">⚠ 检测到冲突: ${matched.name}</div>`;
+    const snapshot = buildSnapshot();
+    const found = [];
+
+    for (let i = 0; i < snapshot.length; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => setTimeout(resolve, stillQuery.matches ? 40 : 150 + Math.random() * 170));
+      const entry = snapshot[i];
+      setProgress(Math.round(((i + 1) / snapshot.length) * 100));
+      appendScanLine('📁 扫描 ' + entry.dir);
+
+      if (entry.name) {
+        found.push(entry.name);
+        appendScanLine('⚠ 检测到冲突: ' + entry.name, 'hit');
       }
-      scanLog.scrollTop = scanLog.scrollHeight;
     }
 
-    // Done
+    appendScanLine('— 扫描结束，共比对 ' + snapshot.length + ' 个目录', 'done');
+
     scanning = false;
     scanBtn.disabled = false;
+    scanBtn.textContent = '🔬 重新扫描';
     scanStatus.textContent = '扫描完成';
-    scanResult.style.display = 'block';
-    if (foundConflicts.length > 0) {
-      scanResult.className = 'scan-result-badge';
-      scanResult.style.background = 'rgba(232,168,96,0.1)';
-      scanResult.style.border = '1px solid rgba(232,168,96,0.25)';
-      scanResult.style.color = '#e8a860';
-      scanResult.textContent = `⚠ 检测到 ${foundConflicts.length} 个潜在冲突: ${foundConflicts.map(c=>c.name).join(' / ')}`;
+    scanResult.hidden = false;
+
+    if (found.length > 0) {
+      scanResult.className = 'scan-result is-warn';
+      scanResult.textContent = '⚠ 检测到 ' + found.length + ' 个潜在冲突：' + found.join(' / ') + ' — 已在上方数据库中展开对应条目';
+      // 扫到什么就把对应卡片展开并点亮，省去用户自己回头找
+      activeSeverity = 'all';
+      applyFilter();
+      found.forEach((name) => {
+        const card = cardByName.get(name);
+        if (!card) return;
+        card.open = true;
+        card.classList.add('is-flagged');
+      });
+      toast('扫描完成：检出 ' + found.length + ' 个潜在冲突', 'error');
     } else {
-      scanResult.style.background = 'rgba(120,200,120,0.08)';
-      scanResult.style.border = '1px solid rgba(120,200,120,0.2)';
-      scanResult.style.color = '#80c080';
+      scanResult.className = 'scan-result is-ok';
       scanResult.textContent = '✅ 未检测到已知冲突插件，拖拽功能应正常工作';
+      toast('扫描完成：这份快照很干净', 'ok');
     }
 
-    setTimeout(() => { scanProgress.style.display = 'none'; scanStatus.textContent = ''; }, 2000);
+    setTimeout(() => {
+      if (scanning) return;
+      scanProgress.hidden = true;
+      scanStatus.textContent = '';
+    }, 2400);
   });
 })();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# 星穹枢庭 · Gemini Sanctuary
+# 星穹枢庭 · Xingqiong Hub
 
 「星穹枢庭」是一个部署在 GitHub Pages 上的个人创作档案站，用于公开整理提示词、视觉实验与生成式创作方法。
 
@@ -15,6 +15,23 @@ https://stardustlc666.github.io/xingqiong-hub/
 - 14 份可直接从公网浏览的手册、提示词、标签、工具与协议档案
 - 7 / 7 严格内容分流、Three.js 动态主视觉、真实项目预览和完整响应式布局
 
+## 前端结构
+
+站点没有构建步骤，所有页面都是可直接打开的静态 HTML。共享层分三块：
+
+| 文件 | 作用 |
+| --- | --- |
+| `assets/sanctuary.css` | 全站设计令牌（颜色、圆角、阴影、字体、动效节奏）与站点外壳样式 |
+| `assets/sanctuary.js` | 环境背景、顶栏、阅读进度、返回顶部、命令面板、提示条、复制、滚动进场 |
+| `assets/gemini.css` | 子页面组件层（`.page` / `.panel` / `.chip` / `.btn` / 表单 / 代码块），建立在令牌之上 |
+| `assets/gate-guide.js` | 每个子页面顶部的「星门说明」引导卡与星门互链 |
+| `assets/home.*` | 首页专属的暮光档案馆视觉与新手路线交互 |
+
+首页保留自己的外壳，用 `<html data-xq-shell="off">` 只取命令面板与微交互。
+按 `Ctrl/Cmd + K`（或 `/`）可在任意页面唤出星门检索，直达全部 17 个页面。
+
+所有资源均自托管，站点不请求任何外部 CDN、字体或统计服务。
+
 ## 公网发布
 
 本站通过 GitHub Pages 的分支发布模式上线：
@@ -29,17 +46,22 @@ https://stardustlc666.github.io/xingqiong-hub/
 
 ## 本地预览
 
-发布前可在仓库目录启动一个静态文件服务：
+发布前可在仓库目录启动内置的零依赖静态服务：
 
-```powershell
-Set-Location 'E:\Codex\github-pages\xingqiong-hub'
-py -3 -m http.server 18446 --bind 127.0.0.1
+```bash
+node scripts/dev-server.mjs 18446
 ```
 
 浏览器访问：
 
 ```text
 http://127.0.0.1:18446/
+```
+
+提交前跑一遍与 CI 相同的自检：
+
+```bash
+node scripts/check-static-site.mjs
 ```
 
 本地预览只用于开发检查，公网访问不依赖这项服务。

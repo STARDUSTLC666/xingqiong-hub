@@ -3,70 +3,626 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>赛博魔典 · Cyber Summon</title>
+<title>赛博魔典 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="把零散 Danbooru 标签组合成可复制的提示词，支持分组、加权与批量导入。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/cyber-summon/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="赛博魔典 · 星穹枢庭">
+  <meta property="og:description" content="把零散 Danbooru 标签组合成可复制的提示词，支持分组、加权与批量导入。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/cyber-summon/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-#sakura { position:fixed; inset:0; z-index:1; pointer-events:none; }
+/* ------------------------------------------------------------ 花瓣环境层 */
+/* 星空由 sanctuary 环境层接管，这里只留樱吹雪叠在它上面、页面下面 */
+#sakura {
+  position: fixed;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
 .page { z-index: 3; }
 
+/* -------------------------------------------------------------- 年龄门禁 */
+/* 确认前先把正文糊掉，避免弹窗尚未 showModal 的一帧里内容裸奔 */
+body[data-gate="pending"] .page,
+body[data-gate="pending"] #sakura {
+  filter: blur(18px) saturate(0.55);
+  pointer-events: none;
+  user-select: none;
+}
+body[data-gate="open"] .page {
+  transition: filter var(--xq-dur-slow) var(--xq-ease-out);
+}
+
+.age-gate {
+  width: min(480px, calc(100% - 32px));
+  padding: 0;
+  border: 1px solid var(--xq-line-strong);
+  border-radius: var(--xq-r-lg);
+  background: var(--xq-ink-soft);
+  box-shadow: var(--xq-shadow-lg);
+  color: var(--xq-text);
+}
+.age-gate::backdrop {
+  background: rgba(3, 4, 10, 0.78);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.age-gate[open] {
+  animation: gateIn 420ms var(--xq-spring) both;
+}
+@keyframes gateIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+}
+.age-gate form {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(22px, 4vw, 32px);
+}
+.age-gate__icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 20px;
+  border: 1px solid var(--xq-danger);
+  border-radius: 50%;
+  background: var(--xq-accent-soft);
+  color: var(--xq-danger);
+  font-size: 1.25rem;
+  place-items: center;
+}
+.age-gate__kicker {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.age-gate h2 {
+  margin-top: 6px;
+  color: var(--xq-text);
+  font-family: var(--xq-font-serif);
+  font-size: clamp(1.4rem, 4vw, 1.75rem);
+  letter-spacing: 0.04em;
+}
+.age-gate p {
+  margin-top: 14px;
+  color: var(--xq-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.8;
+}
+.age-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 26px;
+  gap: 10px;
+}
+
+/* -------------------------------------------------------------- 导入面板 */
+.import-area textarea {
+  min-height: 74px;
+  font-family: var(--xq-font-mono);
+  font-size: 0.75rem;
+}
+.import-note {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+}
+#importCount:not(:empty) {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  animation: countPop 480ms var(--xq-spring) both;
+  color: var(--xq-gold);
+}
+@keyframes countPop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* ---------------------------------------------------------- 词条权重矩阵 */
+.weight-list {
+  display: grid;
+  gap: 2px;
+}
+.weight-empty {
+  display: grid;
+  padding: 1.9rem 1rem;
+  border: 1px dashed var(--xq-line);
+  border-radius: var(--xq-r-md);
+  color: var(--xq-text-faint);
+  font-size: 0.8rem;
+  gap: 0.45rem;
+  justify-items: center;
+  text-align: center;
+}
+.weight-empty__icon {
+  animation: emptyBreathe 3.6s var(--xq-ease) infinite;
+  font-size: 1.4rem;
+}
+@keyframes emptyBreathe {
+  0%, 100% { opacity: 0.45; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
+}
+
 .weight-row {
-  display: flex; align-items: center; gap: 0.5rem;
-  padding: 0.35rem 0.6rem; border-radius: 8px;
-  font-size: 0.78rem; transition: background 0.2s;
-  border-bottom: 1px solid rgba(255,255,255,0.02);
+  position: relative;
+  display: grid;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-sm);
+  animation: rowIn 460ms var(--xq-ease-out) both;
+  animation-delay: var(--row-delay, 0ms);
+  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 150px) 3.1rem 26px;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
 }
-.weight-row:hover { background: rgba(255,255,255,0.02); }
-.weight-tag { flex: 1; min-width: 80px; color: #d0b880; font-size: 0.78rem; }
-.weight-btns { display: flex; gap: 0.2rem; }
-.wt-btn {
-  width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(232,168,96,0.2);
-  background: rgba(232,168,96,0.06); color: #c8a870; cursor: pointer;
-  font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
 }
-.wt-btn:hover { background: rgba(232,168,96,0.18); border-color: #e8a860; }
+/* 权重越高，行底金色越浓——用叠层的 opacity 表达，避免逐档写死颜色 */
+.weight-row::before {
+  position: absolute;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--xq-gold-wash), transparent 82%);
+  content: "";
+  inset: 0;
+  opacity: var(--w-hot, 0);
+  pointer-events: none;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+.weight-row > * { position: relative; z-index: 1; }
+.weight-row:hover {
+  border-color: var(--xq-line);
+  transform: translateX(2px);
+}
+.weight-row.is-hit { animation: rowHit 620ms var(--xq-ease-out); }
+@keyframes rowHit {
+  0% { box-shadow: 0 0 0 0 var(--xq-gold-wash); }
+  35% { box-shadow: 0 0 0 5px var(--xq-gold-wash); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.weight-tag {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--xq-text-soft);
+  font-family: var(--xq-font-mono);
+  font-size: 0.76rem;
+  gap: 0.45rem;
+  overflow-wrap: anywhere;
+}
+.weight-row.is-max .weight-tag {
+  color: var(--xq-gold-bright);
+  text-shadow: 0 0 12px var(--xq-gold-wash);
+}
+.weight-row.is-min .weight-tag { color: var(--xq-text-faint); }
+/* 来源色点，与输出区的分类着色是同一套语义 */
+.src-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  box-shadow: 0 0 8px currentcolor;
+}
+.src-import { color: var(--xq-gold); }
+.src-quick { color: var(--xq-cyan); }
+.src-foot { color: var(--xq-rose); }
+.src-bdsm { color: var(--xq-violet); }
+
+.weight-slider {
+  width: 100%;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.weight-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--xq-r-pill);
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold-bright) var(--w-pct, 50%), var(--xq-surface-quiet) var(--w-pct, 50%));
+}
+.weight-slider::-moz-range-track {
+  height: 4px;
+  border-radius: var(--xq-r-pill);
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold-bright) var(--w-pct, 50%), var(--xq-surface-quiet) var(--w-pct, 50%));
+}
+.weight-slider::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 1px solid var(--xq-gold-bright);
+  border-radius: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--xq-ink-raised);
+  box-shadow: 0 0 0 0 var(--xq-gold-wash);
+  transition: box-shadow var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.weight-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--xq-gold-bright);
+  border-radius: 50%;
+  background: var(--xq-ink-raised);
+  transition: box-shadow var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.weight-slider:hover::-webkit-slider-thumb,
+.weight-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 5px var(--xq-gold-wash);
+  transform: scale(1.15);
+}
+.weight-slider:hover::-moz-range-thumb,
+.weight-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 5px var(--xq-gold-wash);
+  transform: scale(1.15);
+}
+.weight-slider:focus-visible { outline: none; }
+
 .weight-val {
-  min-width: 2.2rem; text-align: center;
-  font-size: 0.72rem; color: #e8a860; font-weight: 600;
+  padding: 2px 0;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-gold);
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
 }
-.weight-row.min .weight-tag { color: rgba(200,200,224,0.3); }
-.weight-row.min .weight-val { color: rgba(200,200,224,0.3); }
-.weight-row.max .weight-tag { color: #e8a860; text-shadow: 0 0 8px rgba(232,168,96,0.3); }
+.weight-val.is-bump { animation: valBump 320ms var(--xq-spring); }
+@keyframes valBump {
+  50% {
+    border-color: var(--xq-gold);
+    transform: scale(1.16);
+  }
+}
+.weight-row.is-min .weight-val { color: var(--xq-text-faint); }
 
 .remove-tag {
-  font-size: 0.65rem; cursor: pointer; color: rgba(200,100,100,0.4);
-  padding: 2px 4px; border-radius: 4px; transition: all 0.2s;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-sm);
+  background: none;
+  color: var(--xq-text-faint);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.68rem;
+  place-items: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
 }
-.remove-tag:hover { color: #e06060; background: rgba(255,50,50,0.1); }
+.remove-tag:hover {
+  border-color: var(--xq-danger);
+  background: var(--xq-accent-soft);
+  color: var(--xq-danger);
+  transform: rotate(90deg);
+}
 
-.import-area { margin-top: 0.6rem; }
-.import-area textarea { font-size: 0.75rem; min-height: 60px; }
+/* --------------------------------------------------------- 输出格式切换 */
+.fmt-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  gap: 2px;
+}
+.fmt-btn {
+  padding: 4px 13px;
+  border: 0;
+  border-radius: var(--xq-r-pill);
+  background: none;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.fmt-btn:hover { color: var(--xq-gold-bright); }
+.fmt-btn[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--xq-gold-bright), var(--xq-gold-deep));
+  box-shadow: 0 4px 14px var(--xq-gold-wash);
+  color: #201404;
+}
+
+/* -------------------------------------------------------------- 咒文输出 */
+.raw-output {
+  min-height: 56px;
+  padding: 1rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: rgba(6, 8, 18, 0.55);
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.76rem;
+  line-height: 2;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.out-tok {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-sm);
+  animation: tokIn 380ms var(--xq-ease-out) both;
+  animation-delay: var(--tok-delay, 0ms);
+  color: currentcolor;
+  transition: background var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease);
+}
+.out-tok:hover {
+  border-color: currentcolor;
+  background: var(--xq-surface-quiet);
+}
+@keyframes tokIn {
+  from {
+    filter: blur(3px);
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+.out-sep { color: var(--xq-text-faint); }
+.out-legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0.7rem;
+  color: var(--xq-text-faint);
+  font-size: 0.68rem;
+  gap: 0.4rem 1rem;
+}
+.out-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.out-meta {
+  margin-left: auto;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+}
+
+/* -------------------------------------------------------------- 咒文历史 */
+.history-list { display: grid; gap: 0.4rem; }
+.history-row {
+  display: grid;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  animation: rowIn 460ms var(--xq-ease-out) both;
+  animation-delay: var(--row-delay, 0ms);
+  background: var(--xq-surface-quiet);
+  gap: 0.3rem 0.7rem;
+  grid-template-columns: 1fr auto auto;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease);
+}
+.history-row:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-sm);
+  transform: translateY(-2px);
+}
+.history-text {
+  min-width: 0;
+  color: var(--xq-text-soft);
+  font-family: var(--xq-font-mono);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-meta {
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+}
+.history-text {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.history-row [data-load] { grid-area: 1 / 2 / 2 / 3; }
+.history-row [data-copy-history] { grid-area: 1 / 3 / 2 / 4; }
+.history-empty {
+  color: var(--xq-text-faint);
+  font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------ 标签速加区 */
+.quick-group { margin-bottom: 0.9rem; }
+.quick-group:last-child { margin-bottom: 0; }
+.quick-group__name {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+/* .chip 原本是 span，改成 button 后要收掉浏览器默认样式 */
+button.chip,
+button.zone-chip {
+  font-family: inherit;
+  line-height: 1.5;
+}
+.chip[aria-pressed="true"]::after,
+.zone-chip[aria-pressed="true"]::after {
+  content: "✓";
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--xq-gold);
+  background: rgba(232, 168, 96, 0.22);
+  box-shadow: var(--xq-glow-gold);
+  color: var(--xq-gold-bright);
+}
 
 .zone-section h3 {
-  font-size: 0.8rem; color: rgba(255,140,180,0.7);
-  margin-bottom: 0.4rem; letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  color: var(--xq-accent);
+  font-family: var(--xq-font-serif);
+  font-size: 0.9rem;
+  gap: 0.45rem;
+  letter-spacing: 0.05em;
 }
-.zone-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.8rem; }
+.zone-section h3 small {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
 .zone-chip {
-  padding: 0.2rem 0.55rem; border-radius: 10px; font-size: 0.7rem; cursor: pointer;
-  background: rgba(255,120,160,0.05); border: 1px solid rgba(255,120,160,0.12);
-  color: #cc88a0; transition: all 0.2s;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid rgba(224, 125, 112, 0.16);
+  border-radius: var(--xq-r-pill);
+  background: rgba(224, 125, 112, 0.06);
+  color: #d9a3ad;
+  cursor: pointer;
+  font-size: 0.72rem;
+  gap: 5px;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+  user-select: none;
 }
-.zone-chip:hover { background: rgba(255,120,160,0.15); border-color: rgba(255,120,160,0.35); }
-.zone-chip.selected { background: rgba(255,120,160,0.2); border-color: #e880a8; color: #f0a8c8; }
+.zone-chip:hover {
+  border-color: rgba(224, 125, 112, 0.44);
+  background: rgba(224, 125, 112, 0.16);
+  color: var(--xq-rose);
+  transform: translateY(-1px);
+}
+.zone-chip[aria-pressed="true"] {
+  border-color: var(--xq-rose);
+  background: rgba(255, 178, 205, 0.2);
+  box-shadow: 0 0 0 1px rgba(255, 178, 205, 0.22), 0 6px 20px rgba(255, 178, 205, 0.16);
+  color: var(--xq-rose);
+}
+.zone-chip--violet { border-color: rgba(171, 156, 219, 0.16); background: rgba(171, 156, 219, 0.06); color: #b6abdf; }
+.zone-chip--violet:hover { border-color: rgba(171, 156, 219, 0.44); background: rgba(171, 156, 219, 0.16); color: var(--xq-violet); }
+.zone-chip--violet[aria-pressed="true"] {
+  border-color: var(--xq-violet);
+  background: rgba(171, 156, 219, 0.22);
+  box-shadow: 0 0 0 1px rgba(171, 156, 219, 0.24), 0 6px 20px rgba(171, 156, 219, 0.16);
+  color: #d3cbf0;
+}
 
-.raw-output {
-  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.1);
-  border-radius: 10px; padding: 1rem; font-size: 0.78rem; line-height: 1.8;
-  color: #e0c090; min-height: 50px; word-break: break-all;
+/* ---------------------------------------------------------------- 响应式 */
+@media (max-width: 720px) {
+  .weight-row {
+    padding: 0.55rem 0.5rem;
+    gap: 0.35rem 0.5rem;
+    grid-template-columns: minmax(0, 1fr) 3.1rem 26px;
+  }
+  .weight-tag { grid-column: 1; }
+  .weight-slider {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .out-legend { gap: 0.35rem 0.7rem; }
+}
+
+@media (max-width: 400px) {
+  .fmt-switch { width: 100%; }
+  .fmt-btn { flex: 1; }
+  .age-gate__actions .button,
+  .age-gate__actions .btn { flex: 1 1 auto; }
+}
+
+@media (min-width: 1100px) {
+  .weight-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 1.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .age-gate[open],
+  .weight-row,
+  .weight-empty__icon,
+  .history-row,
+  .out-tok,
+  #importCount:not(:empty),
+  .weight-val.is-bump,
+  .weight-row.is-hit {
+    animation: none;
+  }
+  .weight-row:hover,
+  .history-row:hover,
+  .zone-chip:hover,
+  .remove-tag:hover {
+    transform: none;
+  }
+  body[data-gate="open"] .page { transition: none; }
 }
 </style>
 </head>
-<body>
-<canvas id="starfield"></canvas>
-<canvas id="sakura"></canvas>
+<body data-gate="pending">
+<canvas id="sakura" aria-hidden="true"></canvas>
+
+<dialog class="age-gate" id="ageGate" aria-labelledby="ageGateTitle" aria-describedby="ageGateDesc">
+  <form method="dialog">
+    <span class="age-gate__icon" aria-hidden="true">⚠</span>
+    <p class="age-gate__kicker">CONTENT NOTICE</p>
+    <h2 id="ageGateTitle">成人向标签工坊</h2>
+    <p id="ageGateDesc">赛博魔典收录成人向 Danbooru 标签与加权词库，仅作为个人创作过程记录。继续前请确认你已年满 18 岁，且所在地区允许浏览此类内容。</p>
+    <div class="age-gate__actions">
+      <button type="submit" class="btn btn-ghost" value="cancel">返回枢庭</button>
+      <button type="submit" class="btn btn-primary" value="confirm" id="ageConfirm">已满 18 岁，继续</button>
+    </div>
+  </form>
+</dialog>
+
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
   <header class="page-header">
     <h1>赛博魔典</h1>
     <p class="subtitle">Cyber Summon · Danbooru NSFW 高频吟唱法阵</p>
@@ -75,13 +631,15 @@
   <!-- 外部导入 -->
   <div class="panel">
     <div class="panel-title">📥 外部词条导入</div>
-    <p class="text-muted mb-1">粘贴 Danbooru 标签串（逗号/空格分隔），自动解析并加入权重列表</p>
+    <p class="text-muted mb-1">粘贴 Danbooru 标签串（逗号 / 分号 / 换行分隔），自动解析 <code>(tag:1.2)</code> 与 <code>(tag)</code> 写法并加入权重矩阵</p>
     <div class="import-area">
-      <textarea id="importInput" placeholder="粘贴标签... 如: 1girl, blush, nude, spread legs..."></textarea>
+      <label class="xq-sr" for="importInput">待解析的标签文本</label>
+      <textarea id="importInput" placeholder="粘贴标签... 如: 1girl, blush, (nude:1.2), spread legs..." spellcheck="false"></textarea>
       <div class="flex-row mt-1">
-        <button class="btn btn-ghost btn-sm" onclick="importTags()">📥 导入解析</button>
-        <button class="btn btn-ghost btn-sm" onclick="importFromClipboard()">📋 从剪贴板导入</button>
-        <span class="text-muted" id="importCount"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnImport">📥 导入解析</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnImportClipboard">📋 从剪贴板导入</button>
+        <span class="text-muted" id="importCount" role="status" aria-live="polite"></span>
+        <span class="import-note">Ctrl + Enter 直接解析</span>
       </div>
     </div>
   </div>
@@ -92,180 +650,930 @@
       <span>⚖️ 词条权重矩阵</span>
       <span class="text-muted" id="weightCount">0 个词条</span>
     </div>
-    <div id="weightList"><p class="text-muted" style="padding:1rem 0;">还没有词条——粘贴标签或点击下方专区添加</p></div>
+    <div class="weight-list" id="weightList"></div>
     <div class="flex-row mt-1">
-      <button class="btn btn-primary btn-sm" onclick="genPrompt()">🔮 生成咒文</button>
-      <button class="btn btn-ghost btn-sm" onclick="copyWeights()">📋 复制</button>
-      <button class="btn btn-ghost btn-sm" onclick="resetWeights()">✕ 重置</button>
+      <button type="button" class="btn btn-primary btn-sm" id="btnGen">🔮 生成咒文</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCopy">📋 复制</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnReset">✕ 重置</button>
+      <span class="fmt-switch" role="group" aria-label="输出格式">
+        <button type="button" class="fmt-btn" data-format="a1111" aria-pressed="true">A1111</button>
+        <button type="button" class="fmt-btn" data-format="comfy" aria-pressed="false">ComfyUI</button>
+      </span>
     </div>
+  </div>
+
+  <!-- 输出 -->
+  <div class="panel">
+    <div class="panel-title flex-between">
+      <span>✨ 生成咒文</span>
+      <span class="out-meta" id="outMeta"></span>
+    </div>
+    <div class="out-legend" aria-hidden="true">
+      <span><i class="src-dot src-import"></i>外部导入</span>
+      <span><i class="src-dot src-quick"></i>高频速加</span>
+      <span><i class="src-dot src-foot"></i>足袜专区</span>
+      <span><i class="src-dot src-bdsm"></i>BDSM 专区</span>
+    </div>
+    <div class="raw-output" id="output" role="region" aria-live="polite" aria-label="生成的提示词">点击「生成咒文」创建带权重的完整 prompt...</div>
+  </div>
+
+  <!-- 历史 -->
+  <div class="panel">
+    <div class="panel-title flex-between">
+      <span>🕮 咒文历史</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnClearHistory">清空历史</button>
+    </div>
+    <p class="text-muted mb-1">自动保留最近 5 次生成的快照，可一键回填权重矩阵</p>
+    <div class="history-list" id="historyList"></div>
   </div>
 
   <!-- 快捷添加区 -->
   <div class="panel">
     <div class="panel-title">🏷️ 高频标签速加</div>
+    <p class="text-muted mb-1">点一下加入权重矩阵，再点一下移除；勾选状态就是矩阵里的真实状态</p>
     <div id="quickAddSections"></div>
   </div>
 
   <!-- 足袜专区 -->
   <div class="panel zone-section">
-    <h3>👣 极品足袜专区</h3>
-    <div class="zone-chips" id="footZone"></div>
+    <h3>👣 极品足袜专区 <small>FOOT &amp; LEGWEAR</small></h3>
+    <div class="chip-row" id="footZone"></div>
   </div>
 
   <!-- BDSM 专区 -->
   <div class="panel zone-section">
-    <h3>⛓️ BDSM 专区</h3>
-    <div class="zone-chips" id="bdsmZone"></div>
-  </div>
-
-  <!-- 输出 -->
-  <div class="panel">
-    <div class="panel-title">✨ 生成咒文</div>
-    <div class="raw-output" id="output">点击「生成咒文」创建带权重的完整 prompt...</div>
+    <h3>⛓️ BDSM 专区 <small>RESTRAINT &amp; POWER PLAY</small></h3>
+    <div class="chip-row" id="bdsmZone"></div>
   </div>
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
-// === SAKURA CANVAS ===
-(function(){
-  const c=document.getElementById('sakura'),ctx=c.getContext('2d');
-  c.width=window.innerWidth; c.height=window.innerHeight;
-  window.addEventListener('resize',()=>{c.width=window.innerWidth;c.height=window.innerHeight;});
-  const petals=[];
-  for(let i=0;i<40;i++) petals.push({
-    x:Math.random()*c.width, y:Math.random()*c.height,
-    r:Math.random()*3+1, s:Math.random()*0.5+0.3,
-    w:Math.random()*0.3+0.1, a:Math.random()*Math.PI*2
-  });
-  function draw(){
-    ctx.clearRect(0,0,c.width,c.height);
-    for(const p of petals){
-      p.y+=p.s; p.x+=Math.sin(p.a)*0.3; p.a+=0.01;
-      if(p.y>c.height+10){p.y=-10;p.x=Math.random()*c.width;}
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,160,180,${0.15+p.w})`;
-      ctx.fill();
-    }
-    requestAnimationFrame(draw);
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ 常量 */
+  const STORE = {
+    weights: 'xq.cyberSummon.weights.v1',
+    history: 'xq.cyberSummon.history.v1',
+    format: 'xq.cyberSummon.format.v1',
+    ack: 'xq.cyberSummon.adultAck.v1'
+  };
+  // 首页确认过成人内容后就不再重复拦截，键名与 assets/home.js 保持一致
+  const HOME_ACK_KEY = 'xingqiong-adult-acknowledged';
+
+  const MIN_W = 0.1;
+  const MAX_W = 2;
+  const STEP_W = 0.05;
+  const MAX_TAGS = 400;
+  const MAX_TAG_LEN = 120;
+  const HISTORY_LIMIT = 5;
+  const PLACEHOLDER = '点击「生成咒文」创建带权重的完整 prompt...';
+  const SOURCE_ORDER = ['import', 'quick', 'foot', 'bdsm'];
+  const SOURCE_NAME = { import: '外部导入', quick: '高频速加', foot: '足袜专区', bdsm: 'BDSM 专区' };
+
+  const byId = (id) => document.getElementById(id);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const toast = (message) => { if (typeof window.gsToast === 'function') window.gsToast(message); };
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
   }
-  draw();
+
+  /* ------------------------------------------------------------ 本地存储 */
+  function readStore(key, fallback) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw == null) return fallback;
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  }
+
+  function writeStore(key, value) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // 隐私模式下写入会抛错，草稿丢了也不该阻断工具本身
+    }
+  }
+
+  function dropStore(key) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // 同上
+    }
+  }
+
+  /* ------------------------------------------------------------ 年龄确认 */
+  function alreadyAcknowledged() {
+    if (readStore(STORE.ack, null) === true) return true;
+    try {
+      return window.sessionStorage.getItem(HOME_ACK_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  function leaveSite() {
+    window.location.replace('../index.html');
+  }
+
+  function unlockPage() {
+    document.body.dataset.gate = 'open';
+  }
+
+  function mountAgeGate() {
+    const gate = byId('ageGate');
+
+    if (alreadyAcknowledged()) {
+      unlockPage();
+      return;
+    }
+
+    if (typeof gate.showModal !== 'function') {
+      // 不支持 dialog 的浏览器退回到原生确认框，门禁不能因此消失
+      if (window.confirm('赛博魔典包含成人向标签词库。请确认你已年满 18 岁并希望继续。')) {
+        writeStore(STORE.ack, true);
+        unlockPage();
+      } else {
+        leaveSite();
+      }
+      return;
+    }
+
+    gate.addEventListener('close', () => {
+      if (gate.returnValue === 'confirm') {
+        writeStore(STORE.ack, true);
+        unlockPage();
+        return;
+      }
+      leaveSite();
+    });
+
+    gate.showModal();
+  }
+
+  /* -------------------------------------------------------------- 樱吹雪 */
+  function mountSakura() {
+    const canvas = byId('sakura');
+    const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+    if (!ctx) return;
+
+    const tint = (getComputedStyle(document.documentElement).getPropertyValue('--xq-rose') || '#ffb2cd').trim();
+    const petals = [];
+    const wind = { x: -1, y: -1, vx: 0, vy: 0, live: false };
+    const REACH = 170;
+
+    let width = 0;
+    let height = 0;
+    let frame = 0;
+
+    function targetCount() {
+      return Math.max(22, Math.min(64, Math.round(window.innerWidth / 24)));
+    }
+
+    function spawn(seeded) {
+      return {
+        x: Math.random() * width,
+        y: seeded ? Math.random() * height : -20,
+        r: Math.random() * 3.4 + 1.8,
+        fall: Math.random() * 0.5 + 0.25,
+        drift: Math.random() * 0.32 + 0.08,
+        phase: Math.random() * Math.PI * 2,
+        angle: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.03,
+        alpha: Math.random() * 0.28 + 0.12,
+        vx: 0,
+        vy: 0
+      };
+    }
+
+    function resize() {
+      // 高分屏下按 DPR 放大位图再缩回 CSS 尺寸，否则花瓣边缘是糊的
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const want = targetCount();
+      while (petals.length > want) petals.pop();
+      while (petals.length < want) petals.push(spawn(true));
+      petals.forEach((p) => {
+        if (p.x > width) p.x = Math.random() * width;
+        if (p.y > height) p.y = Math.random() * height;
+      });
+
+      if (still.matches) paint();
+    }
+
+    function advance() {
+      wind.vx *= 0.9;
+      wind.vy *= 0.9;
+
+      for (const p of petals) {
+        p.phase += 0.013;
+        p.angle += p.spin;
+
+        if (wind.live) {
+          const dx = p.x - wind.x;
+          const dy = p.y - wind.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < REACH) {
+            const force = 1 - dist / REACH;
+            p.vx += (wind.vx * 0.06 + (dx / (dist + 1)) * 0.9) * force;
+            p.vy += (wind.vy * 0.06 + (dy / (dist + 1)) * 0.5) * force;
+            p.spin += (Math.random() - 0.5) * 0.006 * force;
+          }
+        }
+
+        p.vx *= 0.93;
+        p.vy *= 0.93;
+        p.x += Math.sin(p.phase) * p.drift + p.vx;
+        p.y += p.fall + p.vy;
+
+        if (p.y > height + 24) {
+          p.y = -20;
+          p.x = Math.random() * width;
+          p.vx = 0;
+          p.vy = 0;
+        }
+        if (p.x < -30) p.x = width + 20;
+        if (p.x > width + 30) p.x = -20;
+      }
+    }
+
+    function paint() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = tint;
+      for (const p of petals) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.r * 1.7, p.r * 0.72, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function loop() {
+      advance();
+      paint();
+      frame = window.requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+    }
+
+    function start() {
+      stop();
+      if (still.matches) {
+        paint();
+        return;
+      }
+      frame = window.requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize, { passive: true });
+    window.addEventListener('pointermove', (event) => {
+      if (still.matches) return;
+      if (wind.live) {
+        wind.vx = event.clientX - wind.x;
+        wind.vy = event.clientY - wind.y;
+      }
+      wind.x = event.clientX;
+      wind.y = event.clientY;
+      wind.live = true;
+    }, { passive: true });
+    window.addEventListener('pointerleave', () => { wind.live = false; }, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else start();
+    });
+    if (typeof still.addEventListener === 'function') still.addEventListener('change', start);
+
+    resize();
+    start();
+  }
+
+  /* ---------------------------------------------------------------- 数据 */
+  const quickSections = [
+    { name: '核心角色', tags: ['1girl', '1boy', '2girls', 'multiple girls', 'mature', 'adult', 'tall', 'curvy', 'busty', 'slender', 'muscular'] },
+    { name: '表情神态', tags: ['blush', 'smile', 'ahegao', 'embarrassed', 'seductive smile', 'tears', 'drooling', 'tongue out', ':3', 'wincing', 'nosebleed'] },
+    { name: '服装状态', tags: ['nude', 'topless', 'bottomless', 'lingerie', 'see-through', 'school uniform', 'maid', 'bunny girl', 'swimsuit', 'kimono'] },
+    { name: '姿势体位', tags: ['spread legs', 'on back', 'kneeling', 'arms up', 'doggy style', 'cowgirl', 'missionary', 'from behind', 'pinned', 'standing sex'] },
+    { name: '体液效果', tags: ['sweat', 'drool', 'tears', 'cum', 'cum on body', 'cum on face', 'cum in pussy', 'precum', 'wet', 'body fluids'] },
+    { name: '画质增益', tags: ['masterpiece', 'high quality', 'absurdres', 'hand-drawn', 'anime coloring', 'cel shading', 'detailed', 'soft lighting'] }
+  ];
+  const footTags = ['barefoot', 'thighhighs', 'kneehighs', 'pantyhose', 'feet', 'toes', 'footjob', 'toe curling', 'soles', 'arches', 'licking feet', 'stepping', 'high heels', 'sandals', 'stockings', 'fishnets'];
+  const bdsmTags = ['bound', 'rope', 'shibari', 'handcuffs', 'blindfold', 'gag', 'collar', 'leash', 'choker', 'dominated', 'submissive', 'master', 'slave', 'suspension', 'hogtie', 'spreader bar', 'whip', 'candle wax'];
+
+  /* ---------------------------------------------------------------- 状态 */
+  // Map 天然保留插入顺序，输出时就是用户实际添加的顺序
+  const weights = new Map();
+  const state = { format: 'a1111', generated: false, text: '', history: [] };
+
+  function clampWeight(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 1;
+    return Math.min(MAX_W, Math.max(MIN_W, Math.round(n / STEP_W) * STEP_W));
+  }
+
+  function hotLevel(w) {
+    return Math.max(0, Math.min(1, (w - 1) / (MAX_W - 1)));
+  }
+
+  function sourceOf(tag) {
+    const entry = weights.get(tag);
+    return entry ? entry.src : 'import';
+  }
+
+  /* ------------------------------------------------------------ 权重矩阵 */
+  function emptyState() {
+    const box = el('div', 'weight-empty');
+    const icon = el('span', 'weight-empty__icon', '✧');
+    icon.setAttribute('aria-hidden', 'true');
+    box.append(icon, el('span', null, '还没有词条——粘贴标签或点击下方专区添加'));
+    return box;
+  }
+
+  function paintRow(row, weight) {
+    const value = row.querySelector('.weight-val');
+    const slider = row.querySelector('.weight-slider');
+
+    row.style.setProperty('--w-hot', String(hotLevel(weight)));
+    row.style.setProperty('--w-pct', ((weight - MIN_W) / (MAX_W - MIN_W) * 100).toFixed(1) + '%');
+    row.classList.toggle('is-max', weight > 1.2);
+    row.classList.toggle('is-min', weight < 0.6);
+    value.textContent = weight.toFixed(2);
+    slider.value = String(weight);
+    slider.setAttribute('aria-valuetext', weight.toFixed(2) + ' 倍权重');
+  }
+
+  function buildRow(tag, entry, delay) {
+    const row = el('div', 'weight-row');
+    row.dataset.tag = tag;
+    row.style.setProperty('--row-delay', delay + 'ms');
+
+    const label = el('span', 'weight-tag');
+    const dot = el('i', 'src-dot src-' + entry.src);
+    dot.setAttribute('aria-hidden', 'true');
+    label.append(dot, el('span', null, tag));
+
+    const slider = el('input', 'weight-slider');
+    slider.type = 'range';
+    slider.min = String(MIN_W);
+    slider.max = String(MAX_W);
+    slider.step = String(STEP_W);
+    slider.setAttribute('aria-label', tag + ' 的权重');
+
+    const value = el('span', 'weight-val');
+    value.setAttribute('aria-hidden', 'true');
+
+    const remove = el('button', 'remove-tag', '✕');
+    remove.type = 'button';
+    remove.dataset.remove = tag;
+    remove.setAttribute('aria-label', '移除词条 ' + tag);
+
+    row.append(label, slider, value, remove);
+    paintRow(row, entry.w);
+    return row;
+  }
+
+  function refreshCount() {
+    byId('weightCount').textContent = weights.size + ' 个词条';
+  }
+
+  function renderWeights() {
+    const host = byId('weightList');
+    host.textContent = '';
+
+    if (!weights.size) {
+      host.append(emptyState());
+      refreshCount();
+      return;
+    }
+
+    let index = 0;
+    weights.forEach((entry, tag) => {
+      host.append(buildRow(tag, entry, Math.min(index, 12) * 26));
+      index += 1;
+    });
+    refreshCount();
+  }
+
+  function appendRow(tag) {
+    const host = byId('weightList');
+    const empty = host.querySelector('.weight-empty');
+    if (empty) empty.remove();
+    host.append(buildRow(tag, weights.get(tag), 0));
+    refreshCount();
+  }
+
+  function dropRow(tag) {
+    const host = byId('weightList');
+    // 用 dataset 逐个比对而不是拼选择器，标签里的引号与括号就不需要额外转义
+    host.querySelectorAll('.weight-row').forEach((row) => {
+      if (row.dataset.tag === tag) row.remove();
+    });
+    if (!weights.size) host.append(emptyState());
+    refreshCount();
+  }
+
+  function persistWeights() {
+    const payload = [];
+    weights.forEach((entry, tag) => payload.push([tag, entry.w, entry.src]));
+    if (payload.length) writeStore(STORE.weights, payload);
+    else dropStore(STORE.weights);
+  }
+
+  function addTag(tag, weight, src) {
+    if (!tag) return false;
+    if (weights.has(tag)) return false;
+    if (weights.size >= MAX_TAGS) return false;
+    weights.set(tag, { w: clampWeight(weight), src: src || 'import' });
+    return true;
+  }
+
+  /* -------------------------------------------------------------- 标签区 */
+  function chipNode(tag, src, extraClass) {
+    const chip = el('button', extraClass, tag);
+    chip.type = 'button';
+    chip.dataset.tag = tag;
+    chip.dataset.src = src;
+    chip.setAttribute('aria-pressed', 'false');
+    return chip;
+  }
+
+  function renderChips() {
+    const quickHost = byId('quickAddSections');
+    quickHost.textContent = '';
+
+    quickSections.forEach((section) => {
+      const group = el('div', 'quick-group');
+      group.append(el('span', 'quick-group__name', section.name));
+
+      const row = el('div', 'chip-row');
+      section.tags.forEach((tag) => row.append(chipNode(tag, 'quick', 'chip')));
+      group.append(row);
+      quickHost.append(group);
+    });
+
+    const footHost = byId('footZone');
+    footHost.textContent = '';
+    footTags.forEach((tag) => footHost.append(chipNode(tag, 'foot', 'zone-chip')));
+
+    const bdsmHost = byId('bdsmZone');
+    bdsmHost.textContent = '';
+    bdsmTags.forEach((tag) => bdsmHost.append(chipNode(tag, 'bdsm', 'zone-chip zone-chip--violet')));
+  }
+
+  // 选中态只反映一件事：这个标签此刻是否在权重矩阵里
+  function syncChips() {
+    document.querySelectorAll('[data-src][data-tag]').forEach((chip) => {
+      chip.setAttribute('aria-pressed', weights.has(chip.dataset.tag) ? 'true' : 'false');
+    });
+  }
+
+  function toggleTag(tag, src) {
+    if (weights.has(tag)) {
+      weights.delete(tag);
+      dropRow(tag);
+      persistWeights();
+      syncChips();
+      toast('已移除「' + tag + '」');
+      return;
+    }
+
+    if (!addTag(tag, 1, src)) {
+      toast('词条已达上限 ' + MAX_TAGS + ' 个');
+      return;
+    }
+    appendRow(tag);
+    persistWeights();
+    syncChips();
+    toast('已加入「' + tag + '」');
+  }
+
+  /* ---------------------------------------------------------------- 导入 */
+  function cleanTag(value) {
+    return value.replace(/\\([\\()])/g, '$1').replace(/\s+/g, ' ').trim().slice(0, MAX_TAG_LEN);
+  }
+
+  function parseTags(raw) {
+    const out = [];
+    raw.split(/[,;，；\n\r]+/).forEach((chunk) => {
+      const piece = chunk.trim();
+      if (!piece) return;
+
+      const weighted = piece.match(/^\((.+):\s*([\d.]+)\)$/);
+      if (weighted) {
+        out.push({ tag: cleanTag(weighted[1]), w: clampWeight(weighted[2]) });
+        return;
+      }
+
+      const emphasised = piece.match(/^\((.+)\)$/);
+      if (emphasised) {
+        out.push({ tag: cleanTag(emphasised[1]), w: 1.1 });
+        return;
+      }
+
+      out.push({ tag: cleanTag(piece), w: 1 });
+    });
+    return out.filter((item) => item.tag);
+  }
+
+  function importTags() {
+    const field = byId('importInput');
+    const raw = field.value;
+
+    if (!raw.trim()) {
+      toast('请先粘贴标签');
+      field.focus();
+      return;
+    }
+
+    const parsed = parseTags(raw);
+    let added = 0;
+    let full = false;
+
+    parsed.forEach((item) => {
+      if (weights.size >= MAX_TAGS) {
+        full = true;
+        return;
+      }
+      if (addTag(item.tag, item.w, 'import')) added += 1;
+    });
+
+    renderWeights();
+    persistWeights();
+    syncChips();
+
+    byId('importCount').textContent = added
+      ? '导入了 ' + added + ' 个新词条'
+      : '没有新词条（可能都已在矩阵里）';
+
+    if (full) toast('词条已达上限 ' + MAX_TAGS + ' 个');
+    else if (added) toast('导入 ' + added + ' 个词条');
+    else toast('没有解析出新词条');
+  }
+
+  async function importFromClipboard() {
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+      toast('当前浏览器不支持读取剪贴板');
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      byId('importInput').value = text;
+      importTags();
+    } catch {
+      toast('无法读取剪贴板，请手动粘贴');
+    }
+  }
+
+  /* ------------------------------------------------------------ 咒文输出 */
+  function escapeForPrompt(tag) {
+    // 括号在 A1111 / ComfyUI 里都是加权语法，标签自带括号必须转义
+    return tag.replace(/([\\()])/g, '\\$1');
+  }
+
+  function tokenText(tag, weight, format) {
+    const safe = escapeForPrompt(tag);
+    if (Math.abs(weight - 1) < 0.001) return safe;
+    const shown = format === 'comfy' ? weight.toFixed(2) : String(Number(weight.toFixed(2)));
+    return '(' + safe + ':' + shown + ')';
+  }
+
+  function buildLines() {
+    const format = state.format;
+    const entries = [];
+    weights.forEach((entry, tag) => entries.push({ tag: tag, w: entry.w, src: entry.src }));
+
+    const toToken = (item) => ({ text: tokenText(item.tag, item.w, format), src: item.src });
+
+    if (format !== 'comfy') return [entries.map(toToken)];
+
+    // ComfyUI 里按来源分行，方便在节点编辑框中整段增删
+    const lines = [];
+    const used = new Set();
+    SOURCE_ORDER.forEach((src) => {
+      const group = entries.filter((item) => item.src === src);
+      group.forEach((item) => used.add(item.tag));
+      if (group.length) lines.push(group.map(toToken));
+    });
+    const rest = entries.filter((item) => !used.has(item.tag));
+    if (rest.length) lines.push(rest.map(toToken));
+    return lines;
+  }
+
+  function linesToText(lines) {
+    return lines.map((line) => line.map((token) => token.text).join(', ')).join(',\n');
+  }
+
+  function renderOutput(lines) {
+    const host = byId('output');
+    host.textContent = '';
+
+    let order = 0;
+    lines.forEach((line, lineIndex) => {
+      const row = el('div');
+      line.forEach((token, index) => {
+        const node = el('span', 'out-tok src-' + token.src, token.text);
+        node.style.setProperty('--tok-delay', Math.min(order, 40) * 18 + 'ms');
+        node.title = SOURCE_NAME[token.src] || '词条';
+        row.append(node);
+        if (index !== line.length - 1) row.append(el('span', 'out-sep', ', '));
+        order += 1;
+      });
+      if (lineIndex !== lines.length - 1) row.append(el('span', 'out-sep', ','));
+      host.append(row);
+    });
+  }
+
+  function resetOutput() {
+    state.generated = false;
+    state.text = '';
+    byId('output').textContent = PLACEHOLDER;
+    byId('outMeta').textContent = '';
+  }
+
+  function renderCurrent() {
+    const lines = buildLines();
+    state.text = linesToText(lines);
+    state.generated = true;
+    renderOutput(lines);
+    byId('outMeta').textContent = weights.size + ' 词条 · ' + state.text.length + ' 字符 · '
+      + (state.format === 'comfy' ? 'ComfyUI' : 'A1111');
+  }
+
+  function genPrompt() {
+    if (!weights.size) {
+      toast('请先添加词条');
+      return;
+    }
+    renderCurrent();
+    pushHistory();
+    toast('咒文已生成');
+  }
+
+  function copyPrompt() {
+    if (!state.generated || !state.text) {
+      toast('请先生成咒文');
+      return;
+    }
+    window.gsCopy(state.text, byId('btnCopy'));
+  }
+
+  function setFormat(format) {
+    if (state.format === format) return;
+    state.format = format;
+    writeStore(STORE.format, format);
+    document.querySelectorAll('.fmt-btn').forEach((button) => {
+      button.setAttribute('aria-pressed', button.dataset.format === format ? 'true' : 'false');
+    });
+    if (state.generated && weights.size) renderCurrent();
+  }
+
+  function resetWeights() {
+    weights.clear();
+    renderWeights();
+    syncChips();
+    persistWeights();
+    resetOutput();
+    // 重置后残留「导入了 N 个新词条」会和空矩阵自相矛盾
+    byId('importCount').textContent = '';
+    toast('权重矩阵已清空');
+  }
+
+  /* ------------------------------------------------------------ 咒文历史 */
+  function stamp(time) {
+    const date = new Date(time);
+    const pad = (n) => String(n).padStart(2, '0');
+    return pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
+
+  function renderHistory() {
+    const host = byId('historyList');
+    host.textContent = '';
+
+    if (!state.history.length) {
+      host.append(el('p', 'history-empty', '还没有快照——生成一次咒文就会自动记录'));
+      return;
+    }
+
+    state.history.forEach((item, index) => {
+      const row = el('div', 'history-row');
+      row.style.setProperty('--row-delay', Math.min(index, 5) * 45 + 'ms');
+
+      row.append(el('span', 'history-meta', stamp(item.t) + ' · ' + item.tags.length + ' 词条 · '
+        + (item.fmt === 'comfy' ? 'ComfyUI' : 'A1111')));
+      row.append(el('span', 'history-text', item.text));
+
+      const load = el('button', 'btn btn-ghost btn-sm', '↺ 载入');
+      load.type = 'button';
+      load.dataset.load = String(index);
+      load.setAttribute('aria-label', '把 ' + stamp(item.t) + ' 的快照载回权重矩阵');
+
+      const copy = el('button', 'btn btn-ghost btn-sm', '📋');
+      copy.type = 'button';
+      copy.dataset.copyHistory = String(index);
+      copy.setAttribute('aria-label', '复制 ' + stamp(item.t) + ' 的咒文');
+
+      row.append(load, copy);
+      host.append(row);
+    });
+  }
+
+  function pushHistory() {
+    if (state.history.length && state.history[0].text === state.text) return;
+
+    const tags = [];
+    weights.forEach((entry, tag) => tags.push([tag, entry.w, entry.src]));
+    state.history.unshift({ t: Date.now(), fmt: state.format, text: state.text, tags: tags });
+    state.history = state.history.slice(0, HISTORY_LIMIT);
+    writeStore(STORE.history, state.history);
+    renderHistory();
+  }
+
+  function loadHistory(index) {
+    const item = state.history[index];
+    if (!item) return;
+
+    weights.clear();
+    item.tags.forEach((row) => addTag(String(row[0]), row[1], row[2]));
+    renderWeights();
+    syncChips();
+    persistWeights();
+    if (weights.size) renderCurrent();
+    else resetOutput();
+    toast('已载入 ' + stamp(item.t) + ' 的快照');
+  }
+
+  /* ---------------------------------------------------------------- 恢复 */
+  function restore() {
+    const savedFormat = readStore(STORE.format, 'a1111');
+    if (savedFormat === 'comfy') {
+      state.format = 'comfy';
+      document.querySelectorAll('.fmt-btn').forEach((button) => {
+        button.setAttribute('aria-pressed', button.dataset.format === 'comfy' ? 'true' : 'false');
+      });
+    }
+
+    const savedWeights = readStore(STORE.weights, null);
+    if (Array.isArray(savedWeights)) {
+      savedWeights.forEach((row) => {
+        if (!Array.isArray(row) || typeof row[0] !== 'string') return;
+        const src = SOURCE_ORDER.indexOf(row[2]) >= 0 ? row[2] : 'import';
+        addTag(cleanTag(row[0]), row[1], src);
+      });
+    }
+
+    const savedHistory = readStore(STORE.history, null);
+    if (Array.isArray(savedHistory)) {
+      state.history = savedHistory
+        .filter((item) => item && typeof item.text === 'string' && Array.isArray(item.tags))
+        .slice(0, HISTORY_LIMIT)
+        .map((item) => ({
+          t: Number(item.t) || Date.now(),
+          fmt: item.fmt === 'comfy' ? 'comfy' : 'a1111',
+          text: item.text.slice(0, 6000),
+          tags: item.tags.filter((row) => Array.isArray(row) && typeof row[0] === 'string')
+        }));
+    }
+  }
+
+  /* ---------------------------------------------------------------- 事件 */
+  function bind() {
+    byId('btnImport').addEventListener('click', importTags);
+    byId('btnImportClipboard').addEventListener('click', importFromClipboard);
+    byId('btnGen').addEventListener('click', genPrompt);
+    byId('btnCopy').addEventListener('click', copyPrompt);
+    byId('btnReset').addEventListener('click', resetWeights);
+
+    byId('importInput').addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey) || event.isComposing) return;
+      event.preventDefault();
+      importTags();
+    });
+
+    document.querySelectorAll('.fmt-btn').forEach((button) => {
+      button.addEventListener('click', () => setFormat(button.dataset.format));
+    });
+
+    // 权重矩阵与标签区一律走事件委托，节点上不再挂任何字符串拼接的处理器
+    const list = byId('weightList');
+    list.addEventListener('input', (event) => {
+      const slider = event.target.closest('.weight-slider');
+      if (!slider) return;
+
+      const row = slider.closest('.weight-row');
+      const tag = row && row.dataset.tag;
+      const entry = tag ? weights.get(tag) : null;
+      if (!entry) return;
+
+      entry.w = clampWeight(slider.value);
+      paintRow(row, entry.w);
+
+      const bubble = row.querySelector('.weight-val');
+      bubble.classList.remove('is-bump');
+      void bubble.offsetWidth;
+      bubble.classList.add('is-bump');
+
+      persistWeights();
+      if (state.generated) renderCurrent();
+    });
+
+    list.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-remove]');
+      if (!button) return;
+
+      const tag = button.dataset.remove;
+      weights.delete(tag);
+      dropRow(tag);
+      persistWeights();
+      syncChips();
+      if (state.generated) {
+        if (weights.size) renderCurrent();
+        else resetOutput();
+      }
+      toast('已移除「' + tag + '」');
+    });
+
+    ['quickAddSections', 'footZone', 'bdsmZone'].forEach((id) => {
+      byId(id).addEventListener('click', (event) => {
+        const chip = event.target.closest('[data-tag][data-src]');
+        if (!chip) return;
+        toggleTag(chip.dataset.tag, chip.dataset.src);
+        if (state.generated) {
+          if (weights.size) renderCurrent();
+          else resetOutput();
+        }
+      });
+    });
+
+    byId('historyList').addEventListener('click', (event) => {
+      const load = event.target.closest('[data-load]');
+      if (load) {
+        loadHistory(Number(load.dataset.load));
+        return;
+      }
+
+      const copy = event.target.closest('[data-copy-history]');
+      if (!copy) return;
+      const item = state.history[Number(copy.dataset.copyHistory)];
+      if (item) window.gsCopy(item.text, copy);
+    });
+
+    byId('btnClearHistory').addEventListener('click', () => {
+      if (!state.history.length) {
+        toast('历史本来就是空的');
+        return;
+      }
+      state.history = [];
+      dropStore(STORE.history);
+      renderHistory();
+      toast('咒文历史已清空');
+    });
+  }
+
+  /* ------------------------------------------------------- 局部滚动进场 */
+  function mountReveal() {
+    if (still.matches || !('IntersectionObserver' in window)) return;
+
+    document.querySelectorAll('.chip, .zone-chip, .quick-group__name').forEach((node, index) => {
+      node.setAttribute('data-xq-reveal', '');
+      node.style.setProperty('--xq-reveal-delay', (index % 12) * 26 + 'ms');
+    });
+  }
+
+  /* ---------------------------------------------------------------- 启动 */
+  mountAgeGate();
+  mountSakura();
+  renderChips();
+  restore();
+  renderWeights();
+  renderHistory();
+  syncChips();
+  bind();
+  mountReveal();
 })();
-
-// === WEIGHT SYSTEM ===
-let weights = {}; // {tag: weight}
-
-function getWeight(tag){ return weights[tag]||1.0; }
-function setWeight(tag, w){
-  if(w<=0){ delete weights[tag]; renderWeights(); return; }
-  weights[tag] = Math.round(w*100)/100;
-  renderWeights();
-}
-
-function addTag(tag, w=1.0){
-  if(weights[tag]!==undefined) return;
-  weights[tag]=w; renderWeights();
-}
-function removeTag(tag){ delete weights[tag]; renderWeights(); }
-
-function importTags(){
-  const raw=document.getElementById('importInput').value;
-  if(!raw.trim()){gsToast('请先粘贴标签');return;}
-  // Split by comma, semicolon, or newlines
-  const tags=raw.split(/[,;，；\n]+/).map(t=>{
-    // Check for (tag:weight) format
-    const m=t.trim().match(/^\((.+?):([\d.]+)\)$/);
-    if(m) return {tag:m[1].trim(), w:parseFloat(m[2])};
-    // Check for (tag) format
-    const m2=t.trim().match(/^\((.+?)\)$/);
-    if(m2) return {tag:m2[1].trim(), w:1.1};
-    return {tag:t.trim(), w:1.0};
-  }).filter(t=>t.tag);
-  let added=0;
-  tags.forEach(t=>{if(!weights[t.tag]){weights[t.tag]=t.w;added++;}});
-  document.getElementById('importCount').textContent='导入了 '+added+' 个新词条';
-  renderWeights();
-  if(added) gsToast('导入 '+added+' 个词条');
-}
-
-async function importFromClipboard(){
-  try{
-    const text=await navigator.clipboard.readText();
-    document.getElementById('importInput').value=text;
-    importTags();
-  }catch{gsToast('无法读取剪贴板');}
-}
-
-function resetWeights(){ weights={}; renderWeights(); document.getElementById('output').textContent='点击「生成咒文」创建带权重的完整 prompt...'; }
-
-function renderWeights(){
-  const el=document.getElementById('weightList');
-  const entries=Object.entries(weights);
-  document.getElementById('weightCount').textContent=entries.length+' 个词条';
-  if(!entries.length){el.innerHTML='<p class="text-muted" style="padding:1rem 0;">还没有词条——粘贴标签或点击下方专区添加</p>';return;}
-  // Sort by weight desc
-  entries.sort((a,b)=>b[1]-a[1]);
-  el.innerHTML=entries.map(([tag,w])=>{
-    const cls=w>1.2?'max':w<0.6?'min':'';
-    return `<div class="weight-row${cls?' '+cls:''}">
-      <span class="weight-tag">${tag}</span>
-      <div class="weight-btns">
-        <button class="wt-btn" onclick="setWeight('${tag.replace(/'/g,"&#39;")}',${(w-0.1).toFixed(1)})">−</button>
-        <span class="weight-val">${w.toFixed(1)}</span>
-        <button class="wt-btn" onclick="setWeight('${tag.replace(/'/g,"&#39;")}',${(w+0.1).toFixed(1)})">+</button>
-      </div>
-      <span class="remove-tag" onclick="removeTag('${tag.replace(/'/g,"&#39;")}')">✕</span>
-    </div>`;
-  }).join('');
-}
-
-function genPrompt(){
-  const entries=Object.entries(weights);
-  if(!entries.length){gsToast('请先添加词条');return;}
-  const parts=entries.map(([tag,w])=>{
-    if(w===1.0) return tag;
-    if(w>1.0) return `(${tag}:${w.toFixed(1)})`;
-    return `(${tag}:${w.toFixed(1)})`;
-  });
-  const result=parts.join(', ');
-  document.getElementById('output').textContent=result;
-  gsToast('咒文已生成');
-}
-
-function copyWeights(){
-  const t=document.getElementById('output').textContent;
-  if(t.includes('点击')){gsToast('请先生成咒文');return;}
-  gsCopy(t);
-}
-
-// === QUICK ADD SECTIONS ===
-const quickSections = [
-  {name:'核心角色', tags:['1girl','1boy','2girls','multiple girls','loli','mature','tall','petite','curvy','busty','flat chest','muscular']},
-  {name:'表情神态', tags:['blush','smile','ahegao','embarrassed','seductive smile','tears','drooling','tongue out',':3','wincing','nosebleed']},
-  {name:'服装状态', tags:['nude','topless','bottomless','lingerie','see-through','school uniform','maid','bunny girl','swimsuit','kimono']},
-  {name:'姿势体位', tags:['spread legs','on back','kneeling','arms up','doggy style','cowgirl','missionary','from behind','pinned','standing sex']},
-  {name:'体液效果', tags:['sweat','drool','tears','cum','cum on body','cum on face','cum in pussy','precum','wet','body fluids']},
-  {name:'画质增益', tags:['masterpiece','high quality','absurdres','hand-drawn','anime coloring','cel shading','detailed','soft lighting']},
-];
-const footTags=['barefoot','thighhighs','kneehighs','pantyhose','feet','toes','footjob','toe curling','soles','arches','licking feet','stepping','high heels','sandals','stockings','fishnets'];
-const bdsmTags=['bound','rope','shibari','handcuffs','blindfold','gag','collar','leash','choker','dominated','submissive','master','slave','suspension','hogtie','spreader bar','whip','candle wax'];
-
-function renderQuickSections(){
-  document.getElementById('quickAddSections').innerHTML=quickSections.map(s=>`
-    <div style="margin-bottom:0.8rem;">
-      <span style="font-size:0.72rem;color:rgba(200,200,224,0.35);">${s.name}:</span>
-      <div style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.25rem;">
-        ${s.tags.map(t=>`<span class="chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);renderWeights()">${t}</span>`).join('')}
-      </div>
-    </div>
-  `).join('');
-  document.getElementById('footZone').innerHTML=footTags.map(t=>`<span class="zone-chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);document.querySelectorAll('#footZone .zone-chip').forEach(c=>c.classList.remove('selected'));event.target.classList.add('selected');renderWeights()">${t}</span>`).join('');
-  document.getElementById('bdsmZone').innerHTML=bdsmTags.map(t=>`<span class="zone-chip" onclick="addTag('${t.replace(/'/g,"&#39;")}',1.0);document.querySelectorAll('#bdsmZone .zone-chip').forEach(c=>c.classList.remove('selected'));event.target.classList.add('selected');renderWeights()">${t}</span>`).join('');
-}
-
-renderQuickSections();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

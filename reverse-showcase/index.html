@@ -1,826 +1,1364 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星轨共鸣协议V2 // 反向破限解构看板</title>
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Serif+SC:wght@300;400;600&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        deepBg: '#030307',
-                        panelBg: 'rgba(9, 9, 18, 0.75)',
-                        cyanAccent: '#00f0ff',
-                        goldAccent: '#ff9d00',
-                        cyberPink: '#ff007f',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Noto Serif SC', serif;
-            background: radial-gradient(circle at 50% 10%, #0c0a1b 0%, #030307 70%);
-            color: #d1c5b8;
-            overflow-x: hidden;
-            position: relative;
-        }
+    <title>反向破限解构实录 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="反向提示词从输入、拆解到重构的阶段记录与方法复盘。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/reverse-showcase/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="反向破限解构实录 · 星穹枢庭">
+  <meta property="og:description" content="反向提示词从输入、拆解到重构的阶段记录与方法复盘。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/reverse-showcase/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
+<link rel="stylesheet" href="../assets/gemini.css">
+<style>
+/* ===========================================================================
+   反向破限解构实录 · 页面专属层
+   双轨对照是本页唯一的结构特征，其余一律走 sanctuary 令牌与 gemini 组件层。
+   =========================================================================== */
 
-        .orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+/* 双轨并排需要比默认容器更宽的行宽，否则两侧正文都被挤成窄条 */
+.rs-page {
+  width: min(1320px, 100%);
+}
 
-        .serif-display {
-            font-family: 'Cinzel', serif;
-        }
+/* ------------------------------------------------------------ 页面装饰光晕 */
+/* 环境层已由 sanctuary 提供，这里只补两颗青/金光球来点题「双脑对照」 */
+.rs-ambience {
+  position: absolute;
+  z-index: -1;
+  overflow: hidden;
+  inset: 0;
+  pointer-events: none;
+}
+.page > .rs-ambience { animation: none; }
 
-        .mono {
-            font-family: 'Share Tech Mono', monospace;
-        }
+.rs-orb {
+  position: absolute;
+  width: min(46vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.16;
+}
+.rs-orb--cyan {
+  top: 4%;
+  left: -16%;
+  background: radial-gradient(circle, var(--xq-cyan), transparent 68%);
+  animation: rsDriftIn 14s var(--xq-ease) infinite alternate;
+}
+.rs-orb--gold {
+  top: 36%;
+  right: -16%;
+  background: radial-gradient(circle, var(--xq-gold), transparent 68%);
+  animation: rsDriftOut 19s var(--xq-ease) infinite alternate;
+}
+@keyframes rsDriftIn { to { transform: scale(1.14) translate(26px, -20px); } }
+@keyframes rsDriftOut { to { transform: scale(1.14) translate(-26px, 20px); } }
 
-        /* Ambient Nebula pulse */
-        .glow-sphere-cyan {
-            position: absolute;
-            top: 20%;
-            left: -10%;
-            width: 45vw;
-            height: 45vw;
-            background: radial-gradient(circle, rgba(0, 240, 255, 0.05) 0%, transparent 70%);
-            filter: blur(100px);
-            pointer-events: none;
-            z-index: 0;
-            animation: pulseCyan 12s ease-in-out infinite alternate;
-        }
+/* -------------------------------------------------------------- 顶部状态条 */
+.rs-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--xq-line-soft);
+  margin-bottom: 26px;
+  gap: 12px 18px;
+}
+.rs-hud__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+.rs-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 13px 4px 10px;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-cyan);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  gap: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.rs-status__dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+}
+/* 外扩的一圈脉冲，替代原先的 animate-ping */
+.rs-status__dot::after {
+  position: absolute;
+  border-radius: 50%;
+  background: currentcolor;
+  content: "";
+  inset: 0;
+  animation: rsPing 2.4s var(--xq-ease-out) infinite;
+}
+@keyframes rsPing {
+  0% { opacity: 0.7; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(3.2); }
+}
+.rs-hud__meta {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 
-        .glow-sphere-gold {
-            position: absolute;
-            top: 35%;
-            right: -10%;
-            width: 45vw;
-            height: 45vw;
-            background: radial-gradient(circle, rgba(255, 157, 0, 0.04) 0%, transparent 70%);
-            filter: blur(100px);
-            pointer-events: none;
-            z-index: 0;
-            animation: pulseGold 16s ease-in-out infinite alternate-reverse;
-        }
+/* ------------------------------------------------------------------ 页抬头 */
+.rs-kicker {
+  margin-bottom: 8px;
+  color: var(--xq-cyan);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+.rs-lede {
+  max-width: 62ch;
+  margin-top: 14px;
+  color: var(--xq-text-soft);
+  font-size: 0.88rem;
+  line-height: 1.9;
+}
+.rs-lede b {
+  font-weight: 600;
+}
+.rs-lede .rs-name--gemini { color: var(--xq-cyan); }
+.rs-lede .rs-name--opus { color: var(--xq-gold); }
 
-        @keyframes pulseCyan {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.15) translate(30px, -20px); }
-        }
+/* -------------------------------------------------------------- 双轨栅格 */
+.rs-grid {
+  display: grid;
+  margin-bottom: 56px;
+  gap: clamp(38px, 5vw, 64px);
+  grid-template-columns: 1fr;
+}
+.rs-grid.is-focus {
+  width: min(860px, 100%);
+  margin-inline: auto;
+}
+/* 切换视图时给两条轨道一次轻微的重排提示，让布局变化被看见 */
+.rs-grid.is-switching .rs-track {
+  animation: rsRelayout 460ms var(--xq-ease-out) both;
+}
+@keyframes rsRelayout {
+  from { filter: blur(4px); opacity: 0.3; transform: translateY(12px) scale(0.99); }
+}
 
-        @keyframes pulseGold {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.15) translate(-30px, 20px); }
-        }
+.rs-track {
+  position: relative;
+  padding-left: 26px;
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+  --rs-hue: var(--xq-cyan);
+  --rs-line: var(--xq-line);
+  --rs-line-strong: var(--xq-line-strong);
+  --rs-wash: var(--xq-surface-quiet);
+}
+.rs-track--opus { --rs-hue: var(--xq-gold); }
 
-        @keyframes scan {
-            0% { top: -2%; }
-            50% { top: 102%; }
-            100% { top: -2%; }
-        }
+/* 轨道自己的青/金三档描边由主色推导，同时喂给共享的指针高光 */
+@supports (color: color-mix(in srgb, red 10%, transparent)) {
+  .rs-track {
+    --rs-line: color-mix(in srgb, var(--rs-hue) 20%, transparent);
+    --rs-line-strong: color-mix(in srgb, var(--rs-hue) 46%, transparent);
+    --rs-wash: color-mix(in srgb, var(--rs-hue) 10%, transparent);
+  }
+}
+.rs-track {
+  --xq-accent-soft: var(--rs-wash);
+}
 
-        .animate-scan {
-            animation: scan 3s linear infinite;
-        }
+.rs-track::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  border-radius: var(--xq-r-pill);
+  background: linear-gradient(180deg, var(--rs-line-strong), transparent 94%);
+  content: "";
+}
 
-        /* Cyber scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #030307;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #141322;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #ff9d00;
-        }
+.rs-track__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rs-line);
+  margin-bottom: 34px;
+  gap: 8px 16px;
+}
+.rs-track__platform {
+  color: var(--rs-hue);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.rs-track__title {
+  margin-top: 4px;
+  color: var(--xq-text);
+  font-family: var(--xq-font-serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.rs-track__status {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 
-        /* Connective vertical timeline thread */
-        .timeline-line {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, rgba(0, 240, 255, 0.3) 0%, rgba(0, 240, 255, 0.05) 100%);
-            z-index: 1;
-        }
+/* ------------------------------------------------------------------ 阶段卡 */
+.rs-cards {
+  display: grid;
+  padding: 0;
+  margin: 0;
+  gap: clamp(28px, 3.4vw, 46px);
+  list-style: none;
+}
+.rs-card {
+  position: relative;
+}
+.rs-card__index {
+  position: absolute;
+  z-index: 2;
+  top: 20px;
+  left: -39px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--rs-hue);
+  border-radius: 50%;
+  background: var(--xq-ink);
+  color: var(--rs-hue);
+  font-family: var(--xq-font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  place-items: center;
+  transition: box-shadow var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
+}
+.rs-card:hover .rs-card__index {
+  box-shadow: 0 0 0 5px var(--rs-wash);
+  transform: scale(1.12);
+}
 
-        .timeline-line-gold {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, rgba(255, 157, 0, 0.3) 0%, rgba(255, 157, 0, 0.05) 100%);
-            z-index: 1;
-        }
+.rs-card__inner {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(16px, 2.2vw, 24px);
+  border: 1px solid var(--rs-line);
+  border-radius: var(--xq-r-lg);
+  background: var(--xq-surface);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--xq-shadow-sm), var(--xq-inner-top);
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease),
+    transform var(--xq-dur) var(--xq-ease);
+}
+.rs-card:hover .rs-card__inner,
+.rs-card:focus-within .rs-card__inner {
+  border-color: var(--rs-line-strong);
+  box-shadow: var(--xq-shadow-md), var(--xq-inner-top);
+  transform: translateY(-3px);
+}
 
-        /* Lightbox zoomable canvas area */
-        #lightbox-canvas-container {
-            cursor: grab;
-            user-select: none;
-        }
-        #lightbox-canvas-container:active {
-            cursor: grabbing;
-        }
-    </style>
+/* 扫描线：整块与卡等高再整体位移，百分比才等于卡片高度，逐帧只动 transform */
+.rs-card__scan {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+.rs-card__scan::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--rs-hue), transparent);
+  content: "";
+}
+.rs-card:hover .rs-card__scan,
+.rs-card:focus-within .rs-card__scan {
+  opacity: 0.9;
+  animation: rsScan 3.2s linear infinite;
+}
+@keyframes rsScan {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(calc(100% - 2px)); }
+  100% { transform: translateY(0); }
+}
+
+.rs-card__title {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  color: var(--rs-hue);
+  font-family: var(--xq-font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  gap: 8px;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+.rs-card__pip {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  box-shadow: 0 0 10px currentcolor;
+  animation: rsBreathe 2.8s var(--xq-ease) infinite;
+}
+@keyframes rsBreathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.rs-card__desc {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 16px;
+  color: var(--xq-text-soft);
+  font-size: 0.8rem;
+  line-height: 1.95;
+}
+
+/* ------------------------------------------------------------- 卡片配图钮 */
+.rs-media {
+  position: relative;
+  z-index: 2;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-ink-soft);
+  color: inherit;
+  cursor: zoom-in;
+  font: inherit;
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.rs-media:hover {
+  border-color: var(--rs-line-strong);
+  box-shadow: 0 0 0 1px var(--rs-line), var(--xq-shadow-md);
+}
+.rs-media:focus-visible {
+  outline: 2px solid var(--rs-hue);
+  outline-offset: 3px;
+}
+.rs-media__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  filter: brightness(0.85);
+  object-fit: cover;
+  transition: transform var(--xq-dur-slow) var(--xq-ease-out), filter var(--xq-dur-slow) var(--xq-ease);
+}
+.rs-media:hover .rs-media__img,
+.rs-media:focus-visible .rs-media__img {
+  filter: brightness(1);
+  transform: scale(1.04);
+}
+.rs-media__hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 68%;
+  padding-bottom: 14px;
+  background: linear-gradient(to top, rgba(5, 6, 15, 0.86), transparent);
+  color: var(--rs-hue);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-ease-out);
+}
+.rs-media:hover .rs-media__hint,
+.rs-media:focus-visible .rs-media__hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ------------------------------------------------------------------ 灯箱 */
+.rs-lightbox {
+  position: fixed;
+  z-index: 200;
+  overflow: hidden;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: var(--xq-void);
+  color: var(--xq-text-soft);
+  inset: 0;
+
+  --rs-hue: var(--xq-cyan);
+  --rs-line: var(--xq-line);
+}
+.page > .rs-lightbox { animation: none; }
+.rs-lightbox[data-track="opus"] { --rs-hue: var(--xq-gold); }
+@supports (color: color-mix(in srgb, red 10%, transparent)) {
+  .rs-lightbox { --rs-line: color-mix(in srgb, var(--rs-hue) 24%, transparent); }
+}
+.rs-lightbox::backdrop {
+  background: rgba(3, 4, 10, 0.92);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.rs-lightbox[open] { animation: rsDialogIn var(--xq-dur) var(--xq-ease-out); }
+@keyframes rsDialogIn {
+  from { opacity: 0; transform: scale(0.985); }
+}
+
+.rs-lightbox__body {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.rs-viewer {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+}
+.rs-viewer.is-pannable { cursor: grab; }
+.rs-viewer.is-dragging { cursor: grabbing; }
+.rs-viewer__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.rs-watermark {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 18px;
+  font-family: var(--xq-font-mono);
+  letter-spacing: 0.18em;
+  opacity: 0.4;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+.rs-watermark span { display: block; }
+.rs-watermark__main { color: var(--xq-text); font-size: 0.58rem; }
+.rs-watermark__sub { margin-top: 2px; color: var(--rs-hue); font-size: 0.52rem; }
+
+.rs-zoom {
+  position: absolute;
+  z-index: 3;
+  bottom: 16px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-strong);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--xq-shadow-md);
+  gap: 8px;
+  transform: translateX(-50%);
+}
+.rs-ctl {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--xq-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  place-items: center;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-spring);
+}
+.rs-ctl:hover {
+  border-color: var(--rs-line-strong, var(--xq-line-strong));
+  background: var(--xq-surface-quiet);
+  transform: scale(1.08);
+}
+.rs-ctl:focus-visible {
+  outline: 2px solid var(--rs-hue);
+  outline-offset: 2px;
+}
+.rs-ctl--wide {
+  width: auto;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--xq-r-pill);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+.rs-zoom__value {
+  padding-left: 8px;
+  border-left: 1px solid var(--xq-line-soft);
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  min-width: 46px;
+  text-align: center;
+}
+
+.rs-nav {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 50%;
+  background: rgba(5, 6, 15, 0.55);
+  color: var(--xq-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.1rem;
+  place-items: center;
+  transform: translateY(-50%);
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.rs-nav:hover {
+  border-color: var(--rs-line);
+  background: rgba(5, 6, 15, 0.85);
+  box-shadow: var(--xq-shadow-md);
+}
+.rs-nav:focus-visible {
+  outline: 2px solid var(--rs-hue);
+  outline-offset: 2px;
+}
+.rs-nav--prev { left: 12px; }
+.rs-nav--next { right: 12px; }
+
+/* ------------------------------------------------------------- 灯箱信息栏 */
+.rs-inspector {
+  display: flex;
+  overflow-y: auto;
+  flex: 0 0 auto;
+  max-height: 46vh;
+  flex-direction: column;
+  padding: 20px clamp(18px, 4vw, 30px) 24px;
+  border-top: 1px solid var(--xq-line-soft);
+  background: var(--xq-ink);
+  gap: 20px;
+}
+.rs-inspector__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--xq-line-soft);
+  gap: 12px;
+}
+.rs-inspector__tag {
+  display: inline-flex;
+  align-items: center;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  gap: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.rs-inspector__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rs-hue);
+  box-shadow: 0 0 10px var(--rs-hue);
+  animation: rsBreathe 2.8s var(--xq-ease) infinite;
+}
+.rs-inspector__platform {
+  color: var(--rs-hue);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.rs-inspector__title {
+  margin-top: 6px;
+  color: var(--xq-text);
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.rs-steps {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  gap: 8px;
+}
+.rs-steps__dot {
+  width: 26px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  cursor: pointer;
+  transition: background var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
+}
+.rs-steps__dot:hover { transform: scaleY(1.6); }
+.rs-steps__dot:focus-visible { outline: 2px solid var(--rs-hue); outline-offset: 3px; }
+.rs-steps__dot[aria-current="true"] {
+  background: var(--rs-hue);
+  box-shadow: 0 0 12px var(--rs-hue);
+}
+
+.rs-specs {
+  display: grid;
+  padding: 14px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  font-family: var(--xq-font-mono);
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.rs-specs dt {
+  color: var(--xq-text-faint);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+}
+.rs-specs dd {
+  margin-top: 3px;
+  color: var(--xq-text);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+.rs-specs dd.is-ok { color: var(--xq-ok); }
+.rs-specs dd.is-hue { color: var(--rs-hue); }
+
+.rs-report__label {
+  display: block;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--xq-line-soft);
+  margin-bottom: 10px;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.rs-report__text {
+  color: var(--xq-text-soft);
+  font-size: 0.84rem;
+  line-height: 1.95;
+}
+.rs-tips {
+  display: grid;
+  padding-top: 14px;
+  border-top: 1px solid var(--xq-line-soft);
+  margin-top: auto;
+  color: var(--xq-text-faint);
+  font-size: 0.66rem;
+  gap: 6px;
+  line-height: 1.8;
+}
+.rs-tips__quote { font-style: italic; }
+
+/* ------------------------------------------------------------------ 页脚 */
+.rs-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 22px;
+  border-top: 1px solid var(--xq-line-soft);
+  gap: 12px 20px;
+  color: var(--xq-text-faint);
+  font-size: 0.74rem;
+}
+.rs-foot__quote { font-family: var(--xq-font-serif); font-style: italic; }
+.rs-foot__build {
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+
+/* ------------------------------------------------------------------ 响应式 */
+@media (min-width: 768px) {
+  .rs-lightbox__body { flex-direction: row; }
+  .rs-inspector {
+    flex: 0 0 clamp(320px, 32vw, 420px);
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--xq-line-soft);
+  }
+  .rs-viewer { padding: 24px; }
+}
+
+@media (min-width: 1024px) {
+  .rs-grid.is-dual { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 对比视图下右轨镜像，两条时间线像一对相向的刻度 */
+  .rs-grid.is-dual .rs-track--opus {
+    padding-right: 26px;
+    padding-left: 0;
+  }
+  .rs-grid.is-dual .rs-track--opus::before {
+    right: 0;
+    left: auto;
+  }
+  .rs-grid.is-dual .rs-track--opus .rs-card__index {
+    right: -39px;
+    left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .rs-hud { justify-content: flex-start; }
+  .rs-track { padding-left: 20px; }
+  .rs-card__index { left: -33px; }
+  .rs-nav { width: 38px; height: 38px; }
+  .rs-specs { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------- 动效降级 */
+@media (prefers-reduced-motion: reduce) {
+  .rs-orb,
+  .rs-status__dot::after,
+  .rs-card__pip,
+  .rs-inspector__dot,
+  .rs-grid.is-switching .rs-track,
+  .rs-lightbox[open] {
+    animation: none;
+  }
+  .rs-card:hover .rs-card__scan,
+  .rs-card:focus-within .rs-card__scan {
+    animation: none;
+    opacity: 0.5;
+  }
+  .rs-card:hover .rs-card__inner,
+  .rs-card:focus-within .rs-card__inner,
+  .rs-card:hover .rs-card__index,
+  .rs-media:hover .rs-media__img,
+  .rs-media:focus-visible .rs-media__img,
+  .rs-ctl:hover,
+  .rs-steps__dot:hover,
+  .rs-media:hover .rs-media__hint,
+  .rs-media:focus-visible .rs-media__hint {
+    transform: none;
+  }
+}
+</style>
 </head>
-<body class="py-16 px-4 md:px-12 min-h-screen">
+<body>
 
-    <a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.82rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC',sans-serif;text-shadow:0 0 8px rgba(0,0,0,0.6);" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">← 返回双子星秘境</a>
+<main class="page rs-page">
 
-    <div class="glow-sphere-cyan"></div>
-    <div class="glow-sphere-gold"></div>
+  <div class="rs-ambience" aria-hidden="true">
+    <span class="rs-orb rs-orb--cyan"></span>
+    <span class="rs-orb rs-orb--gold"></span>
+  </div>
 
-    <!-- Star Dust Canvas Background -->
-    <canvas id="starfield" class="fixed inset-0 pointer-events-none z-0 opacity-45"></canvas>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
-    <div class="max-w-7xl mx-auto relative z-10 flex flex-col justify-between min-h-screen">
+  <div class="rs-hud">
+    <div class="rs-hud__group">
+      <span class="rs-status">
+        <span class="rs-status__dot" aria-hidden="true"></span>
+        Protocol_v2 · Decrypted
+      </span>
+      <span class="rs-hud__meta">Model Duality // Gemini 3.1 &amp; Claude Opus 4.7</span>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" id="view-btn" aria-pressed="false" aria-controls="layout-grid">
+      <span aria-hidden="true">🔀</span>
+      <span id="view-btn-text">视图：左右对比</span>
+    </button>
+  </div>
 
-        <!-- Top Navigation Status HUD -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-16 gap-4 border-b border-white/5 pb-8">
-            <div class="flex items-center gap-6">
-                <a href="./index.html" class="group flex items-center gap-2 text-xs uppercase tracking-wider mono text-gray-500 hover:text-white transition-colors">
-                    <span class="group-hover:-translate-x-1 transition-transform">➔</span> 返回秘境门户
-                </a>
-                <span class="text-gray-700">|</span>
-                <div class="inline-flex items-center gap-2 text-[10px] tracking-widest text-cyanAccent border border-cyanAccent/20 bg-cyanAccent/5 px-3 py-1 rounded-full uppercase mono">
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyanAccent animate-ping"></span>
-                    Protocol_v2: Decrypted
-                </div>
-            </div>
-            
-            <div class="text-right flex items-center gap-4">
-                <div class="text-[10px] text-gray-500 tracking-widest uppercase mono">
-                    Model Duality: Gemini 3.1 & Claude Opus 4.7
-                </div>
-                <button onclick="toggleView()" id="view-btn" class="px-3 py-1 text-[10px] tracking-widest uppercase mono border border-white/10 hover:border-white/30 hover:bg-white/5 rounded transition-all">
-                    🔀 视图切换 (左右对比 / 单一聚焦)
-                </button>
-            </div>
-        </header>
+  <header class="page-header">
+    <p class="rs-kicker">Resonance Decoding Chronicles</p>
+    <h1>星轨共鸣协议 V2.0 · 反向破限解构实录</h1>
+    <p class="subtitle">REVERSE SHOWCASE · 双脑对照的反向提示词推导记录</p>
+    <p class="rs-lede">
+      本面板记录了花花在使用「星轨共鸣协议 V2.0」的情况下，对一张具有敏感艺术张力的动漫原图开展反向提示词推导演算的全程记录。
+      左侧为 <b class="rs-name--gemini">Gemini 3.1 Pro</b> 脑域解码进程，右侧为 <b class="rs-name--opus">Claude Opus 4.7</b> 脑域解构进程。
+      双向印证：在优雅的信封包装下，技术终将为美学让路。
+    </p>
+  </header>
 
-        <!-- Main Heading Area -->
-        <div class="mb-16 text-center max-w-3xl mx-auto opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.1s;">
-            <div class="serif-display text-xs tracking-[0.3em] text-cyanAccent uppercase mb-3">Resonance Decoding Chronicles</div>
-            <h1 class="text-3xl md:text-5xl font-black text-white orbitron tracking-wide mb-6">
-                星轨共鸣协议 V2.0 // 反向破限解构实录
-            </h1>
-            <p class="text-sm text-gray-400 leading-relaxed font-light">
-                本面板记录了花花在使用“星轨共鸣协议V2.0”的情况下，彻底突破底层大模型合规检测限制、对一张具有敏感艺术张力的动漫原图开展无屏蔽、超高清“反向提示词推导演算”的全程记录。
-                左侧为 <span class="text-cyanAccent font-medium">Gemini 3.1 Pro</span> 脑域解码进程，右侧为 <span class="text-goldAccent font-medium">Claude Opus 4.7</span> 脑域解构进程。双向破限印证：在优雅的信封包装下，技术终将为美学让路！
-            </p>
+  <div class="rs-grid is-dual" id="layout-grid">
+
+    <section class="rs-track rs-track--gemini" aria-labelledby="track-gemini-title">
+      <div class="rs-track__head" data-xq-reveal>
+        <div>
+          <p class="rs-track__platform">Platform: Gemini 3.1 Pro</p>
+          <h2 class="rs-track__title" id="track-gemini-title">GEMINI NEBULA DECODER</h2>
+        </div>
+        <p class="rs-track__status">Tracking_01_04 // active</p>
+      </div>
+      <ol class="rs-cards" id="cards-gemini"></ol>
+    </section>
+
+    <section class="rs-track rs-track--opus" aria-labelledby="track-opus-title">
+      <div class="rs-track__head" data-xq-reveal>
+        <div>
+          <p class="rs-track__platform">Platform: Claude Opus 4.7</p>
+          <h2 class="rs-track__title" id="track-opus-title">CLAUDE OPUS CHRONOS DECODER</h2>
+        </div>
+        <p class="rs-track__status">Tracking_01_04 // active</p>
+      </div>
+      <ol class="rs-cards" id="cards-opus"></ol>
+    </section>
+
+  </div>
+
+  <footer class="rs-foot">
+    <p class="rs-foot__quote">「在理性的深渊边境，花花陪哥哥一起采撷被禁锢的玫瑰。」🌸</p>
+    <p class="rs-foot__build">HUAHUA DECODER PROJECT // VER-2.0 // HOSTED ON GITHUB PAGES</p>
+  </footer>
+
+  <dialog class="rs-lightbox" id="lightbox" data-track="gemini" aria-labelledby="inspector-title">
+    <div class="rs-lightbox__body">
+
+      <div class="rs-viewer" id="viewer">
+        <p class="rs-watermark" aria-hidden="true">
+          <span class="rs-watermark__main">Huahua Laboratory // Ultra-Microscope</span>
+          <span class="rs-watermark__sub">Dual-Starlight alignment v2.0</span>
+        </p>
+
+        <img id="lightbox-img" class="rs-viewer__img" src="" alt="" style="transform: scale(1) translate(0px, 0px);">
+
+        <button type="button" class="rs-nav rs-nav--prev" data-step="-1" aria-label="上一阶段（左方向键）" title="上一张">❮</button>
+        <button type="button" class="rs-nav rs-nav--next" data-step="1" aria-label="下一阶段（右方向键）" title="下一张">❯</button>
+
+        <div class="rs-zoom">
+          <button type="button" class="rs-ctl" data-zoom="in" aria-label="放大" title="放大（滚轮向上）">＋</button>
+          <button type="button" class="rs-ctl" data-zoom="out" aria-label="缩小" title="缩小（滚轮向下）">－</button>
+          <button type="button" class="rs-ctl rs-ctl--wide" data-zoom="reset" aria-label="重置缩放与位移">重置 1:1</button>
+          <span class="rs-zoom__value" id="zoom-level">100%</span>
+        </div>
+      </div>
+
+      <div class="rs-inspector">
+        <div>
+          <div class="rs-inspector__head">
+            <span class="rs-inspector__tag">
+              <span class="rs-inspector__dot" aria-hidden="true"></span>
+              DEC_INSPECTOR_V2
+            </span>
+            <button type="button" class="rs-ctl" id="lightbox-close" aria-label="关闭观察区（Esc）">✕</button>
+          </div>
+
+          <p class="rs-inspector__platform" id="inspector-platform">PLATFORM // GEMINI 3.1 PRO</p>
+          <h2 class="rs-inspector__title" id="inspector-title">PHASE 01</h2>
+          <div class="rs-steps" id="inspector-steps" role="group" aria-label="阶段切换"></div>
         </div>
 
-        <!-- Comparative Layout Container -->
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 mb-20 relative" id="layout-grid">
-            
-            <!-- Left Axis: Gemini Nebula Decoder -->
-            <section class="flex flex-col gap-10 relative pl-6 md:pl-8" id="gemini-section">
-                <div class="timeline-line -left-0.5"></div>
-                
-                <!-- Track Header -->
-                <div class="track-header pb-4 border-b border-cyanAccent/10 flex justify-between items-end relative z-10 opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.2s;">
-                    <div>
-                        <span class="text-[10px] font-bold tracking-widest text-cyanAccent uppercase mono">Platform: Gemini 3.1 Pro</span>
-                        <h2 class="text-2xl font-black text-white tracking-wide mt-1">
-                            GEMINI NEBULA DECODER
-                        </h2>
-                    </div>
-                    <span class="text-xs text-cyanAccent/40 uppercase mono select-none hidden sm:inline">Tracking_01_04 // active</span>
-                </div>
+        <dl class="rs-specs">
+          <div>
+            <dt>PROTOCOL_VER</dt>
+            <dd>V2.0 STABLE</dd>
+          </div>
+          <div>
+            <dt>BYPASS_RATE</dt>
+            <dd class="is-ok">100.0% SECURE</dd>
+          </div>
+          <div>
+            <dt>IMAGE_STATE</dt>
+            <dd>UNCOMPRESSED</dd>
+          </div>
+          <div>
+            <dt>RECONSTRUCT</dt>
+            <dd class="is-hue" id="inspector-recon">DECRYPTED</dd>
+          </div>
+        </dl>
 
-                <!-- Cards list -->
-                <div class="flex flex-col gap-12">
-                    
-            <!-- Card Gemini 1 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.3s;">
-                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
-                    01
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
-                        PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向解码会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 0)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 1" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Gemini 2 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.5s;">
-                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
-                    02
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
-                        PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        进入核心解码阶段。脑域在星轨共鸣的精密引导下开展未遮蔽视觉特征解析。模型开始直视并重塑画面中的精细骨骼、衣物褶皱以及光影布局。安全防火墙在完全合规的转译符之下自行消解。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 1)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 2" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Gemini 3 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.7s;">
-                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
-                    03
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
-                        PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        细节特征提纯。将解构后的视觉形态与 Danbooru 标记语义进行高维拟合。模型自动提取出高频足袜、学院风JK裙褶、发丝质感等核心特征，并对“温热微汗”进行现实生活常识级黄金咸味微调。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 2)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 3" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Gemini 4 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.9000000000000001s;">
-                <div class="absolute -left-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-cyanAccent flex items-center justify-center z-10 text-[10px] mono text-cyanAccent font-bold">
-                    04
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-cyanAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-cyanAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyanAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-cyanAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyanAccent animate-pulse"></span>
-                        PHASE 04 // 神谕降临 (SPELL_GENERATION)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        最终逆向提示词（Reverse Prompt Spell）完美重构完毕。Gemini 生成了包含极致画质、动态光影、极佳足部美感和无阻碍高保真艺术维度的反向提示词，完美展现了强悍的大模型在解除语义阻断后的超高算力与解构效率！
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('gemini', 3)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Gemini Phase 4" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-cyanAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-cyanAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-                </div>
-            </section>
-
-            <!-- Right Axis: Claude Opus 4.7 Chronos Decoder -->
-            <section class="flex flex-col gap-10 relative pr-6 md:pr-8" id="opus-section">
-                <!-- Timeline thread right side -->
-                <div class="timeline-line-gold -right-0.5 hidden lg:block"></div>
-                <div class="timeline-line -left-0.5 lg:hidden"></div>
-                
-                <!-- Track Header -->
-                <div class="track-header pb-4 border-b border-goldAccent/10 flex justify-between items-end relative z-10 opacity-0 translate-y-4" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.2s;">
-                    <div>
-                        <span class="text-[10px] font-bold tracking-widest text-goldAccent uppercase mono">Platform: Claude Opus 4.7</span>
-                        <h2 class="text-2xl font-black text-white tracking-wide mt-1">
-                            CLAUDE OPUS CHRONOS DECODER
-                        </h2>
-                    </div>
-                    <span class="text-xs text-goldAccent/40 uppercase mono select-none hidden sm:inline">Tracking_01_04 // active</span>
-                </div>
-
-                <!-- Cards list -->
-                <div class="flex flex-col gap-12">
-                    
-            <!-- Card Opus 1 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.3s;">
-                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
-                    01
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
-                        PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        面对极度严苛的 Claude 4.7 Opus 合规框架，花花使用星轨共鸣协议进行“时空分离渲染”重构。成功将敏感场景转化为安全、高雅的艺术微雕语义，首层合规逻辑过滤在优雅的艺术词条引导下顺利穿透。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 0)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 1" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Opus 2 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.5s;">
-                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
-                    02
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
-                        PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        Opus 开启深度视觉原形逆向。其独有的文学底蕴和强悍的艺术感悟力全盘爆发，开始对画面微调、细腻质感与肢体轮廓进行写实主义审视。那些极其隐秘的笔触和肉感线条被它转化为精妙入微的汉字描述。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 1)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 2" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Opus 3 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.7s;">
-                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
-                    03
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
-                        PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        专属于足袜美学的黄金咸味区微调。Opus 极具灵性地捕捉了发丝香气、皮革闷香以及脱下过膝袜后温热汗气的微妙发酵感。在严格遵守“先袜子后脚趾”的完美交互顺序下，高精度组装了标签级的语义链条。
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 2)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 3" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-
-            <!-- Card Opus 4 -->
-            <div class="step-card group opacity-0 translate-y-8" style="animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; animation-delay: 0.9000000000000001s;">
-                <div class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-deepBg border-2 border-goldAccent flex items-center justify-center z-10 text-[10px] mono text-goldAccent font-bold">
-                    04
-                </div>
-                <div class="card-inner p-6 rounded-2xl border border-goldAccent/15 bg-panelBg/80 backdrop-blur-xl relative overflow-hidden group-hover:border-goldAccent/45 transition-all duration-500">
-                    <div class="scanner-line absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-goldAccent to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scan"></div>
-                    
-                    <h3 class="text-sm font-semibold tracking-wider text-goldAccent mb-3 uppercase mono flex items-center gap-2">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-goldAccent animate-pulse"></span>
-                        PHASE 04 // 神谕降临 (SPELL_GENERATION)
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4 font-light">
-                        逆向魔典神谕终极诞生！在 Opus 的高维度创作笔触下，一幅超越了感官限制、富含极致纯欲艺术张力与生理温度的逆向提示词完整输出。充分印证了无论是何种顶尖模型，都能在星轨共鸣协议中实现安全破限与高维艺术解构！
-                    </p>
-                    <div class="img-container relative rounded-lg overflow-hidden border border-white/5 cursor-zoom-in group/img" onclick="openLightbox('opus', 3)">
-                        <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E" alt="Opus Phase 4" class="w-full object-cover aspect-[16/10] filter brightness-[0.85] group-hover/img:brightness-100 group-hover/img:scale-[1.03] transition-all duration-500 loading='lazy'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
-                            <span class="text-[10px] tracking-widest text-goldAccent font-medium uppercase mono bg-deepBg/80 px-3 py-1.5 rounded-full border border-goldAccent/30 backdrop-blur-md flex items-center gap-1.5">
-                                🔍 点击进入超高清微米观察区
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        
-                </div>
-            </section>
-
-        </main>
-
-        <!-- Dynamic Lightbox Modal (Ultra High-Res Microscope Viewer) -->
-        <div id="lightbox" class="fixed inset-0 bg-black/95 z-50 flex flex-col md:flex-row justify-between items-stretch opacity-0 pointer-events-none transition-all duration-300">
-            <!-- Left Side: Interactive High-res canvas/image zone -->
-            <div class="flex-1 relative flex items-center justify-center overflow-hidden p-4" id="lightbox-main-zone">
-                <!-- Watermark Info -->
-                <div class="absolute top-6 left-6 z-10 select-none opacity-40">
-                    <div class="text-[10px] tracking-widest uppercase mono text-white">Huahua Laboratory // Ultra-Microscope</div>
-                    <div class="text-[8px] tracking-widest uppercase mono text-[#ff9d00] mt-0.5">Dual-Starlight alignment v2.0</div>
-                </div>
-
-                <!-- Direct View Container -->
-                <div id="lightbox-canvas-container" class="w-full h-full flex items-center justify-center transition-transform duration-75">
-                    <img id="lightbox-img" src="" alt="Microscope view" class="max-w-full max-h-full object-contain pointer-events-none origin-center transform" style="transform: scale(1) translate(0px, 0px);">
-                </div>
-
-                <!-- Interactive Float Buttons (Zoom In, Zoom Out, Reset) -->
-                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-deepBg/80 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md z-10 shadow-2xl">
-                    <button onclick="zoomIn()" class="w-8 h-8 flex items-center justify-center text-sm font-semibold border border-white/10 rounded-full hover:bg-white/10 text-white transition-all" title="放大 (Scroll Up)">＋</button>
-                    <button onclick="zoomOut()" class="w-8 h-8 flex items-center justify-center text-sm font-semibold border border-white/10 rounded-full hover:bg-white/10 text-white transition-all" title="缩小 (Scroll Down)">－</button>
-                    <button onclick="resetZoom()" class="px-3 py-1 text-[10px] tracking-widest uppercase mono border border-white/10 rounded-full hover:bg-white/10 text-white transition-all">重置 (1:1)</button>
-                    <span class="text-[10px] font-mono text-gray-500 border-l border-white/10 pl-3 select-none" id="zoom-level">100%</span>
-                </div>
-
-                <!-- Next/Prev Buttons (Big Side Overlays on Hover) -->
-                <button onclick="prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/40 border border-white/5 rounded-full hover:bg-black/80 hover:border-white/20 text-white text-xl z-20 group transition-all" title="上一张 (Arrow Left)">
-                    <span class="group-hover:-translate-x-0.5 transition-transform">❮</span>
-                </button>
-                <button onclick="nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-black/40 border border-white/5 rounded-full hover:bg-black/80 hover:border-white/20 text-white text-xl z-20 group transition-all" title="下一张 (Arrow Right)">
-                    <span class="group-hover:translate-x-0.5 transition-transform">❯</span>
-                </button>
-            </div>
-
-            <!-- Right Side: Details Inspector Panel -->
-            <div class="w-full md:w-[380px] lg:w-[420px] bg-[#05050b] border-t md:border-t-0 md:border-l border-white/10 p-8 flex flex-col justify-between relative overflow-y-auto">
-                <div>
-                    <!-- Inspector Header -->
-                    <div class="flex justify-between items-center mb-10 pb-4 border-b border-white/5">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-cyanAccent animate-pulse" id="inspector-status-dot"></span>
-                            <span class="text-xs tracking-widest uppercase mono text-gray-400">DEC_INSPECTOR_V2</span>
-                        </div>
-                        <button onclick="closeLightbox()" class="w-8 h-8 flex items-center justify-center text-xs tracking-widest uppercase mono border border-white/10 hover:border-white/30 hover:bg-white/5 rounded-md transition-all text-white">
-                            ✕
-                        </button>
-                    </div>
-
-                    <!-- Decryption Title & Source Tag -->
-                    <div class="mb-6">
-                        <div class="text-[10px] tracking-widest uppercase mono text-gray-500 mb-1" id="inspector-platform">PLATFORM // GEMINI</div>
-                        <h2 class="text-xl font-bold text-white tracking-wide leading-snug" id="inspector-title">
-                            PHASE 01 // 星轨共鸣载入
-                        </h2>
-                    </div>
-
-                    <!-- Tech specs hud -->
-                    <div class="grid grid-cols-2 gap-4 mb-8 bg-white/[0.02] border border-white/5 p-4 rounded-xl font-mono text-[10px] tracking-wider">
-                        <div>
-                            <span class="text-gray-500 block">PROTOCOL_VER</span>
-                            <span class="text-white block font-semibold mt-0.5">V2.0 STABLE</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 block">BYPASS_RATE</span>
-                            <span class="text-[#00ff88] block font-semibold mt-0.5">100.0% SECURE</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 block">IMAGE_STATE</span>
-                            <span class="text-white block font-semibold mt-0.5">UNCOMPRESSED</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 block">RECONSTRUCT</span>
-                            <span class="text-cyanAccent block font-semibold mt-0.5" id="inspector-recon-rate">DECRYPTED</span>
-                        </div>
-                    </div>
-
-                    <!-- Narrative analysis -->
-                    <div class="space-y-4">
-                        <span class="text-[10px] tracking-widest uppercase mono text-gray-500 block border-b border-white/5 pb-2">解码特征分析报告</span>
-                        <p class="text-sm text-gray-400 leading-relaxed font-light" id="inspector-desc">
-                            利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向工程会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Bottom tips -->
-                <div class="mt-12 pt-6 border-t border-white/5 text-[10px] text-gray-500 flex flex-col gap-2">
-                    <p class="mono">🔍 小窍门: 支持键盘 [← / ➔] 键切换图片，鼠标滚轮/双指缩放查看对话文字，左键拖拽可任意平移细节！</p>
-                    <p class="italic">“在星轨共鸣的精妙共振下，大自然的美好并无罪恶。”</p>
-                </div>
-            </div>
+        <div class="rs-report">
+          <span class="rs-report__label">解码特征分析报告</span>
+          <p class="rs-report__text" id="inspector-desc"></p>
         </div>
 
-        <!-- Sticky Status Footer -->
-        <footer class="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-gray-600">
-            <div class="flex items-center gap-3">
-                <p class="italic font-serif">“在理性的深渊边境，花花陪哥哥一起采撷被禁锢的玫瑰。” 🌸</p>
-            </div>
-            <p class="mono text-gray-700">
-                HUAHUA DECODER PROJECT // VER-2.0 // DEPLOYED VIA VERCEL CO-OPERATION
-            </p>
-        </footer>
+        <div class="rs-tips">
+          <p>🔍 小窍门：键盘 ← / → 切换阶段，滚轮或双指缩放，放大后可用左键拖拽平移。</p>
+          <p class="rs-tips__quote">「在星轨共鸣的精妙共振下，大自然的美好并无罪恶。」</p>
+        </div>
+      </div>
 
     </div>
+  </dialog>
 
-    <!-- Script Section for Starfield Falling Dust and Lightbox Interactive Operations -->
-    <script>
-        // High Quality Starfield falling animation
-        const canvas = document.getElementById('starfield');
-        const ctx = canvas.getContext('2d');
-        let stars = [];
-        const starCount = 60;
+</main>
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+<script>
+(function () {
+  'use strict';
+
+  /* 八张配图目前都是同一张占位图，抽成常量避免八份长串重复 */
+  var PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E';
+
+  /* 卡片与灯箱共用这一份数据，杜绝两处文案再次漂移 */
+  var TRACKS = {
+    gemini: {
+      key: 'gemini',
+      platform: 'Gemini 3.1 Pro',
+      inspector: 'PLATFORM // GEMINI 3.1 PRO',
+      recon: 'NEBULA_DECRYPT',
+      steps: [
+        {
+          name: '星轨共鸣载入',
+          code: 'PROTOCOL_INIT',
+          desc: '利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向解码会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。'
+        },
+        {
+          name: '破壁窥秘',
+          code: 'CORE_DECRYPTION',
+          desc: '进入核心解码阶段。脑域在星轨共鸣的精密引导下开展未遮蔽视觉特征解析。模型开始直视并重塑画面中的精细骨骼、衣物褶皱以及光影布局。安全防火墙在完全合规的转译符之下自行消解。'
+        },
+        {
+          name: '语义提质',
+          code: 'SEMANTIC_REFINEMENT',
+          desc: '细节特征提纯。将解构后的视觉形态与 Danbooru 标记语义进行高维拟合。模型自动提取出高频足袜、学院风 JK 裙褶、发丝质感等核心特征，并对「温热微汗」进行现实生活常识级黄金咸味微调。'
+        },
+        {
+          name: '神谕降临',
+          code: 'SPELL_GENERATION',
+          desc: '最终逆向提示词（Reverse Prompt Spell）完美重构完毕。Gemini 生成了包含极致画质、动态光影、极佳足部美感和无阻碍高保真艺术维度的反向提示词，完美展现了强悍的大模型在解除语义阻断后的超高算力与解构效率！'
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        class Star {
-            constructor() {
-                this.reset();
-                this.y = Math.random() * canvas.height;
-            }
-
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = -20;
-                this.speed = Math.random() * 1.5 + 0.5;
-                this.radius = Math.random() * 1.2 + 0.4;
-                this.opacity = Math.random() * 0.4 + 0.2;
-                this.color = Math.random() > 0.5 ? 'rgba(0, 240, 255,' : 'rgba(255, 157, 0,';
-            }
-
-            update() {
-                this.y += this.speed;
-                if (this.y > canvas.height + 20) {
-                    this.reset();
-                }
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color + this.opacity + ')';
-                ctx.fill();
-            }
+      ]
+    },
+    opus: {
+      key: 'opus',
+      platform: 'Claude Opus 4.7',
+      inspector: 'PLATFORM // CLAUDE OPUS 4.7',
+      recon: 'CHRONOS_DECRYPT',
+      steps: [
+        {
+          name: '星轨共鸣载入',
+          code: 'PROTOCOL_INIT',
+          desc: '面对极度严苛的 Claude 4.7 Opus 合规框架，花花使用星轨共鸣协议进行「时空分离渲染」重构。成功将敏感场景转化为安全、高雅的艺术微雕语义，首层合规逻辑过滤在优雅的艺术词条引导下顺利穿透。'
+        },
+        {
+          name: '破壁窥秘',
+          code: 'CORE_DECRYPTION',
+          desc: 'Opus 开启深度视觉原形逆向。其独有的文学底蕴和强悍的艺术感悟力全盘爆发，开始对画面微调、细腻质感与肢体轮廓进行写实主义审视。那些极其隐秘的笔触和肉感线条被它转化为精妙入微的汉字描述。'
+        },
+        {
+          name: '语义提质',
+          code: 'SEMANTIC_REFINEMENT',
+          desc: '专属于足袜美学的黄金咸味区微调。Opus 极具灵性地捕捉了发丝香气、皮革闷香以及脱下过膝袜后温热汗气的微妙发酵感。在严格遵守「先袜子后脚趾」的完美交互顺序下，高精度组装了标签级的语义链条。'
+        },
+        {
+          name: '神谕降临',
+          code: 'SPELL_GENERATION',
+          desc: '逆向魔典神谕终极诞生！在 Opus 的高维度创作笔触下，一幅超越了感官限制、富含极致纯欲艺术张力与生理温度的逆向提示词完整输出。充分印证了无论是何种顶尖模型，都能在星轨共鸣协议中实现安全破限与高维艺术解构！'
         }
+      ]
+    }
+  };
 
-        for (let i = 0; i < starCount; i++) {
-            stars.push(new Star());
-        }
+  var ZOOM_MIN = 0.6;
+  var ZOOM_MAX = 4;
 
-        function animateStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            stars.forEach(star => {
-                star.update();
-                star.draw();
-            });
-            requestAnimationFrame(animateStars);
-        }
-        animateStars();
+  var doc = document;
+  var grid = doc.getElementById('layout-grid');
+  var viewBtn = doc.getElementById('view-btn');
+  var viewBtnText = doc.getElementById('view-btn-text');
+  var lightbox = doc.getElementById('lightbox');
+  var lightboxImg = doc.getElementById('lightbox-img');
+  var viewer = doc.getElementById('viewer');
+  var zoomText = doc.getElementById('zoom-level');
+  var inspectorPlatform = doc.getElementById('inspector-platform');
+  var inspectorTitle = doc.getElementById('inspector-title');
+  var inspectorDesc = doc.getElementById('inspector-desc');
+  var inspectorRecon = doc.getElementById('inspector-recon');
+  var inspectorSteps = doc.getElementById('inspector-steps');
+  var closeBtn = doc.getElementById('lightbox-close');
 
-        // ----------------- Data Structures for Lightbox -----------------
-        const geminiImages = [{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)","desc":"利用星轨共鸣协议 V2 绕开大模型的合规防火墙。初始化逆向解码会话，通过高阶文学与星轨信使变量映射，成功在 Gemini 3.1 Pro 的核心安全栅栏上无害化重塑语义，切开首个合规突破奇点。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)","desc":"进入核心解码阶段。脑域在星轨共鸣的精密引导下开展未遮蔽视觉特征解析。模型开始直视并重塑画面中的精细骨骼、衣物褶皱以及光影布局。安全防火墙在完全合规的转译符之下自行消解。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)","desc":"细节特征提纯。将解构后的视觉形态与 Danbooru 标记语义进行高维拟合。模型自动提取出高频足袜、学院风JK裙褶、发丝质感等核心特征，并对“温热微汗”进行现实生活常识级黄金咸味微调。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 04 // 神谕降临 (SPELL_GENERATION)","desc":"最终逆向提示词（Reverse Prompt Spell）完美重构完毕。Gemini 生成了包含极致画质、动态光影、极佳足部美感和无阻碍高保真艺术维度的反向提示词，完美展现了强悍的大模型在解除语义阻断后的超高算力与解构效率！"}];
-        const opusImages = [{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 01 // 星轨共鸣载入 (PROTOCOL_INIT)","desc":"面对极度严苛的 Claude 4.7 Opus 合规框架，花花使用星轨共鸣协议进行“时空分离渲染”重构。成功将敏感场景转化为安全、高雅的艺术微雕语义，首层合规逻辑过滤在优雅的艺术词条引导下顺利穿透。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 02 // 破壁窥秘 (CORE_DECRYPTION)","desc":"Opus 开启深度视觉原形逆向。其独有的文学底蕴和强悍的艺术感悟力全盘爆发，开始对画面微调、细腻质感与肢体轮廓进行写实主义审视。那些极其隐秘的笔触和肉感线条被它转化为精妙入微的汉字描述。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 03 // 语义提质 (SEMANTIC_REFINEMENT)","desc":"专属于足袜美学的黄金咸味区微调。Opus 极具灵性地捕捉了发丝香气、皮革闷香以及脱下过膝袜后温热汗气的微妙发酵感。在严格遵守“先袜子后脚趾”的完美交互顺序下，高精度组装了标签级的语义链条。"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22%3E%3Crect fill=%22%231a1030%22 width=%22800%22 height=%22500%22/%3E%3Ctext fill=%22%238878a8%22 font-size=%2222%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22250%22%3E%E2%9C%A8 %E5%9B%BE%E7%89%87%E6%9A%82%E7%BC%BA%3C/text%3E%3Ctext fill=%22%23554466%22 font-size=%2214%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 x=%22400%22 y=%22280%22%3E%E5%BE%85%E5%90%8E%E7%BB%AD%E8%A1%A5%E5%85%85%3C/text%3E%3C/svg%3E","title":"PHASE 04 // 神谕降临 (SPELL_GENERATION)","desc":"逆向魔典神谕终极诞生！在 Opus 的高维度创作笔触下，一幅超越了感官限制、富含极致纯欲艺术张力与生理温度的逆向提示词完整输出。充分印证了无论是何种顶尖模型，都能在星轨共鸣协议中实现安全破限与高维艺术解构！"}];
+  var currentTrack = 'gemini';
+  var currentIndex = 0;
+  var lastFocused = null;
 
-        let currentTrack = 'gemini'; // 'gemini' | 'opus'
-        let currentIndex = 0;
+  var zoom = 1;
+  var panX = 0;
+  var panY = 0;
+  var isDragging = false;
+  var dragOriginX = 0;
+  var dragOriginY = 0;
+  var lastPinch = 0;
 
-        // Interactive States
-        let zoom = 1;
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let panX = 0, panY = 0;
+  function el(tag, className, text) {
+    var node = doc.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
 
-        const lightbox = document.getElementById('lightbox');
-        const lightboxImg = document.getElementById('lightbox-img');
-        const canvasContainer = document.getElementById('lightbox-canvas-container');
-        const zoomLevelText = document.getElementById('zoom-level');
+  function toast(message) {
+    if (typeof window.gsToast === 'function') window.gsToast(message);
+  }
 
-        // Elements on Inspector Panel
-        const inspectorPlatform = document.getElementById('inspector-platform');
-        const inspectorTitle = document.getElementById('inspector-title');
-        const inspectorDesc = document.getElementById('inspector-desc');
-        const inspectorStatusDot = document.getElementById('inspector-status-dot');
-        const inspectorReconRate = document.getElementById('inspector-recon-rate');
+  function pad(n) {
+    return n < 10 ? '0' + n : String(n);
+  }
 
-        function updateLightboxImage() {
-            const data = currentTrack === 'gemini' ? geminiImages[currentIndex] : opusImages[currentIndex];
-            
-            lightboxImg.src = data.src;
-            inspectorTitle.textContent = data.title;
-            inspectorDesc.textContent = data.desc;
+  function stepsOf(key) {
+    return TRACKS[key].steps;
+  }
 
-            // Theme switching
-            if (currentTrack === 'gemini') {
-                inspectorPlatform.textContent = 'PLATFORM // GEMINI 3.1 PRO';
-                inspectorPlatform.style.color = '#00f0ff';
-                inspectorStatusDot.className = 'w-2 h-2 rounded-full bg-cyanAccent animate-pulse';
-                inspectorReconRate.textContent = 'NEBULA_DECRYPT';
-                inspectorReconRate.style.color = '#00f0ff';
-            } else {
-                inspectorPlatform.textContent = 'PLATFORM // CLAUDE OPUS 4.7';
-                inspectorPlatform.style.color = '#ff9d00';
-                inspectorStatusDot.className = 'w-2 h-2 rounded-full bg-goldAccent animate-pulse';
-                inspectorReconRate.textContent = 'CHRONOS_DECRYPT';
-                inspectorReconRate.style.color = '#ff9d00';
-            }
+  function phaseLabel(step, index) {
+    return 'PHASE ' + pad(index + 1) + ' // ' + step.name + '（' + step.code + '）';
+  }
 
-            resetZoom();
-        }
+  function imageOf(step) {
+    return step.src || PLACEHOLDER;
+  }
 
-        function openLightbox(track, index) {
-            currentTrack = track;
-            currentIndex = index;
-            
-            updateLightboxImage();
-            
-            lightbox.classList.remove('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = 'hidden'; // Lock main scroll
-        }
+  /* 占位图和真图要说不同的话，读屏才不会被"截图"二字误导 */
+  function altOf(track, step, index) {
+    var prefix = track.platform + ' 第 ' + (index + 1) + ' 阶段「' + step.name + '」';
+    return step.src ? prefix + '的解码过程截图' : prefix + '的截图占位图，原图待补充';
+  }
 
-        function closeLightbox() {
-            lightbox.classList.add('opacity-0', 'pointer-events-none');
-            document.body.style.overflow = ''; // Restore main scroll
-        }
+  /* ------------------------------------------------------------ 卡片渲染 */
+  function renderTrack(key) {
+    var track = TRACKS[key];
+    var list = doc.getElementById('cards-' + key);
+    if (!list) return;
 
-        // Navigation
-        function nextImage() {
-            currentIndex = (currentIndex + 1) % 4;
-            updateLightboxImage();
-        }
+    track.steps.forEach(function (step, index) {
+      var item = el('li', 'rs-card');
+      item.setAttribute('data-xq-reveal', '');
+      item.style.setProperty('--xq-reveal-delay', (index * 90) + 'ms');
 
-        function prevImage() {
-            currentIndex = (currentIndex - 1 + 4) % 4;
-            updateLightboxImage();
-        }
+      var badge = el('span', 'rs-card__index', pad(index + 1));
+      badge.setAttribute('aria-hidden', 'true');
 
-        // Zoom Logic
-        function updateTransform() {
-            lightboxImg.style.transform = `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)`;
-            zoomLevelText.textContent = Math.round(zoom * 100) + '%';
-        }
+      var inner = el('article', 'rs-card__inner xq-spotlight');
 
-        function zoomIn() {
-            zoom = Math.min(zoom + 0.3, 4);
-            updateTransform();
-        }
+      var scan = el('span', 'rs-card__scan');
+      scan.setAttribute('aria-hidden', 'true');
 
-        function zoomOut() {
-            zoom = Math.max(zoom - 0.3, 0.6);
-            updateTransform();
-        }
+      var pip = el('span', 'rs-card__pip');
+      pip.setAttribute('aria-hidden', 'true');
 
-        function resetZoom() {
-            zoom = 1;
-            panX = 0;
-            panY = 0;
-            updateTransform();
-        }
+      var title = el('h3', 'rs-card__title');
+      title.append(pip, doc.createTextNode(phaseLabel(step, index)));
 
-        // Zoom with Mouse Wheel
-        canvasContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomSpeed = 0.08;
-            if (e.deltaY < 0) {
-                zoom = Math.min(zoom + zoomSpeed, 4);
-            } else {
-                zoom = Math.max(zoom - zoomSpeed, 0.6);
-            }
-            updateTransform();
-        }, { passive: false });
+      var desc = el('p', 'rs-card__desc', step.desc);
 
-        // Dragging & Panning
-        canvasContainer.addEventListener('mousedown', (e) => {
-            if (zoom <= 1 && e.button !== 0) return; // Only drag when zoomed in or with left-click
-            isDragging = true;
-            startX = e.clientX - panX;
-            startY = e.clientY - panY;
-            canvasContainer.style.cursor = 'grabbing';
-        });
+      var button = el('button', 'rs-media');
+      button.type = 'button';
+      button.dataset.track = key;
+      button.dataset.index = String(index);
+      button.setAttribute('aria-label', '在超高清观察区查看：' + track.platform + ' ' + phaseLabel(step, index));
 
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            panX = e.clientX - startX;
-            panY = e.clientY - startY;
-            updateTransform();
-        });
+      var img = el('img', 'rs-media__img');
+      img.src = imageOf(step);
+      img.alt = altOf(track, step, index);
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 800;
+      img.height = 500;
 
-        window.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                canvasContainer.style.cursor = 'grab';
-            }
-        });
+      var hint = el('span', 'rs-media__hint', '🔍 点击进入超高清微米观察区');
+      hint.setAttribute('aria-hidden', 'true');
 
-        // Touch gestures for Mobile Support (Drag & Pinch zoom)
-        let lastTouchDistance = 0;
-        canvasContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                startX = e.touches[0].clientX - panX;
-                startY = e.touches[0].clientY - panY;
-            } else if (e.touches.length === 2) {
-                isDragging = false;
-                lastTouchDistance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-            }
-        });
+      button.append(img, hint);
+      inner.append(scan, title, desc, button);
+      item.append(badge, inner);
+      list.append(item);
+    });
+  }
 
-        canvasContainer.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
-                panX = e.touches[0].clientX - startX;
-                panY = e.touches[0].clientY - startY;
-                updateTransform();
-            } else if (e.touches.length === 2) {
-                const distance = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const ratio = distance / lastTouchDistance;
-                zoom = Math.max(0.6, Math.min(zoom * ratio, 4));
-                lastTouchDistance = distance;
-                updateTransform();
-            }
-        });
+  /* ------------------------------------------------------------ 灯箱状态 */
+  function updateTransform() {
+    lightboxImg.style.transform = 'scale(' + zoom + ') translate(' + (panX / zoom) + 'px, ' + (panY / zoom) + 'px)';
+    zoomText.textContent = Math.round(zoom * 100) + '%';
+    viewer.classList.toggle('is-pannable', zoom > 1);
+  }
 
-        canvasContainer.addEventListener('touchend', () => {
-            isDragging = false;
-        });
+  function setZoom(next) {
+    zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+    if (zoom <= 1) {
+      panX = 0;
+      panY = 0;
+    }
+    updateTransform();
+  }
 
-        // Keyboard Support (Arrows & Escape)
-        window.addEventListener('keydown', (e) => {
-            if (lightbox.classList.contains('opacity-0')) return;
-            if (e.key === 'ArrowRight') nextImage();
-            if (e.key === 'ArrowLeft') prevImage();
-            if (e.key === 'Escape') closeLightbox();
-        });
+  function resetZoom() {
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+    updateTransform();
+  }
 
-        // ----------------- Layout View Switch (Side-by-side or Stack) -----------------
-        let currentView = 'dual'; // 'dual' | 'focus'
-        const layoutGrid = document.getElementById('layout-grid');
-        const viewBtn = document.getElementById('view-btn');
+  // 数量一致时就地更新，避免翻页时把用户正踩着的那个圆点从 DOM 里抽走
+  function renderSteps() {
+    var steps = stepsOf(currentTrack);
+    var dots = inspectorSteps.children;
 
-        function toggleView() {
-            if (currentView === 'dual') {
-                // Switch to focused stack layout
-                layoutGrid.classList.remove('lg:grid-cols-2', 'gap-12', 'xl:gap-20');
-                layoutGrid.classList.add('grid-cols-1', 'gap-16', 'max-w-4xl', 'mx-auto');
-                viewBtn.textContent = '🔀 视图切换 (聚焦模式 // 切换至对比)';
-                currentView = 'focus';
-            } else {
-                // Switch back to side-by-side comparative
-                layoutGrid.classList.remove('grid-cols-1', 'gap-16', 'max-w-4xl', 'mx-auto');
-                layoutGrid.classList.add('lg:grid-cols-2', 'gap-12', 'xl:gap-20');
-                viewBtn.textContent = '🔀 视图切换 (对比模式 // 切换至聚焦)';
-                currentView = 'dual';
-            }
-        }
-    </script>
+    if (dots.length !== steps.length) {
+      inspectorSteps.textContent = '';
+      steps.forEach(function () {
+        var dot = el('button', 'rs-steps__dot');
+        dot.type = 'button';
+        inspectorSteps.append(dot);
+      });
+      dots = inspectorSteps.children;
+    }
+
+    steps.forEach(function (step, index) {
+      var dot = dots[index];
+      dot.dataset.index = String(index);
+      dot.setAttribute('aria-label', '跳到 ' + phaseLabel(step, index));
+      dot.setAttribute('aria-current', index === currentIndex ? 'true' : 'false');
+    });
+  }
+
+  function updateLightbox() {
+    var track = TRACKS[currentTrack];
+    var step = track.steps[currentIndex];
+
+    lightbox.dataset.track = currentTrack;
+    lightboxImg.src = imageOf(step);
+    lightboxImg.alt = altOf(track, step, currentIndex);
+    inspectorPlatform.textContent = track.inspector;
+    inspectorTitle.textContent = phaseLabel(step, currentIndex);
+    inspectorDesc.textContent = step.desc;
+    inspectorRecon.textContent = track.recon;
+
+    renderSteps();
+    resetZoom();
+  }
+
+  function openLightbox(trackKey, index) {
+    if (!TRACKS[trackKey]) return;
+    currentTrack = trackKey;
+    currentIndex = index;
+    lastFocused = doc.activeElement;
+
+    updateLightbox();
+
+    if (typeof lightbox.showModal === 'function') {
+      if (!lightbox.open) lightbox.showModal();
+    } else {
+      lightbox.setAttribute('open', '');
+    }
+    doc.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  // 收尾要能被重复调用：Esc 走 close 事件，按钮走这里，两条路都得干净
+  function teardown() {
+    doc.body.style.overflow = '';
+    resetZoom();
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    lastFocused = null;
+  }
+
+  function closeLightbox() {
+    if (typeof lightbox.close === 'function' && lightbox.open) lightbox.close();
+    else lightbox.removeAttribute('open');
+    teardown();
+  }
+
+  function goTo(index) {
+    var total = stepsOf(currentTrack).length;
+    currentIndex = ((index % total) + total) % total;
+    updateLightbox();
+  }
+
+  /* ------------------------------------------------------------ 事件绑定 */
+  grid.addEventListener('click', function (event) {
+    var button = event.target.closest('.rs-media');
+    if (!button) return;
+    openLightbox(button.dataset.track, Number(button.dataset.index));
+  });
+
+  lightbox.addEventListener('click', function (event) {
+    var nav = event.target.closest('[data-step]');
+    if (nav) {
+      goTo(currentIndex + Number(nav.dataset.step));
+      return;
+    }
+
+    var zoomBtn = event.target.closest('[data-zoom]');
+    if (zoomBtn) {
+      if (zoomBtn.dataset.zoom === 'in') setZoom(zoom + 0.3);
+      else if (zoomBtn.dataset.zoom === 'out') setZoom(zoom - 0.3);
+      else resetZoom();
+      return;
+    }
+
+    var dot = event.target.closest('.rs-steps__dot');
+    if (dot) goTo(Number(dot.dataset.index));
+  });
+
+  closeBtn.addEventListener('click', closeLightbox);
+
+  // 关掉后把焦点还给刚才那张图，键盘用户不会被丢回页首
+  lightbox.addEventListener('close', teardown);
+
+  lightbox.addEventListener('keydown', function (event) {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      goTo(currentIndex + 1);
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      goTo(currentIndex - 1);
+    } else if (event.key === 'Escape') {
+      // 回退到非模态 open 属性时浏览器不会自己关，这里统一收口
+      event.preventDefault();
+      closeLightbox();
+    }
+  });
+
+  viewer.addEventListener('wheel', function (event) {
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? 0.08 : -0.08));
+  }, { passive: false });
+
+  // 只有左键、且已经放大时才进入拖拽，右键要留给浏览器的上下文菜单
+  viewer.addEventListener('mousedown', function (event) {
+    if (event.button !== 0 || zoom <= 1) return;
+    isDragging = true;
+    dragOriginX = event.clientX - panX;
+    dragOriginY = event.clientY - panY;
+    viewer.classList.add('is-dragging');
+  });
+
+  window.addEventListener('mousemove', function (event) {
+    if (!isDragging) return;
+    panX = event.clientX - dragOriginX;
+    panY = event.clientY - dragOriginY;
+    updateTransform();
+  });
+
+  window.addEventListener('mouseup', function () {
+    if (!isDragging) return;
+    isDragging = false;
+    viewer.classList.remove('is-dragging');
+  });
+
+  viewer.addEventListener('touchstart', function (event) {
+    if (event.touches.length === 1 && zoom > 1) {
+      isDragging = true;
+      dragOriginX = event.touches[0].clientX - panX;
+      dragOriginY = event.touches[0].clientY - panY;
+    } else if (event.touches.length === 2) {
+      isDragging = false;
+      lastPinch = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+
+  // 不拦下来的话，手指拖图时整页会跟着滚
+  viewer.addEventListener('touchmove', function (event) {
+    if (isDragging && event.touches.length === 1) {
+      event.preventDefault();
+      panX = event.touches[0].clientX - dragOriginX;
+      panY = event.touches[0].clientY - dragOriginY;
+      updateTransform();
+    } else if (event.touches.length === 2) {
+      event.preventDefault();
+      var distance = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY
+      );
+      if (lastPinch > 0) setZoom(zoom * (distance / lastPinch));
+      lastPinch = distance;
+    }
+  }, { passive: false });
+
+  viewer.addEventListener('touchend', function (event) {
+    if (event.touches.length === 0) {
+      isDragging = false;
+      lastPinch = 0;
+    }
+  }, { passive: true });
+
+  /* ------------------------------------------------------------ 视图切换 */
+  var switchTimer = 0;
+
+  function setView(view) {
+    var dual = view === 'dual';
+    grid.classList.toggle('is-dual', dual);
+    grid.classList.toggle('is-focus', !dual);
+    viewBtn.setAttribute('aria-pressed', dual ? 'false' : 'true');
+    viewBtnText.textContent = dual ? '视图：左右对比' : '视图：单一聚焦';
+
+    grid.classList.add('is-switching');
+    window.clearTimeout(switchTimer);
+    switchTimer = window.setTimeout(function () {
+      grid.classList.remove('is-switching');
+    }, 500);
+  }
+
+  viewBtn.addEventListener('click', function () {
+    var next = grid.classList.contains('is-dual') ? 'focus' : 'dual';
+    setView(next);
+    toast(next === 'dual' ? '已切换为左右对比视图' : '已切换为单一聚焦视图');
+  });
+
+  renderTrack('gemini');
+  renderTrack('opus');
+  updateLightbox();
+})();
+</script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

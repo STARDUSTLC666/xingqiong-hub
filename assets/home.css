@@ -3093,6 +3093,106 @@ body[data-mode="adult"] .search-field input:focus {
   }
 }
 
+/* ==========================================================================
+   进场、光效与微交互
+   ========================================================================== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 620ms var(--ease), transform 620ms var(--ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* 档案卡与路线按钮跟随指针的柔光 */
+.archive-card,
+.goal-switch__button {
+  position: relative;
+  isolation: isolate;
+}
+
+.archive-card::after,
+.goal-switch__button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    color-mix(in srgb, var(--archive-accent, var(--mode-accent)) 22%, transparent),
+    transparent 68%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms var(--ease);
+}
+
+.archive-card:hover::after,
+.goal-switch__button:hover::after {
+  opacity: 1;
+}
+
+/* 重新筛选时不重播卡片入场动画，只有首次渲染值得强调 */
+.archive-grid.is-restaged .archive-card {
+  animation: none;
+}
+
+/* 首屏数字用等宽数位，滚动计数时不会左右跳动 */
+.hero__facts dt {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 主按钮的高光扫过 */
+.button--primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.button--primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 42%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  transition: left 620ms var(--ease);
+}
+
+.button--primary:hover::after {
+  left: 130%;
+}
+
+/* 命令面板入口与既有导航链接同一档视觉 */
+.header-link--palette {
+  cursor: pointer;
+  font: inherit;
+}
+
+.header-link--palette kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--faint);
+  font-family: Consolas, "SFMono-Regular", ui-monospace, monospace;
+  font-size: 10.5px;
+}
+
+@media (max-width: 900px) {
+  .header-link--palette kbd {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -3101,5 +3201,10 @@ body[data-mode="adult"] .search-field input:focus {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }

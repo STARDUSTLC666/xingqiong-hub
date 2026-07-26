@@ -3,112 +3,1437 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WD 标签反推器 · Gemini Sanctuary</title>
+<title>WD 标签反推器 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="用本机 WD14 模型从参考图反推 Danbooru 标签，筛选后直接用于提示词组合。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/wd-tagger/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="WD 标签反推器 · 星穹枢庭">
+  <meta property="og:description" content="用本机 WD14 模型从参考图反推 Danbooru 标签，筛选后直接用于提示词组合。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/wd-tagger/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-:root{--gold:#e8a860;--green:#7fd49a;--red:#d86f6f;--cyan:#78d8df;--panel:rgba(16,16,36,.68);--line:rgba(255,215,150,.12);--muted:rgba(210,210,235,.48)}
-body{overflow-x:hidden}.page{max-width:1180px}.status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-bottom:1rem}.status-card{background:rgba(10,10,24,.46);border:1px solid var(--line);border-radius:14px;padding:.85rem}.status-card h3{font-size:.78rem;color:#d8c48a;margin-bottom:.4rem}.status-line{display:flex;align-items:center;gap:.42rem;color:var(--muted);font-size:.76rem}.dot{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 12px rgba(255,255,255,.08)}.dot.ok{background:var(--green);box-shadow:0 0 16px rgba(127,212,154,.45)}.dot.bad{background:var(--red);box-shadow:0 0 16px rgba(216,111,111,.3)}.drop-zone{border:2px dashed rgba(232,168,96,.24);border-radius:18px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:.25s;background:rgba(16,16,36,.36);margin-bottom:1rem}.drop-zone:hover,.drop-zone.drag-over{border-color:rgba(232,168,96,.65);background:rgba(232,168,96,.055)}.drop-zone .icon{font-size:2.5rem;margin-bottom:.7rem}.drop-zone .text{color:rgba(220,220,245,.72);font-size:.95rem;font-weight:700}.drop-zone .hint{color:rgba(210,210,235,.36);font-size:.75rem;margin-top:.4rem}.drop-zone img{max-width:100%;max-height:340px;border-radius:12px;display:none;box-shadow:0 14px 50px rgba(0,0,0,.35)}.drop-zone.has-image{padding:1rem}.drop-zone.has-image .icon,.drop-zone.has-image .text,.drop-zone.has-image .hint{display:none}.drop-zone.has-image img{display:block;margin:0 auto}.toolbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center}.toolbar .spacer{flex:1}.threshold{display:flex;align-items:center;gap:.45rem;color:var(--muted);font-size:.78rem}.threshold input{width:84px}.progress-bar{width:100%;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin:1rem 0}.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),#d0a0f0);transition:width .2s}.result-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:1rem}.filter-bar{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem}.filter-chip{padding:.26rem .65rem;border-radius:999px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035);color:rgba(210,210,235,.5);font-size:.7rem;cursor:pointer}.filter-chip.active{border-color:rgba(232,168,96,.55);background:rgba(232,168,96,.12);color:var(--gold)}.tag-list{max-height:560px;overflow:auto;display:flex;flex-direction:column;gap:.28rem;padding-right:.2rem}.tag-result{display:grid;grid-template-columns:minmax(0,1fr) 58px 84px;align-items:center;gap:.5rem;padding:.46rem .62rem;border-radius:10px;background:rgba(255,255,255,.026);border:1px solid rgba(255,255,255,.055);cursor:pointer;transition:.18s}.tag-result:hover{border-color:rgba(232,168,96,.28)}.tag-result.selected{background:rgba(232,168,96,.12);border-color:rgba(232,168,96,.72)}.tag-name{color:#dfc58a;font-family:Consolas,monospace;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tag-conf{text-align:right;font-size:.72rem;color:#d8d088}.tag-conf.high{color:#8fd69a}.tag-conf.low{color:rgba(210,210,235,.35)}.tag-cat{text-align:center;font-size:.62rem;text-transform:uppercase;border-radius:99px;padding:.14rem .4rem;background:rgba(255,255,255,.045);color:rgba(210,210,235,.38)}.selected-tags-box{min-height:86px;background:rgba(10,10,24,.48);border:1px solid rgba(232,168,96,.12);border-radius:12px;padding:.75rem;display:flex;align-content:flex-start;flex-wrap:wrap;gap:.35rem}.sel-tag{display:inline-flex;align-items:center;gap:.3rem;padding:.23rem .55rem;border-radius:999px;background:rgba(232,168,96,.12);border:1px solid rgba(232,168,96,.24);color:#e8c07d;font-family:Consolas,monospace;font-size:.72rem}.sel-tag button{border:0;background:transparent;color:rgba(232,168,96,.7);cursor:pointer}.error-box{display:none;white-space:pre-wrap;word-break:break-word;border:1px solid rgba(216,111,111,.24);background:rgba(216,111,111,.07);border-radius:12px;padding:.75rem;margin-top:.75rem;color:#e49b9b;font-size:.76rem;line-height:1.55}.mini-note{color:rgba(210,210,235,.32);font-size:.72rem;line-height:1.7}.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}@media(max-width:820px){.status-grid,.result-layout{grid-template-columns:1fr}.tag-result{grid-template-columns:minmax(0,1fr) 52px}.tag-cat{display:none}.toolbar .spacer{display:none}}
+/* ===========================================================================
+   WD 标签反推器 · 页面专属样式
+   颜色、圆角、字体全部取自 sanctuary.css 的设计令牌，
+   这里只描述本页独有的结构（状态卡 / 拖放区 / 标签表）。
+   =========================================================================== */
+
+[hidden] { display: none !important; }
+
+body { overflow-x: hidden; }
+
+.page { max-width: var(--xq-page); }
+
+/* ------------------------------------------------------------- 状态卡片区 */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: 1.1rem;
+}
+
+.status-card {
+  position: relative;
+  overflow: hidden;
+  padding: .9rem 1rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  box-shadow: var(--xq-inner-top);
+  animation: card-in var(--xq-dur-slow) var(--xq-ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  transition: transform var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease);
+}
+
+.status-card::before {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  left: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--xq-line-strong), transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.status-card:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-sm), var(--xq-inner-top);
+  transform: translateY(-2px);
+}
+
+.status-card h3 {
+  margin-bottom: .45rem;
+  color: var(--xq-gold);
+  font-family: var(--xq-font-serif);
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.status-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--xq-text-muted);
+  font-size: .78rem;
+  gap: .45rem;
+}
+
+.status-line > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-sub {
+  margin-top: .35rem;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px); }
+}
+
+/* 状态灯：三种语义色 + 未就绪时的呼吸 */
+.dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--xq-text-faint);
+  transition: background var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+
+.dot.ok {
+  background: var(--xq-ok);
+  box-shadow: 0 0 0 4px rgba(126, 200, 168, .14), 0 0 16px rgba(126, 200, 168, .42);
+}
+
+.dot.bad {
+  background: var(--xq-danger);
+  box-shadow: 0 0 0 4px rgba(224, 125, 112, .12), 0 0 16px rgba(224, 125, 112, .32);
+}
+
+.dot.busy {
+  background: var(--xq-gold);
+  animation: dot-pulse 1.4s var(--xq-ease) infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 168, 96, .48); }
+  60% { box-shadow: 0 0 0 7px rgba(232, 168, 96, 0); }
+}
+
+/* --------------------------------------------------------- 公网模式说明卡 */
+.setup-steps {
+  padding-left: 1.15rem;
+  margin: .7rem 0 .9rem;
+  color: var(--xq-text-soft);
+  font-size: .82rem;
+  line-height: 1.9;
+}
+
+.setup-steps li { animation: card-in var(--xq-dur-slow) var(--xq-ease-out) backwards; }
+.setup-steps li:nth-child(2) { animation-delay: 80ms; }
+.setup-steps li:nth-child(3) { animation-delay: 160ms; }
+
+.setup-steps code { font-size: .82em; }
+
+/* --------------------------------------------------------------- 工具条 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.toolbar .spacer { flex: 1; }
+
+.threshold {
+  display: flex;
+  align-items: center;
+  color: var(--xq-text-muted);
+  font-size: .78rem;
+  gap: .45rem;
+}
+
+.threshold input {
+  width: 88px;
+  padding: 7px 10px;
+  font-size: .78rem;
+}
+
+.mini-note {
+  color: var(--xq-text-faint);
+  font-size: .72rem;
+  line-height: 1.8;
+}
+
+/* --------------------------------------------------------------- 拖放区 */
+.drop-zone {
+  display: block;
+  width: 100%;
+  padding: 2.6rem 1.5rem;
+  border: 2px dashed rgba(232, 168, 96, .24);
+  border-radius: var(--xq-r-lg);
+  margin-bottom: 1rem;
+  background: var(--xq-surface-quiet);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-ease);
+}
+
+.drop-zone:hover {
+  border-color: rgba(232, 168, 96, .5);
+  background: var(--xq-gold-wash);
+}
+
+/* 拖拽悬停：金色辉光 + 缓慢呼吸，明确告诉用户“松手就收” */
+.drop-zone.is-over {
+  border-color: var(--xq-gold-bright);
+  background: rgba(232, 168, 96, .1);
+  box-shadow: var(--xq-glow-gold);
+  animation: zone-breathe 1.5s var(--xq-ease) infinite;
+  transform: scale(1.006);
+}
+
+@keyframes zone-breathe {
+  50% { box-shadow: 0 0 0 1px rgba(232, 168, 96, .42), 0 20px 64px rgba(232, 168, 96, .3); }
+}
+
+.drop-zone .icon {
+  display: block;
+  margin-bottom: .7rem;
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.drop-zone .text {
+  display: block;
+  color: var(--xq-text-soft);
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.drop-zone .hint {
+  display: block;
+  margin-top: .4rem;
+  color: var(--xq-text-faint);
+  font-size: .75rem;
+}
+
+.drop-zone img {
+  display: none;
+  max-width: 100%;
+  max-height: 340px;
+  border-radius: var(--xq-r-md);
+  margin: 0 auto;
+  box-shadow: var(--xq-shadow-md);
+}
+
+.drop-zone.has-image { padding: 1rem; }
+
+.drop-zone.has-image .icon,
+.drop-zone.has-image .text,
+.drop-zone.has-image .hint { display: none; }
+
+.drop-zone.has-image img {
+  display: block;
+  animation: preview-in var(--xq-dur-slow) var(--xq-ease-out) backwards;
+}
+
+@keyframes preview-in {
+  from { opacity: 0; filter: blur(10px); transform: scale(.97); }
+}
+
+/* 整页拖拽时给拖放区一个“接得住”的提示 */
+body.is-dragging .drop-zone {
+  border-color: rgba(232, 168, 96, .55);
+  background: rgba(232, 168, 96, .06);
+}
+
+/* ------------------------------------------------------------- 不定进度条 */
+/* 后台不回报进度，所以这里只表达“正在跑”，不假装知道百分比。 */
+.progress {
+  position: relative;
+  overflow: hidden;
+  height: 5px;
+  border-radius: var(--xq-r-pill);
+  margin-top: 1rem;
+  background: rgba(255, 255, 255, .06);
+}
+
+.progress::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  border-radius: inherit;
+  animation: progress-slide 1.15s var(--xq-ease) infinite;
+  background: linear-gradient(90deg, transparent, var(--xq-gold), var(--xq-violet), transparent);
+  content: "";
+}
+
+@keyframes progress-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(300%); }
+}
+
+.btn.is-busy {
+  opacity: .8;
+  pointer-events: none;
+}
+
+.btn.is-busy::before {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin .7s linear infinite;
+  content: "";
+  opacity: .8;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ----------------------------------------------------------------- 报错框 */
+.error-box {
+  padding: .8rem .9rem;
+  border: 1px solid rgba(224, 125, 112, .26);
+  border-radius: var(--xq-r-md);
+  margin-top: .75rem;
+  animation: error-in var(--xq-dur) var(--xq-ease-out) backwards;
+  background: rgba(224, 125, 112, .07);
+  color: #e9a79e;
+  font-size: .78rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@keyframes error-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+/* --------------------------------------------------------------- 结果布局 */
+.result-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.tag-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: .7rem;
+}
+
+.tag-search {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.tag-search input {
+  padding: 7px 13px;
+  border-radius: var(--xq-r-pill);
+  font-size: .76rem;
+}
+
+.sort-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: rgba(255, 255, 255, .03);
+  gap: 2px;
+}
+
+.sort-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: var(--xq-r-pill);
+  background: transparent;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .72rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+
+.sort-btn:hover { color: var(--xq-gold-bright); }
+
+.sort-btn[aria-pressed="true"] {
+  background: var(--xq-gold-wash);
+  box-shadow: 0 0 0 1px rgba(232, 168, 96, .28);
+  color: var(--xq-gold-bright);
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-bottom: .75rem;
+}
+
+.filter-chip {
+  padding: .26rem .7rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: rgba(255, 255, 255, .035);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .7rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+
+.filter-chip:hover {
+  border-color: var(--xq-line-strong);
+  color: var(--xq-gold-bright);
+  transform: translateY(-1px);
+}
+
+.filter-chip[aria-pressed="true"] {
+  border-color: rgba(232, 168, 96, .55);
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold);
+}
+
+.filter-chip b {
+  color: var(--xq-text-faint);
+  font-weight: 600;
+  margin-left: .3rem;
+}
+
+.tag-list {
+  display: flex;
+  max-height: 560px;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-right: .2rem;
+  gap: .3rem;
+  scrollbar-gutter: stable;
+}
+
+.tag-result {
+  display: grid;
+  width: 100%;
+  align-items: center;
+  padding: .46rem .62rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-sm);
+  animation: tag-in .34s var(--xq-ease-out) backwards;
+  animation-delay: var(--d, 0ms);
+  background: rgba(255, 255, 255, .026);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  gap: .55rem;
+  grid-template-columns: minmax(0, 1fr) 70px 42px 76px;
+  text-align: left;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-ease), box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+
+/* 只有拿到新结果或换筛选时才铺开级联进场；打字搜索时保持安静 */
+.tag-list[data-anim="0"] .tag-result,
+.tag-list[data-anim="0"] .tag-meter span { animation: none; }
+
+@keyframes tag-in {
+  from { opacity: 0; transform: translateY(7px); }
+}
+
+.tag-result:hover {
+  border-color: rgba(232, 168, 96, .32);
+  background: rgba(232, 168, 96, .05);
+  transform: translateX(3px);
+}
+
+.tag-result[aria-pressed="true"] {
+  border-color: rgba(232, 168, 96, .6);
+  background: var(--xq-gold-wash);
+  box-shadow: inset 3px 0 0 var(--xq-gold);
+}
+
+.tag-name {
+  overflow: hidden;
+  color: #dfc58a;
+  font-family: var(--xq-font-mono);
+  font-size: .78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-result[aria-pressed="true"] .tag-name { color: var(--xq-gold-bright); }
+
+/* 置信度迷你条：比纯数字更快读出强弱 */
+.tag-meter {
+  overflow: hidden;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .07);
+}
+
+.tag-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  animation: meter-in .5s var(--xq-ease-out) backwards;
+  animation-delay: var(--d, 0ms);
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold-bright));
+  transform: scaleX(var(--v, 0));
+  transform-origin: left center;
+}
+
+.tag-meter.high span { background: linear-gradient(90deg, var(--xq-mint), #b6ecd0); }
+.tag-meter.low span { background: linear-gradient(90deg, rgba(171, 156, 219, .5), rgba(171, 156, 219, .85)); }
+
+@keyframes meter-in {
+  from { transform: scaleX(0); }
+}
+
+.tag-conf {
+  color: #d8d088;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tag-conf.high { color: var(--xq-ok); }
+.tag-conf.low { color: var(--xq-text-faint); }
+
+.tag-cat {
+  overflow: hidden;
+  padding: .14rem .4rem;
+  border-radius: var(--xq-r-pill);
+  background: rgba(255, 255, 255, .045);
+  color: var(--xq-text-faint);
+  font-size: .62rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag-empty {
+  padding: 1.4rem .4rem;
+  color: var(--xq-text-muted);
+  font-size: .8rem;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------- 已选标签区 */
+.selected-tags-box {
+  display: flex;
+  min-height: 90px;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  padding: .75rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: rgba(10, 12, 26, .48);
+  gap: .35rem;
+}
+
+.sel-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: .23rem .3rem .23rem .6rem;
+  border: 1px solid rgba(232, 168, 96, .26);
+  border-radius: var(--xq-r-pill);
+  animation: sel-in .3s var(--xq-spring) backwards;
+  background: var(--xq-gold-wash);
+  color: #e8c07d;
+  font-family: var(--xq-font-mono);
+  font-size: .72rem;
+  gap: .25rem;
+}
+
+@keyframes sel-in {
+  from { opacity: 0; transform: scale(.7); }
+}
+
+.sel-tag button {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(232, 168, 96, .7);
+  cursor: pointer;
+  font: inherit;
+  font-size: .8rem;
+  line-height: 1;
+  place-items: center;
+  transition: background var(--xq-dur-fast) var(--xq-ease), color var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-ease);
+}
+
+.sel-tag button:hover {
+  background: rgba(224, 125, 112, .22);
+  color: #f3b3a8;
+  transform: rotate(90deg);
+}
+
+/* --------------------------------------------------------------- 响应式 */
+@media (max-width: 980px) {
+  .result-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .status-grid { grid-template-columns: 1fr; }
+  .tag-result { grid-template-columns: minmax(0, 1fr) 56px 42px; }
+  .tag-cat { display: none; }
+  .toolbar .spacer { display: none; }
+  .threshold { flex: 1 1 100%; }
+}
+
+@media (max-width: 420px) {
+  .drop-zone { padding: 1.8rem 1rem; }
+  .tag-result { grid-template-columns: minmax(0, 1fr) 40px 42px; }
+  .tag-tools { gap: .4rem; }
+}
+
+/* ----------------------------------------------- 尊重系统的减少动效设置 */
+/* sanctuary.css 已经全局压掉时长；这里只处理“压掉后会停在错误状态”的几处。 */
+@media (prefers-reduced-motion: reduce) {
+  .progress::after {
+    width: 100%;
+    animation: none !important;
+    opacity: .5;
+    transform: none;
+  }
+
+  .drop-zone.is-over,
+  .status-card:hover,
+  .tag-result:hover { transform: none; }
+
+  .btn.is-busy::before { animation: none !important; }
+}
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
   <header class="page-header">
     <h1>WD 标签反推器</h1>
     <p class="subtitle">WD14 ONNX 本地识图 · 同源 API 代理 · 不依赖 ComfyUI 节点</p>
   </header>
 
-  <section class="status-grid">
-    <div class="status-card"><h3>网页入口</h3><div class="status-line"><span class="dot ok"></span><span id="webStatus">已打开</span></div></div>
-    <div class="status-card"><h3>WD14 后台</h3><div class="status-line"><span class="dot" id="wdDot"></span><span id="wdStatus">检测中...</span></div></div>
-    <div class="status-card"><h3>ComfyUI</h3><div class="status-line"><span class="dot" id="comfyDot"></span><span id="comfyStatus">检测中...</span></div></div>
+  <!-- 本机模式：真实可变的三张状态卡 -->
+  <section class="status-grid" id="statusGrid" hidden>
+    <div class="status-card" style="--i:0">
+      <h3>接口端点</h3>
+      <div class="status-line"><span class="dot" id="apiDot"></span><span id="apiStatus" aria-live="polite">检测中…</span></div>
+      <p class="status-sub" id="apiHint">尚未检测</p>
+    </div>
+    <div class="status-card" style="--i:1">
+      <h3>WD14 后台</h3>
+      <div class="status-line"><span class="dot" id="wdDot"></span><span id="wdStatus" aria-live="polite">检测中…</span></div>
+      <p class="status-sub" id="wdHint">端口 18434</p>
+    </div>
+    <div class="status-card" style="--i:2">
+      <h3>ComfyUI</h3>
+      <div class="status-line"><span class="dot" id="comfyDot"></span><span id="comfyStatus" aria-live="polite">检测中…</span></div>
+      <p class="status-sub" id="comfyHint">端口 8188</p>
+    </div>
+  </section>
+
+  <!-- 公网 / file:// 模式：这里没有后台可连，直接给启动指引 -->
+  <section class="panel" id="remoteNote" hidden>
+    <div class="panel-title">本页需要本机 WD14 后台</div>
+    <p class="mini-note" style="font-size:.82rem;color:var(--xq-text-soft)">
+      反推跑在你自己的电脑上：这个页面只负责把图片递过去，再把标签接回来。所以要先在本机把服务跑起来。
+    </p>
+    <ol class="setup-steps">
+      <li>把仓库下载或克隆到本机（需要已安装 Node.js）。</li>
+      <li>在 <code>wd-tagger</code> 目录执行 <code>node serve.js</code>。</li>
+      <li>浏览器打开 <code>http://127.0.0.1:18435</code>，即可获得完整功能。</li>
+    </ol>
+    <p class="mini-note">若后台已经在跑，本页也能跨域直连 <code>http://127.0.0.1:18435</code>——点下面按钮试一次。</p>
+    <div class="flex-row mt-1">
+      <button class="btn btn-ghost btn-sm" type="button" id="probeBtn">检测本机后台</button>
+    </div>
   </section>
 
   <section class="panel">
-    <div class="panel-title flex-between"><span>① 后台与参数</span><button class="btn btn-ghost btn-sm" onclick="checkAll()">刷新状态</button></div>
+    <div class="panel-title flex-between"><span>① 后台与参数</span><button class="btn btn-ghost btn-sm" type="button" id="refreshBtn">刷新状态</button></div>
     <div class="toolbar">
-      <button class="btn btn-primary btn-sm" onclick="startBackend()">启动 WD14 后台</button>
-      <button class="btn btn-ghost btn-sm" onclick="stopBackend()">停止 WD14</button>
-      <button class="btn btn-ghost btn-sm" onclick="startComfy()">启动 ComfyUI</button>
-      <button class="btn btn-ghost btn-sm" onclick="stopComfy()">停止 ComfyUI</button>
-      <a class="btn btn-ghost btn-sm" href="http://127.0.0.1:8188" target="_blank">打开 WebUI</a>
+      <button class="btn btn-primary btn-sm" type="button" id="startWdBtn">启动 WD14 后台</button>
+      <button class="btn btn-ghost btn-sm" type="button" id="stopWdBtn">停止 WD14</button>
+      <button class="btn btn-ghost btn-sm" type="button" id="startComfyBtn">启动 ComfyUI</button>
+      <button class="btn btn-ghost btn-sm" type="button" id="stopComfyBtn">停止 ComfyUI</button>
+      <a class="btn btn-ghost btn-sm" id="comfyLink" href="http://127.0.0.1:8188" target="_blank" rel="noopener" hidden>打开 WebUI</a>
       <span class="spacer"></span>
-      <label class="threshold">阈值 <input type="number" id="threshold" value="0.35" min="0.05" max="0.95" step="0.05"></label>
+      <span class="threshold"><label for="threshold">阈值</label><input type="number" id="threshold" value="0.35" min="0.05" max="0.95" step="0.05"></span>
     </div>
-    <p class="mini-note mt-1">正式入口推荐使用 <code>http://127.0.0.1:18435</code>。如果从 file:// 打开，点击“启动 WD14 后台”会尝试调用本地协议启动服务。</p>
+    <p class="mini-note mt-1">正式入口是 <code>http://127.0.0.1:18435</code>（在 <code>wd-tagger</code> 目录运行 <code>node serve.js</code> 后自动打开）。图片只发往 <code>127.0.0.1</code>，不经过任何远端服务器。</p>
   </section>
 
   <section class="panel">
     <div class="panel-title">② 拖入图片</div>
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">🖼️</div>
-      <div class="text">拖放图片到这里，或点击选择</div>
-      <div class="hint">支持 JPG / PNG / WebP；图片只发给本机 127.0.0.1</div>
-      <img id="previewImg" alt="图片预览">
-    </div>
-    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <button class="drop-zone" type="button" id="dropZone" aria-label="选择图片，或把图片拖放到这里">
+      <span class="icon" aria-hidden="true">🖼️</span>
+      <span class="text">拖放图片到这里，或点击选择</span>
+      <span class="hint">支持 JPG / PNG / WebP，也可以直接 Ctrl+V 粘贴</span>
+      <img id="previewImg" alt="待反推的图片预览">
+    </button>
+    <input type="file" id="fileInput" accept="image/*" class="xq-sr" tabindex="-1" aria-hidden="true">
     <div class="toolbar">
-      <button class="btn btn-primary" id="runBtn" onclick="runTagger()" disabled>反推标签</button>
-      <button class="btn btn-ghost" onclick="pasteClipboard()">粘贴剪贴板图片</button>
-      <button class="btn btn-ghost" onclick="resetAll()">清空</button>
+      <button class="btn btn-primary" type="button" id="runBtn" disabled>反推标签</button>
+      <button class="btn btn-ghost" type="button" id="pasteBtn">粘贴剪贴板图片</button>
+      <button class="btn btn-ghost" type="button" id="resetBtn">清空</button>
     </div>
-    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="error-box" id="errorBox"></div>
+    <div class="progress" id="progressBar" role="progressbar" aria-label="正在反推标签" hidden></div>
+    <div class="error-box" id="errorBox" role="alert" hidden></div>
   </section>
 
-  <section class="result-layout" id="resultLayout" style="display:none">
+  <section class="result-layout" id="resultLayout" hidden>
     <div class="panel">
-      <div class="panel-title flex-between"><span>③ 识别标签 <span class="text-muted" id="tagCount"></span></span><button class="btn btn-ghost btn-sm" onclick="selectAllVisible()">全选当前</button></div>
-      <div class="filter-bar" id="filterBar"></div>
+      <div class="panel-title flex-between">
+        <span>③ 识别标签 <span class="text-muted" id="tagCount"></span></span>
+        <button class="btn btn-ghost btn-sm" type="button" id="selectVisibleBtn">全选当前</button>
+      </div>
+      <div class="tag-tools">
+        <span class="tag-search">
+          <label class="xq-sr" for="tagSearch">在识别结果里搜索标签</label>
+          <input type="search" id="tagSearch" placeholder="搜索标签…" autocomplete="off">
+        </span>
+        <span class="sort-toggle" role="group" aria-label="标签排序方式">
+          <button class="sort-btn" type="button" data-sort="conf" aria-pressed="true">置信度</button>
+          <button class="sort-btn" type="button" data-sort="alpha" aria-pressed="false">字母</button>
+        </span>
+      </div>
+      <div class="filter-bar" id="filterBar" role="group" aria-label="按类别筛选标签"></div>
       <div class="tag-list" id="tagResults"></div>
     </div>
     <div class="panel">
-      <div class="panel-title flex-between"><span>④ 已选标签 <span class="text-muted" id="selCount">0</span></span><button class="btn btn-ghost btn-sm" onclick="clearSelectedTags()">清空已选</button></div>
-      <div class="selected-tags-box" id="selectedBox"><span class="text-muted">点击左侧标签添加...</span></div>
-      <div class="flex-row mt-1">
-        <button class="btn btn-primary btn-sm" onclick="copySelected()">复制标签</button>
-        <button class="btn btn-ghost btn-sm" onclick="copyWeighted()">带权重复制</button>
-        <button class="btn btn-ghost btn-sm" onclick="sendToCyberSummon()">发送到赛博魔典</button>
+      <div class="panel-title flex-between">
+        <span>④ 已选标签 <span class="text-muted" id="selCount">0</span></span>
+        <button class="btn btn-ghost btn-sm" type="button" id="clearSelBtn">清空已选</button>
       </div>
+      <div class="selected-tags-box" id="selectedBox"></div>
+      <div class="flex-row mt-1">
+        <button class="btn btn-primary btn-sm" type="button" id="copyBtn">复制标签</button>
+        <button class="btn btn-ghost btn-sm" type="button" id="copyWeightedBtn">带权重复制</button>
+        <button class="btn btn-ghost btn-sm" type="button" id="sendCyberBtn">发送到赛博魔典</button>
+      </div>
+      <p class="mini-note mt-1">带权重复制会按置信度自动补 <code>(tag:1.3)</code> / <code>(tag:1.1)</code>；发送到赛博魔典会把已选标签暂存在浏览器里，打开魔典后可直接导入。</p>
     </div>
   </section>
 </main>
 <script src="../assets/gemini.js"></script>
 <script>
-let currentImageBase64=null,currentMime='image/png',currentTags=[],selectedTags=new Set(),currentFilter='all',taggerReady=false,comfyReady=false;
-const IS_FILE_PAGE = location.protocol === 'file:';
-const IS_LOCAL_PAGE = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
-// 从 GitHub Pages / Vercel / Cloudflare Pages 等公网静态页打开时，仍然请求使用者自己电脑上的本地后台。
-const API_BASE = (IS_FILE_PAGE || !IS_LOCAL_PAGE) ? 'http://127.0.0.1:18435' : '';
-const api = p => API_BASE + p;
-function timeout(ms){return AbortSignal.timeout?{signal:AbortSignal.timeout(ms)}:{}}
-function toast(msg){ if(window.gsToast) gsToast(msg); else alert(msg); }
-function showError(msg){const e=document.getElementById('errorBox'); e.style.display='block'; e.textContent=msg;}
-function clearError(){const e=document.getElementById('errorBox'); e.style.display='none'; e.textContent='';}
-function setDot(id,ok,bad=false){const d=document.getElementById(id);d.classList.toggle('ok',!!ok);d.classList.toggle('bad',!!bad&&!ok)}
-async function getJson(url,opts={}){const r=await fetch(url,opts); let data=null; try{data=await r.json()}catch{}; if(!r.ok) throw new Error((data&&(data.error||data.msg))||('HTTP '+r.status)); return data||{};}
-async function checkBackend(){try{const d=await getJson(api('/api/tagger/status?start=1'), timeout(3500)); taggerReady=!!(d.ready||d.running||d.status==='ok'); setDot('wdDot',taggerReady,!taggerReady); document.getElementById('wdStatus').textContent=taggerReady?'已就绪：'+(d.model||'WD14'):(d.msg||'未运行');}catch(e){taggerReady=false;setDot('wdDot',false,true);document.getElementById('wdStatus').textContent='未连接：'+e.message;} updateRunBtn();}
-async function checkComfy(){try{const d=await getJson(api('/api/comfy/status'), timeout(2500)); comfyReady=!!d.running; setDot('comfyDot',comfyReady,!comfyReady); document.getElementById('comfyStatus').textContent=comfyReady?'运行中，端口 '+d.port:'未运行';}catch(e){comfyReady=false;setDot('comfyDot',false,true);document.getElementById('comfyStatus').textContent='未连接：'+e.message;}}
-async function checkAll(){await Promise.allSettled([checkBackend(),checkComfy()]);}
-async function startBackend(){clearError(); if(IS_FILE_PAGE || !IS_LOCAL_PAGE){location.href='qiqi-wd://start'; toast('已请求启动本地后台，若浏览器询问请选择打开。'); setTimeout(checkAll,3500); return;} try{document.getElementById('wdStatus').textContent='正在启动...';const d=await getJson(api('/api/tagger/start'),{method:'POST',...timeout(50000)});toast(d.msg||'WD14 已启动');await checkBackend();}catch(e){showError('启动 WD14 失败：'+e.message+'\n请运行 E:\\GeminiSanctuary\\wd-tagger\\start-wd-tagger.cmd');}}
-async function stopBackend(){try{const d=await getJson(api('/api/tagger/stop'),{method:'POST',...timeout(10000)});toast(d.msg||'已停止');await checkBackend();}catch(e){toast('停止失败：'+e.message)}}
-async function startComfy(){try{document.getElementById('comfyStatus').textContent='正在启动 ComfyUI...';const d=await getJson(api('/api/comfy/start'),{method:'POST',...timeout(130000)});toast(d.msg||'ComfyUI 已启动');await checkComfy();}catch(e){showError('启动 ComfyUI 失败：'+e.message)}}
-async function stopComfy(){try{const d=await getJson(api('/api/comfy/stop'),{method:'POST',...timeout(20000)});toast(d.msg||'ComfyUI 已停止');await checkComfy();}catch(e){toast('停止失败：'+e.message)}}
-function updateRunBtn(){document.getElementById('runBtn').disabled=!(taggerReady&&currentImageBase64)}
-const dropZone=document.getElementById('dropZone');
-dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)handleFile(f)});document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0])});
-function handleFile(file){if(!file||!file.type.startsWith('image/')){toast('请选择图片文件');return} const reader=new FileReader(); reader.onload=e=>{currentMime=file.type||'image/png';currentImageBase64=e.target.result.split(',')[1];document.getElementById('previewImg').src=e.target.result;dropZone.classList.add('has-image');currentTags=[];selectedTags.clear();document.getElementById('resultLayout').style.display='none';clearError();updateRunBtn();toast('图片已载入：'+Math.round(file.size/1024)+'KB')}; reader.readAsDataURL(file)}
-async function pasteClipboard(){try{const items=await navigator.clipboard.read();for(const item of items){for(const type of item.types){if(type.startsWith('image/')){const blob=await item.getType(type);handleFile(new File([blob],'clipboard.png',{type}));return}}}toast('剪贴板里没有图片')}catch(e){toast('无法读取剪贴板：'+e.message)}}
-function resetAll(){currentImageBase64=null;currentTags=[];selectedTags.clear();document.getElementById('previewImg').src='';dropZone.classList.remove('has-image');document.getElementById('resultLayout').style.display='none';clearError();updateRunBtn()}
-async function runTagger(){if(!currentImageBase64){toast('请先拖入图片');return} clearError(); await checkBackend(); if(!taggerReady){showError('WD14 后台还没就绪。请点“启动 WD14 后台”，或运行 start-wd-tagger.cmd。');return} const threshold=parseFloat(document.getElementById('threshold').value||'0.35'); const bar=document.getElementById('progressBar'),fill=document.getElementById('progressFill'); bar.style.display='block'; fill.style.width='18%'; try{const bytes=Uint8Array.from(atob(currentImageBase64),c=>c.charCodeAt(0)); fill.style.width='42%'; const resp=await fetch(api('/api/tag'),{method:'POST',headers:{'Content-Type':currentMime,'X-Threshold':String(threshold)},body:new Blob([bytes],{type:currentMime}),...timeout(60000)}); const data=await resp.json().catch(()=>null); if(!resp.ok||!data||!data.ok) throw new Error((data&&(data.error||data.msg))||('HTTP '+resp.status)); fill.style.width='100%'; currentTags=(data.tags||[]).map(t=>({tag:t.tag,confidence:Number(t.confidence||0),category:String(t.category||'general')})); currentFilter='all'; renderResults(); toast(`${data.count||currentTags.length} 个标签 · ${data.time_ms||'?'}ms`); setTimeout(()=>bar.style.display='none',450)}catch(e){bar.style.display='none';showError('反推失败：'+e.message+'\n请求：'+api('/api/tag')+'\n建议：刷新状态，确认 WD14 后台为“已就绪”。')}}
-function renderResults(){document.getElementById('resultLayout').style.display='grid';document.getElementById('tagCount').textContent=currentTags.length+' 个';const cats=['all',...Array.from(new Set(currentTags.map(t=>t.category))).filter(Boolean)];document.getElementById('filterBar').innerHTML=cats.map(c=>`<span class="filter-chip${currentFilter===c?' active':''}" onclick="currentFilter='${c}';renderResults()">${c==='all'?'全部':c}</span>`).join('');const list=currentFilter==='all'?currentTags:currentTags.filter(t=>t.category===currentFilter);document.getElementById('tagResults').innerHTML=list.map(t=>{const conf=t.confidence>0.7?'high':t.confidence<0.35?'low':'';return `<div class="tag-result${selectedTags.has(t.tag)?' selected':''}" onclick="toggleTag(${JSON.stringify(t.tag).replace(/"/g,'&quot;')})"><span class="tag-name" title="${escapeHtml(t.tag)}">${escapeHtml(t.tag)}</span><span class="tag-conf ${conf}">${(t.confidence*100).toFixed(0)}%</span><span class="tag-cat">${escapeHtml(t.category)}</span></div>`}).join('')||'<p class="text-muted">没有超过阈值的标签，试着降低阈值。</p>';renderSelected()}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function toggleTag(tag){selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag);renderResults()}function selectAllVisible(){(currentFilter==='all'?currentTags:currentTags.filter(t=>t.category===currentFilter)).forEach(t=>selectedTags.add(t.tag));renderResults()}function clearSelectedTags(){selectedTags.clear();renderResults()}
-function renderSelected(){document.getElementById('selCount').textContent=selectedTags.size;const box=document.getElementById('selectedBox');if(!selectedTags.size){box.innerHTML='<span class="text-muted">点击左侧标签添加...</span>';return}box.innerHTML=[...selectedTags].map(t=>`<span class="sel-tag">${escapeHtml(t)}<button onclick="event.stopPropagation();selectedTags.delete(${JSON.stringify(t).replace(/"/g,'&quot;')});renderResults()">×</button></span>`).join('')}
-function copyText(text){navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text).then(()=>toast('已复制')):(window.gsCopy?gsCopy(text):toast(text))}function copySelected(){if(!selectedTags.size){toast('请先选择标签');return}copyText([...selectedTags].join(', '))}function copyWeighted(){if(!selectedTags.size){toast('请先选择标签');return}copyText([...selectedTags].map(t=>{const f=currentTags.find(x=>x.tag===t),c=f?f.confidence:.5;return c>.75?`(${t}:1.3)`:c>.5?`(${t}:1.1)`:t}).join(', '))}function sendToCyberSummon(){if(!selectedTags.size){toast('请先选择标签');return}localStorage.setItem('cyber_summon_import',[...selectedTags].join(', '));toast('已存入，打开赛博魔典后可导入');window.open('../cyber-summon/index.html','_blank')}
-checkAll();setInterval(()=>{if(!taggerReady||!comfyReady)checkAll()},5000);
+(() => {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+
+  /* -------------------------------------------------------------- 运行环境 */
+  // 反推与进程控制永远发生在使用者自己的电脑上：同源打开时走相对路径，
+  // 公网 / file:// 打开时靠 serve.js 的 CORS 白名单直连本机 18435。
+  const IS_LOCAL_PAGE = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+  const API_ORIGIN = 'http://127.0.0.1:18435';
+  const API_BASE = IS_LOCAL_PAGE ? '' : API_ORIGIN;
+  const api = (path) => API_BASE + path;
+  const SETUP_HINT = '在仓库的 wd-tagger 目录运行 node serve.js，再打开 http://127.0.0.1:18435。';
+
+  /* ------------------------------------------------------------------ 状态 */
+  let currentFile = null;
+  let previewUrl = null;
+  let tags = [];
+  const selected = new Set();
+  let filterCat = 'all';
+  let sortMode = 'conf';
+  let searchText = '';
+  let taggerReady = false;
+  let comfyReady = false;
+
+  /* ---------------------------------------------------------------- 小工具 */
+  function toast(message, tone) {
+    // gemini.js 保证 gsToast 存在；sanctuary.js 装载后提供带语义色的版本。
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else window.gsToast(message);
+  }
+
+  function timeoutOpts(ms) {
+    return AbortSignal.timeout ? { signal: AbortSignal.timeout(ms) } : {};
+  }
+
+  function setText(id, value) {
+    const node = $(id);
+    if (node) node.textContent = value;
+  }
+
+  function setDot(id, state) {
+    const dot = $(id);
+    if (!dot) return;
+    dot.classList.toggle('ok', state === 'ok');
+    dot.classList.toggle('bad', state === 'bad');
+    dot.classList.toggle('busy', state === 'busy');
+  }
+
+  function showError(message) {
+    const box = $('errorBox');
+    box.textContent = message;
+    box.hidden = false;
+  }
+
+  function clearError() {
+    const box = $('errorBox');
+    box.hidden = true;
+    box.textContent = '';
+  }
+
+  function clockText() {
+    return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+
+  async function getJson(url, opts = {}) {
+    const res = await fetch(url, opts);
+    let data = null;
+    try { data = await res.json(); } catch { /* 后台可能返回空体 */ }
+    if (!res.ok) {
+      const error = new Error((data && (data.error || data.msg)) || ('HTTP ' + res.status));
+      error.reached = true; // 服务器确实答复了，只是这一次请求失败
+      throw error;
+    }
+    return data || {};
+  }
+
+  /* ------------------------------------------------------------ 状态轮询 */
+  // 公网访客通常没有本地后台。旧版每 5 秒无限重试，控制台会被 Failed to fetch 刷满，
+  // 所以这里加指数退避 + 次数上限，页面不可见时也不发请求。
+  const POLL_BASE = 5000;
+  const POLL_IDLE = 20000;
+  const POLL_MAX = 60000;
+  const FAIL_LIMIT = 6;
+  let failStreak = 0;
+  let pollStopped = false;
+  let pollTimer = null;
+
+  async function checkBackend() {
+    try {
+      const data = await getJson(api('/api/tagger/status'), timeoutOpts(3500));
+      taggerReady = !!(data.ready || data.running || data.status === 'ok');
+      setDot('wdDot', taggerReady ? 'ok' : 'bad');
+      setText('wdStatus', taggerReady ? '已就绪：' + (data.model || 'WD14') : (data.msg || '未运行'));
+      setText('wdHint', taggerReady ? '端口 ' + (data.port || 18434) : '点“启动 WD14 后台”拉起');
+      return true;
+    } catch (error) {
+      taggerReady = false;
+      setDot('wdDot', 'bad');
+      setText('wdStatus', '未连接');
+      setText('wdHint', error.message);
+      return !!error.reached;
+    }
+  }
+
+  async function checkComfy() {
+    try {
+      const data = await getJson(api('/api/comfy/status'), timeoutOpts(2500));
+      comfyReady = !!data.running;
+      setDot('comfyDot', comfyReady ? 'ok' : 'bad');
+      setText('comfyStatus', comfyReady ? '运行中' : '未运行');
+      setText('comfyHint', '端口 ' + (data.port || 8188));
+      return true;
+    } catch (error) {
+      comfyReady = false;
+      setDot('comfyDot', 'bad');
+      setText('comfyStatus', '未连接');
+      setText('comfyHint', error.message);
+      return !!error.reached;
+    }
+  }
+
+  async function checkAll(manual) {
+    if (manual) {
+      failStreak = 0;
+      pollStopped = false;
+    }
+    setDot('apiDot', 'busy');
+    const results = await Promise.all([checkBackend(), checkComfy()]);
+    const reached = results.some(Boolean);
+
+    failStreak = reached ? 0 : failStreak + 1;
+    setDot('apiDot', reached ? 'ok' : 'bad');
+    setText('apiStatus', IS_LOCAL_PAGE ? '同源 · ' + location.host : API_ORIGIN);
+
+    if (reached) {
+      setText('apiHint', '上次检测 ' + clockText());
+      if (!IS_LOCAL_PAGE) revealStatusGrid();
+    } else if (failStreak >= FAIL_LIMIT) {
+      pollStopped = true;
+      setText('apiHint', '连续 ' + failStreak + ' 次失败，自动检测已暂停');
+    } else {
+      setText('apiHint', '连不上 · ' + clockText());
+    }
+
+    updateRunBtn();
+    return reached;
+  }
+
+  function scheduleNextPoll() {
+    clearTimeout(pollTimer);
+    // 公网 / file:// 页面不做后台轮询：连不上是常态，静静等用户手动检测就好。
+    if (!IS_LOCAL_PAGE || pollStopped) return;
+    const delay = failStreak
+      ? Math.min(POLL_BASE * Math.pow(2, failStreak - 1), POLL_MAX)
+      : (taggerReady && comfyReady ? POLL_IDLE : POLL_BASE);
+    pollTimer = setTimeout(pollTick, delay);
+  }
+
+  function pollTick() {
+    if (document.hidden) {
+      pollTimer = setTimeout(pollTick, POLL_BASE);
+      return;
+    }
+    checkAll(false).finally(scheduleNextPoll);
+  }
+
+  function revealStatusGrid() {
+    $('statusGrid').hidden = false;
+    $('remoteNote').hidden = true;
+  }
+
+  /* ------------------------------------------------------------ 进程控制 */
+  function withBusy(button, task) {
+    button.classList.add('is-busy');
+    return task().finally(() => button.classList.remove('is-busy'));
+  }
+
+  async function startBackend(button) {
+    clearError();
+    setText('wdStatus', '正在启动…');
+    setDot('wdDot', 'busy');
+    await withBusy(button, async () => {
+      try {
+        const data = await getJson(api('/api/tagger/start'), { method: 'POST', ...timeoutOpts(60000) });
+        toast(data.msg || 'WD14 已启动', data.ok === false ? 'error' : 'ok');
+      } catch (error) {
+        showError('启动 WD14 失败：' + error.message + '\n' + SETUP_HINT
+          + '\n服务起来之后再回到这里点“刷新状态”。');
+      }
+      await checkAll(true);
+      scheduleNextPoll();
+    });
+  }
+
+  async function stopBackend(button) {
+    await withBusy(button, async () => {
+      try {
+        const data = await getJson(api('/api/tagger/stop'), { method: 'POST', ...timeoutOpts(15000) });
+        toast(data.msg || '已停止', 'ok');
+      } catch (error) {
+        toast('停止失败：' + error.message, 'error');
+      }
+      await checkAll(true);
+      scheduleNextPoll();
+    });
+  }
+
+  async function startComfy(button) {
+    clearError();
+    setText('comfyStatus', '正在启动…');
+    setDot('comfyDot', 'busy');
+    await withBusy(button, async () => {
+      try {
+        const data = await getJson(api('/api/comfy/start'), { method: 'POST', ...timeoutOpts(130000) });
+        toast(data.msg || 'ComfyUI 已启动', data.ok === false ? 'error' : 'ok');
+      } catch (error) {
+        showError('启动 ComfyUI 失败：' + error.message + '\n' + SETUP_HINT);
+      }
+      await checkAll(true);
+      scheduleNextPoll();
+    });
+  }
+
+  async function stopComfy(button) {
+    await withBusy(button, async () => {
+      try {
+        const data = await getJson(api('/api/comfy/stop'), { method: 'POST', ...timeoutOpts(25000) });
+        toast(data.msg || 'ComfyUI 已停止', 'ok');
+      } catch (error) {
+        toast('停止失败：' + error.message, 'error');
+      }
+      await checkAll(true);
+      scheduleNextPoll();
+    });
+  }
+
+  /* ---------------------------------------------------------------- 图片 */
+  const dropZone = $('dropZone');
+
+  function updateRunBtn() {
+    $('runBtn').disabled = !currentFile;
+  }
+
+  function humanSize(bytes) {
+    return bytes >= 1024 * 1024
+      ? (bytes / 1024 / 1024).toFixed(1) + ' MB'
+      : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      toast('请选择图片文件', 'error');
+      return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    currentFile = file;
+    previewUrl = URL.createObjectURL(file);
+    $('previewImg').src = previewUrl;
+    dropZone.classList.add('has-image');
+    tags = [];
+    selected.clear();
+    $('resultLayout').hidden = true;
+    clearError();
+    updateRunBtn();
+    toast('图片已载入 · ' + humanSize(file.size), 'ok');
+  }
+
+  function resetAll() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    currentFile = null;
+    tags = [];
+    selected.clear();
+    $('previewImg').removeAttribute('src');
+    dropZone.classList.remove('has-image');
+    $('resultLayout').hidden = true;
+    $('tagSearch').value = '';
+    searchText = '';
+    clearError();
+    updateRunBtn();
+  }
+
+  /* ------------------------------------------------------------- 反推流程 */
+  async function runTagger(button) {
+    if (!currentFile) {
+      toast('请先拖入图片', 'error');
+      return;
+    }
+    clearError();
+
+    const reached = await checkAll(true);
+    scheduleNextPoll();
+    if (!reached) {
+      showError('连不上本机后台（' + (API_BASE || location.origin) + '）。\n' + SETUP_HINT);
+      return;
+    }
+    if (!taggerReady) {
+      showError('WD14 后台还没就绪。先点“启动 WD14 后台”，或' + SETUP_HINT);
+      return;
+    }
+
+    const threshold = parseFloat($('threshold').value || '0.35');
+    const bar = $('progressBar');
+    bar.hidden = false;
+    button.classList.add('is-busy');
+
+    try {
+      const res = await fetch(api('/api/tag'), {
+        method: 'POST',
+        headers: { 'Content-Type': currentFile.type || 'image/png', 'X-Threshold': String(threshold) },
+        body: currentFile,
+        ...timeoutOpts(90000)
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !data.ok) {
+        throw new Error((data && (data.error || data.msg)) || ('HTTP ' + res.status));
+      }
+      tags = (data.tags || []).map((item) => ({
+        tag: String(item.tag),
+        confidence: Number(item.confidence || 0),
+        category: String(item.category || 'general')
+      }));
+      filterCat = 'all';
+      searchText = '';
+      $('tagSearch').value = '';
+      renderResults();
+      const count = data.count || tags.length;
+      toast(count + ' 个标签 · ' + (data.time_ms || '?') + 'ms', 'ok');
+      const badge = $('tagCount');
+      badge.classList.remove('xq-flash');
+      void badge.offsetWidth;
+      badge.classList.add('xq-flash');
+    } catch (error) {
+      showError('反推失败：' + error.message
+        + '\n请求：' + api('/api/tag')
+        + '\n建议：点“刷新状态”确认 WD14 后台为“已就绪”，或降低阈值后重试。');
+    } finally {
+      bar.hidden = true;
+      button.classList.remove('is-busy');
+    }
+  }
+
+  /* ------------------------------------------------------------ 结果渲染 */
+  function visibleTags() {
+    const keyword = searchText.trim().toLowerCase();
+    let list = filterCat === 'all' ? tags.slice() : tags.filter((t) => t.category === filterCat);
+    if (keyword) list = list.filter((t) => t.tag.toLowerCase().includes(keyword));
+    list.sort((a, b) => (sortMode === 'alpha'
+      ? a.tag.localeCompare(b.tag)
+      : b.confidence - a.confidence || a.tag.localeCompare(b.tag)));
+    return list;
+  }
+
+  function renderFilterBar() {
+    const counts = new Map();
+    for (const item of tags) counts.set(item.category, (counts.get(item.category) || 0) + 1);
+    const cats = ['all', ...[...counts.keys()].sort()];
+    const bar = $('filterBar');
+    bar.replaceChildren();
+
+    for (const cat of cats) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'filter-chip';
+      chip.dataset.cat = cat;
+      chip.setAttribute('aria-pressed', String(filterCat === cat));
+      chip.textContent = cat === 'all' ? '全部' : cat;
+      const num = document.createElement('b');
+      num.textContent = cat === 'all' ? String(tags.length) : String(counts.get(cat));
+      chip.append(num);
+      bar.append(chip);
+    }
+  }
+
+  function renderTagList(animate) {
+    const list = visibleTags();
+    const box = $('tagResults');
+    box.dataset.anim = animate ? '1' : '0';
+    box.replaceChildren();
+
+    if (!list.length) {
+      const empty = document.createElement('p');
+      empty.className = 'tag-empty';
+      empty.textContent = tags.length ? '没有匹配的标签，换个关键词或类别试试。' : '没有超过阈值的标签，试着降低阈值。';
+      box.append(empty);
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    list.forEach((item, index) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'tag-result';
+      row.dataset.tag = item.tag;
+      row.setAttribute('aria-pressed', String(selected.has(item.tag)));
+      // 级联进场：只对前若干行铺开延迟，长列表不至于等太久
+      row.style.setProperty('--d', Math.min(index, 16) * 22 + 'ms');
+
+      const name = document.createElement('span');
+      name.className = 'tag-name';
+      name.title = item.tag;
+      name.textContent = item.tag;
+
+      const level = item.confidence > 0.7 ? 'high' : item.confidence < 0.35 ? 'low' : '';
+      const meter = document.createElement('span');
+      meter.className = 'tag-meter' + (level ? ' ' + level : '');
+      meter.setAttribute('aria-hidden', 'true');
+      const fill = document.createElement('span');
+      fill.style.setProperty('--v', Math.max(0.02, Math.min(1, item.confidence)).toFixed(3));
+      meter.append(fill);
+
+      const conf = document.createElement('span');
+      conf.className = 'tag-conf' + (level ? ' ' + level : '');
+      conf.textContent = (item.confidence * 100).toFixed(0) + '%';
+
+      const cat = document.createElement('span');
+      cat.className = 'tag-cat';
+      cat.textContent = item.category;
+
+      row.append(name, meter, conf, cat);
+      fragment.append(row);
+    });
+    box.append(fragment);
+  }
+
+  function renderSelected() {
+    setText('selCount', String(selected.size));
+    const box = $('selectedBox');
+    box.replaceChildren();
+
+    if (!selected.size) {
+      const hint = document.createElement('span');
+      hint.className = 'text-muted';
+      hint.textContent = '点击左侧标签添加…';
+      box.append(hint);
+      return;
+    }
+
+    for (const tag of selected) {
+      const chip = document.createElement('span');
+      chip.className = 'sel-tag';
+      const label = document.createElement('span');
+      label.textContent = tag;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset.remove = tag;
+      remove.setAttribute('aria-label', '移除标签 ' + tag);
+      remove.textContent = '×';
+      chip.append(label, remove);
+      box.append(chip);
+    }
+  }
+
+  function renderResults() {
+    $('resultLayout').hidden = false;
+    setText('tagCount', tags.length + ' 个');
+    renderFilterBar();
+    renderTagList(true);
+    renderSelected();
+  }
+
+  function toggleTag(tag, row) {
+    if (selected.has(tag)) selected.delete(tag);
+    else selected.add(tag);
+    if (row) row.setAttribute('aria-pressed', String(selected.has(tag)));
+    renderSelected();
+  }
+
+  /* ------------------------------------------------------------ 导出通道 */
+  function selectedText() {
+    return [...selected].join(', ');
+  }
+
+  function weightedText() {
+    return [...selected].map((tag) => {
+      const found = tags.find((item) => item.tag === tag);
+      const confidence = found ? found.confidence : 0.5;
+      if (confidence > 0.75) return '(' + tag + ':1.3)';
+      if (confidence > 0.5) return '(' + tag + ':1.1)';
+      return tag;
+    }).join(', ');
+  }
+
+  function requireSelection() {
+    if (selected.size) return true;
+    toast('请先选择标签', 'error');
+    return false;
+  }
+
+  function sendToCyberSummon() {
+    if (!requireSelection()) return;
+    try {
+      localStorage.setItem('cyber_summon_import', selectedText());
+    } catch (error) {
+      toast('浏览器不允许写入本地存储：' + error.message, 'error');
+      return;
+    }
+    toast('已存入，打开赛博魔典后可导入', 'ok');
+    window.open('../cyber-summon/index.html', '_blank', 'noopener');
+  }
+
+  /* ------------------------------------------------------------ 事件绑定 */
+  function on(id, handler) {
+    const node = $(id);
+    if (node) node.addEventListener('click', (event) => handler(event.currentTarget, event));
+  }
+
+  on('refreshBtn', (button) => withBusy(button, async () => {
+    await checkAll(true);
+    scheduleNextPoll();
+    toast(taggerReady ? 'WD14 已就绪' : '状态已刷新', taggerReady ? 'ok' : undefined);
+  }));
+  on('probeBtn', (button) => withBusy(button, async () => {
+    const reached = await checkAll(true);
+    toast(reached ? '已连接到本机后台' : '仍然连不上 127.0.0.1:18435', reached ? 'ok' : 'error');
+  }));
+  on('startWdBtn', startBackend);
+  on('stopWdBtn', stopBackend);
+  on('startComfyBtn', startComfy);
+  on('stopComfyBtn', stopComfy);
+  on('runBtn', runTagger);
+  on('resetBtn', resetAll);
+  on('pasteBtn', pasteClipboard);
+  on('selectVisibleBtn', () => {
+    visibleTags().forEach((item) => selected.add(item.tag));
+    renderTagList(false);
+    renderSelected();
+  });
+  on('clearSelBtn', () => {
+    selected.clear();
+    renderTagList(false);
+    renderSelected();
+  });
+  on('copyBtn', (button) => {
+    if (requireSelection()) window.gsCopy(selectedText(), button);
+  });
+  on('copyWeightedBtn', (button) => {
+    if (requireSelection()) window.gsCopy(weightedText(), button);
+  });
+  on('sendCyberBtn', sendToCyberSummon);
+
+  // 标签行、筛选 chip、已选标签全部走事件委托：标签文本只落在 data-* 与 textContent 上，
+  // 不再拼接 onclick 字符串，含引号或反斜杠的标签也不会把结构撑坏。
+  $('tagResults').addEventListener('click', (event) => {
+    const row = event.target.closest('.tag-result');
+    if (row) toggleTag(row.dataset.tag, row);
+  });
+
+  $('filterBar').addEventListener('click', (event) => {
+    const chip = event.target.closest('.filter-chip');
+    if (!chip) return;
+    filterCat = chip.dataset.cat;
+    renderFilterBar();
+    renderTagList(true);
+  });
+
+  $('selectedBox').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-remove]');
+    if (!button) return;
+    selected.delete(button.dataset.remove);
+    renderTagList(false);
+    renderSelected();
+  });
+
+  $('tagSearch').addEventListener('input', (event) => {
+    searchText = event.target.value;
+    renderTagList(false);
+  });
+
+  document.querySelectorAll('.sort-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      sortMode = button.dataset.sort;
+      document.querySelectorAll('.sort-btn').forEach((other) => {
+        other.setAttribute('aria-pressed', String(other === button));
+      });
+      renderTagList(true);
+    });
+  });
+
+  /* ------------------------------------------------------- 拖放与剪贴板 */
+  $('fileInput').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) handleFile(file);
+    event.target.value = '';
+  });
+
+  dropZone.addEventListener('click', () => $('fileInput').click());
+
+  let dragDepth = 0;
+  dropZone.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    dropZone.classList.add('is-over');
+  });
+  dropZone.addEventListener('dragenter', (event) => {
+    event.preventDefault();
+    dragDepth += 1;
+    dropZone.classList.add('is-over');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dropZone.classList.remove('is-over');
+  });
+  dropZone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dragDepth = 0;
+    dropZone.classList.remove('is-over');
+    const file = event.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  // 拖到页面任意位置都先接住，免得浏览器直接把图片当新页面打开
+  window.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    document.body.classList.add('is-dragging');
+  });
+  window.addEventListener('dragleave', (event) => {
+    if (!event.relatedTarget) document.body.classList.remove('is-dragging');
+  });
+  window.addEventListener('drop', (event) => {
+    event.preventDefault();
+    document.body.classList.remove('is-dragging');
+  });
+
+  // Ctrl+V 直接粘图，不必先点按钮
+  document.addEventListener('paste', (event) => {
+    const items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind !== 'file' || !item.type.startsWith('image/')) continue;
+      const blob = item.getAsFile();
+      if (!blob) continue;
+      event.preventDefault();
+      handleFile(new File([blob], 'clipboard.png', { type: blob.type || 'image/png' }));
+      return;
+    }
+  });
+
+  async function pasteClipboard() {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        for (const type of item.types) {
+          if (!type.startsWith('image/')) continue;
+          const blob = await item.getType(type);
+          handleFile(new File([blob], 'clipboard.png', { type }));
+          return;
+        }
+      }
+      toast('剪贴板里没有图片', 'error');
+    } catch (error) {
+      toast('无法读取剪贴板：' + error.message + '（可以直接 Ctrl+V）', 'error');
+    }
+  }
+
+  /* ---------------------------------------------------------------- 启动 */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || pollStopped || !IS_LOCAL_PAGE) return;
+    clearTimeout(pollTimer);
+    pollTick();
+  });
+
+  if (IS_LOCAL_PAGE) {
+    $('statusGrid').hidden = false;
+    $('comfyLink').hidden = false; // 8188 只有本机开着才有意义，公网上是死链
+    checkAll(false).finally(scheduleNextPoll);
+  } else {
+    // 公网 / file:// 打开：先摆出启动指引，只探一次，探到了再换成状态卡。
+    $('remoteNote').hidden = false;
+    setText('apiStatus', API_ORIGIN);
+    checkAll(false).catch(() => {});
+  }
+
+  renderSelected();
+  updateRunBtn();
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

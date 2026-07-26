@@ -35,6 +35,42 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8'
 };
 
+// 本服务能启停本机进程并读取仓库文件，因此只对已知来源开放跨域。
+// 任意网页都能打 127.0.0.1 —— 没有白名单等于把控制权交给用户访问的每一个站点。
+const ALLOWED_ORIGINS = [
+  'https://stardustlc666.github.io'
+];
+
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^https?:\/\/\[::1\](:\d+)?$/
+];
+
+function isAllowedOrigin(origin) {
+  if (!origin || origin === 'null') return true; // 同源请求与本地 file:// 页面
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  return ALLOWED_ORIGIN_PATTERNS.some(pattern => pattern.test(origin));
+}
+
+/** 只在来源通过白名单时回写 CORS 头，否则浏览器会自行拦截响应。 */
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (!isAllowedOrigin(origin)) return false;
+
+  if (origin && origin !== 'null') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    // POST /api/tag 会带自定义的 X-Threshold，不列进来的话预检直接被浏览器拒掉，
+    // 公网页面就只能查状态、没法真的反推。
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Threshold');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+
+  return true;
+}
+
 function log(msg) {
   const line = `[${new Date().toLocaleString()}] ${msg}`;
   console.log(line);
@@ -43,12 +79,9 @@ function log(msg) {
 
 function sendJson(res, status, data) {
   const body = JSON.stringify(data);
+  // CORS 头已由 applyCorsHeaders 按来源写入，这里只补内容相关的头。
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': '*',
-    'Access-Control-Allow-Private-Network': 'true',
     'Cache-Control': 'no-store'
   });
   res.end(body);
@@ -135,9 +168,10 @@ async function proxyJson(targetUrl, res, options = {}) {
     proxyRes.on('data', c => chunks.push(c));
     proxyRes.on('end', () => {
       const raw = Buffer.concat(chunks);
+      // 不要在这里写 Access-Control-Allow-Origin：writeHead 的头会覆盖
+      // applyCorsHeaders 按来源设好的值，写死 '*' 等于绕开整条白名单。
       res.writeHead(proxyRes.statusCode || 200, {
         'Content-Type': proxyRes.headers['content-type'] || 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'no-store'
       });
       res.end(raw);
@@ -224,10 +258,13 @@ function safeStaticPath(urlPath) {
 }
 
 const server = http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  if (!applyCorsHeaders(req, res)) {
+    log(`拒绝跨域来源：${req.headers.origin}`);
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Origin not allowed');
+    return;
+  }
+
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   const url = new URL(req.url, 'http://127.0.0.1:' + PORT);
@@ -241,15 +278,23 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true, wd14: await checkPort(WD_PORT), comfy: await checkPort(COMFY_PORT), port: PORT });
       return;
     }
+    // 状态查询是只读的：拉起后台一律走显式的 POST /api/tagger/start，
+    // 否则任何人打开页面（甚至预取这个 URL）都会在本机启动一个 Python 进程。
     if (url.pathname === '/api/tagger/status') {
-      const running = await checkPort(WD_PORT);
-      if (!running && url.searchParams.get('start') === '1') await ensureWd14(false);
       if (await checkPort(WD_PORT)) await proxyJson('http://127.0.0.1:' + WD_PORT + '/', res);
       else sendJson(res, 200, { ok: false, ready: false, status: 'offline', msg: 'WD14 后台未运行' });
       return;
     }
-    if (url.pathname === '/api/tagger/start') { sendJson(res, 200, await ensureWd14(true)); return; }
-    if (url.pathname === '/api/tagger/stop') { sendJson(res, 200, await stopWd14()); return; }
+    if (url.pathname === '/api/tagger/start') {
+      if (req.method !== 'POST') { sendJson(res, 405, { ok: false, msg: '请用 POST 启动 WD14 后台' }); return; }
+      sendJson(res, 200, await ensureWd14(true));
+      return;
+    }
+    if (url.pathname === '/api/tagger/stop') {
+      if (req.method !== 'POST') { sendJson(res, 405, { ok: false, msg: '请用 POST 停止 WD14 后台' }); return; }
+      sendJson(res, 200, await stopWd14());
+      return;
+    }
     if (url.pathname === '/api/tag' && req.method === 'POST') {
       const ready = await ensureWd14(true);
       if (!ready.ok) { sendJson(res, 503, ready); return; }
