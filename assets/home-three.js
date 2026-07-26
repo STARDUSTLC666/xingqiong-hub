@@ -332,6 +332,70 @@ function createPlanet(kind, radius, isCompact) {
   return new THREE.Mesh(geometry, material);
 }
 
+/** 铺满整个视口的星云层：银河真正占画面的是发光气体与暗尘带，不是点状恒星。 */
+function createNebula(isCompact) {
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uAspect: { value: 1.8 }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uAspect;
+      varying vec2 vUv;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0) * 2.4;
+
+        // 域扭曲让云团有撕扯感，不是一团均匀的噪声
+        vec3 base = vec3(p, uTime * 0.006);
+        vec3 warp = vec3(xqFbm(base * 1.1), xqFbm(base * 1.1 + 5.3), 0.0);
+        float density = xqFbm(base * 1.45 + warp * 1.5);
+
+        // 银河带：与星场同一个倾角，越靠近中心线气体越浓
+        float band = exp(-pow((p.y - p.x * 0.46) * 1.05, 2.0));
+        density *= 0.34 + band * 1.75;
+
+        // 暗尘带压暗气体，这是银河最有辨识度的结构
+        float dust = smoothstep(0.42, 0.63, xqFbm(base * 2.4 + 17.0));
+        density *= 1.0 - dust * 0.62;
+
+        vec3 cool = vec3(0.05, 0.07, 0.2);
+        vec3 warm = vec3(0.24, 0.14, 0.19);
+        vec3 core = vec3(0.5, 0.34, 0.2);
+        vec3 color = mix(cool, warm, smoothstep(0.18, 0.52, density));
+        color = mix(color, core, smoothstep(0.52, 0.92, density) * band);
+
+        // 文案在左侧，星云往那边收，保证正文对比度
+        float copySafe = smoothstep(-0.55, 0.8, p.x / max(uAspect, 0.001) * 2.0);
+        float veil = smoothstep(0.26, 0.78, density) * (0.1 + copySafe * 0.56);
+        gl_FragColor = vec4(color, veil);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const nebula = new THREE.Mesh(geometry, material);
+  // 画在所有东西之前，纯粹作为幕布
+  nebula.renderOrder = -100;
+  nebula.frustumCulled = false;
+  return nebula;
+}
+
 /** 创建单条倾斜轨道及沿轨道运行的行星。 */
 function createOrbitalTrack(options, isCompact) {
   const points = [];
@@ -1295,7 +1359,11 @@ function initializeHeroScene(targetCanvas) {
   const billboardQuaternion = new THREE.Quaternion();
   const starWorldPosition = new THREE.Vector3();
   let particles = createParticleField(mobileQuery.matches);
-  scene.add(particles, orbitalSystem.root);
+  const nebula = createNebula(mobileQuery.matches);
+  // 作为相机的子节点：不管相机怎么动，幕布始终正对并铺满视口
+  nebula.position.set(0, 0, -30);
+  camera.add(nebula);
+  scene.add(camera, particles, orbitalSystem.root);
 
   const state = {
     compact: mobileQuery.matches,
@@ -1367,6 +1435,11 @@ function initializeHeroScene(targetCanvas) {
     orbitalSystem.root.position.set(isCompact ? 1.0 : 2.15, isCompact ? 1.9 : -0.05, -0.36);
     orbitalSystem.root.scale.setScalar(isCompact ? 1.05 : 1.95);
     orbitalSystem.detailLayer.visible = !isCompact;
+
+    // 幕布必须刚好盖满该深度处的视锥，留一点余量避免边缘露底
+    const halfHeight = Math.tan((camera.fov * Math.PI) / 360) * 30;
+    nebula.scale.set(halfHeight * camera.aspect * 1.12, halfHeight * 1.12, 1);
+    nebula.material.uniforms.uAspect.value = camera.aspect;
     renderCurrentFrame();
   }
 
@@ -1418,6 +1491,7 @@ function initializeHeroScene(targetCanvas) {
 
     const pulse = 1 + Math.sin(time * 1.35) * 0.055;
     particles.material.uniforms.uTime.value = time;
+    nebula.material.uniforms.uTime.value = time;
 
     for (const body of orbitalSystem.bodies) {
       const parts = body.parts;
