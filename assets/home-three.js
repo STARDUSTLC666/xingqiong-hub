@@ -31,7 +31,7 @@ function createSeededRandom(seed) {
 
 /** 按设备性能档位生成带冷暖变化和独立闪烁相位的三维星尘。 */
 function createParticleField(isCompact) {
-  const particleCount = isCompact ? 900 : 3200;
+  const particleCount = isCompact ? 1400 : 5000;
   const random = createSeededRandom(0x51a7c0de);
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
@@ -45,11 +45,37 @@ function createParticleField(isCompact) {
   const ARM_TWIST = 2.9;
   const DISC_RADIUS = 26.0;
 
+  // 夜空由两个星族组成：银河带负责结构，散点星负责铺满全天。
+  // 只有银河带的话四角会空掉，只有散点星又看不出银河。
+  const fieldCount = Math.round(particleCount * 0.38);
+
   for (let index = 0; index < particleCount; index += 1) {
     const offset = index * 3;
 
+    if (index < fieldCount) {
+      // 均匀散布在一个大球壳上，各个方向密度一致
+      const cosine = random() * 2 - 1;
+      const azimuth = random() * Math.PI * 2;
+      const shell = 15 + random() * 24;
+      const ring = Math.sqrt(1 - cosine * cosine);
+
+      positions[offset] = Math.cos(azimuth) * ring * shell;
+      positions[offset + 1] = cosine * shell;
+      positions[offset + 2] = Math.sin(azimuth) * ring * shell;
+
+      color.copy(coolColor).lerp(warmColor, random() * 0.65);
+      const fieldBrightness = 0.32 + random() * 0.5;
+      colors[offset] = color.r * fieldBrightness;
+      colors[offset + 1] = color.g * fieldBrightness;
+      colors[offset + 2] = color.b * fieldBrightness;
+
+      sizes[index] = random() > 0.95 ? 2.6 + random() * 2.0 : 0.7 + random() * 1.1;
+      phases[index] = random() * Math.PI * 2;
+      continue;
+    }
+
     // 半径向中心聚集，天然形成核球密、外盘疏的分布
-    const spread = Math.pow(random(), 1.9);
+    const spread = Math.pow(random(), 1.35);
     const radius = 0.35 + spread * DISC_RADIUS;
 
     // 对数螺旋：转角随 log(半径) 增长，才是真实星系旋臂的形状。
