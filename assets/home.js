@@ -1071,12 +1071,43 @@ function initializeScrollReveal() {
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      entry.target.classList.add("is-revealed");
-      observer.unobserve(entry.target);
+      reveal(entry.target);
     }
   }, { rootMargin: "0px 0px -10% 0px", threshold: 0.08 });
 
+  function reveal(target) {
+    target.classList.add("is-revealed");
+    observer.unobserve(target);
+  }
+
+  /** 兜底：把已经进入或越过视口的元素直接显示出来。
+      一帧之内跳过某个元素时（锚点跳转、深链载入、快速滚动），
+      IntersectionObserver 收不到 intersecting，内容会永久停在透明状态——
+      看不见内容远比没有动画严重，所以宁可牺牲这一次动画。 */
+  function sweep() {
+    const limit = window.innerHeight;
+    for (const target of targets) {
+      if (target.classList.contains("is-revealed")) continue;
+      if (target.getBoundingClientRect().top < limit) reveal(target);
+    }
+  }
+
+  let sweeping = false;
+  function scheduleSweep() {
+    if (sweeping) return;
+    sweeping = true;
+    requestAnimationFrame(() => {
+      sweeping = false;
+      sweep();
+    });
+  }
+
   targets.forEach((target) => observer.observe(target));
+  window.addEventListener("scroll", scheduleSweep, { passive: true });
+  window.addEventListener("resize", scheduleSweep, { passive: true });
+  window.addEventListener("load", sweep);
+  // 脚本晚于首屏渲染时，先把当前已可见的部分补上
+  sweep();
 }
 
 /** 档案卡片跟随指针的柔光，触控与减少动态设备保持静态。 */

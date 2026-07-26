@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="assets/home.css">
   <script src="assets/vendor/lucide.min.js" defer></script>
   <script src="assets/home.js" defer></script>
+  <script src="assets/constellation.js" defer></script>
   <script src="assets/sanctuary.js" defer></script>
 </head>
 <body>
@@ -41,6 +42,7 @@
       <nav class="main-nav" id="mainNav" aria-label="主导航">
         <a href="#workflow">创作路径</a>
         <a href="#featured">精选档案</a>
+        <a href="#constellation">星门星图</a>
         <a href="#archive">公开档案</a>
         <a href="#about">关于</a>
       </nav>
@@ -222,6 +224,51 @@
           <p>先看真实页面，再决定从哪一份内容开始。</p>
         </div>
         <div class="featured-grid" id="featuredGrid"></div>
+      </div>
+    </section>
+
+    <section class="constellation" id="constellation" aria-labelledby="constellation-title">
+      <div class="page-width">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">GATE MAP</p>
+            <h2 id="constellation-title">星门星图</h2>
+          </div>
+          <p>每个星门都会把你指向下一个。这张图把这些指向汇总起来，看得出哪些是枢纽、哪些是终点。</p>
+        </div>
+
+        <div class="constellation-stage">
+          <canvas id="constellationCanvas" aria-hidden="true"></canvas>
+          <p class="constellation-hint">悬停查看一个星门的联动，点击直接前往</p>
+        </div>
+
+        <ul class="constellation-legend">
+          <li><span style="--legend:#e8a860"></span>出图</li>
+          <li><span style="--legend:#76bba5"></span>提示词</li>
+          <li><span style="--legend:#d77882"></span>标签</li>
+          <li><span style="--legend:#79aebc"></span>工具</li>
+          <li><span style="--legend:#a69acb"></span>协议</li>
+        </ul>
+
+        <!-- 画布对读屏器不可用，这里给出同一份数据的可访问版本 -->
+        <ul class="constellation-list">
+          <li><a href="portal/index.html">星穹绘所</a></li>
+          <li><a href="wd-tagger/index.html">WD 标签反推器</a></li>
+          <li><a href="krea2/index.html">Krea2 提示词工匠</a></li>
+          <li><a href="prompt-engine/index.html">Anima3 灵感魔盒</a></li>
+          <li><a href="nova-anima/index.html">Nova Anima 起词手册</a></li>
+          <li><a href="anima-guide/index.html">Anima 提示词指南</a></li>
+          <li><a href="lighting-codex/index.html">双子星光影魔典</a></li>
+          <li><a href="cyber-summon/index.html">赛博魔典</a></li>
+          <li><a href="lust-codex/index.html">魔典检索</a></li>
+          <li><a href="nsfw-tags/index.html">NSFW 标签大全</a></li>
+          <li><a href="prompt-reader/index.html">Prompt Reader</a></li>
+          <li><a href="drag-resolver/index.html">Drag Resolver</a></li>
+          <li><a href="reverse-showcase/index.html">反向破限解构实录</a></li>
+          <li><a href="moon-scroll/index.html">月卷协议</a></li>
+          <li><a href="decoder-terminal/index.html">解码终端</a></li>
+          <li><a href="secret-scroll/index.html">密使之札</a></li>
+        </ul>
       </div>
     </section>
 

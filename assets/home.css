@@ -3094,6 +3094,98 @@ body[data-mode="adult"] .search-field input:focus {
 }
 
 /* ==========================================================================
+   星门星图
+   ========================================================================== */
+
+.constellation {
+  position: relative;
+  padding: 96px 0 104px;
+  background:
+    radial-gradient(120% 90% at 78% 10%, rgba(46, 56, 108, 0.5), transparent 62%),
+    var(--ink);
+}
+
+.constellation-stage {
+  position: relative;
+  margin-top: 34px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(90% 120% at 50% 0%, rgba(255, 226, 178, 0.05), transparent 60%),
+    rgba(10, 12, 26, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.constellation-stage canvas {
+  display: block;
+  width: 100%;
+  /* 画布不能靠内容撑高，只能给一个随视口收放的固定高度 */
+  height: clamp(340px, 46vw, 560px);
+}
+
+.constellation-hint {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.constellation-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.constellation-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.constellation-legend span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--legend);
+  box-shadow: 0 0 10px var(--legend);
+}
+
+/* 画布对读屏器等于不存在，这份链接列表才是它的可访问内容 */
+.constellation-list {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .constellation {
+    padding: 64px 0 72px;
+  }
+
+  .constellation-hint {
+    position: static;
+    padding: 0 14px 12px;
+    text-align: center;
+  }
+}
+
+/* ==========================================================================
    进场、光效与微交互
    ========================================================================== */
 
