@@ -29,12 +29,14 @@ function createSeededRandom(seed) {
   };
 }
 
-/** 按设备性能档位生成带少量冷暖变化的三维星尘。 */
+/** 按设备性能档位生成带冷暖变化和独立闪烁相位的三维星尘。 */
 function createParticleField(isCompact) {
-  const particleCount = isCompact ? 220 : 720;
+  const particleCount = isCompact ? 260 : 860;
   const random = createSeededRandom(0x51a7c0de);
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  const phases = new Float32Array(particleCount);
   const coolColor = new THREE.Color("#84bccc");
   const warmColor = new THREE.Color("#e1b56f");
   const color = new THREE.Color();
@@ -54,18 +56,58 @@ function createParticleField(isCompact) {
     colors[offset] = color.r * brightness;
     colors[offset + 1] = color.g * brightness;
     colors[offset + 2] = color.b * brightness;
+
+    // 少量“亮星”撑起层次，其余保持细小，避免整片糊成一团。
+    sizes[index] = random() > 0.92 ? 3.4 + random() * 2.6 : 0.9 + random() * 1.5;
+    phases[index] = random() * Math.PI * 2;
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
 
-  const material = new THREE.PointsMaterial({
-    size: isCompact ? 0.035 : 0.03,
-    sizeAttenuation: true,
+  // 用着色器画圆形柔边星点：PointsMaterial 的方块贴图在深色背景上很显廉价。
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uScale: { value: isCompact ? 42 : 58 },
+      uOpacity: { value: isCompact ? 0.62 : 0.78 }
+    },
+    vertexShader: `
+      attribute vec3 aColor;
+      attribute float aSize;
+      attribute float aPhase;
+      uniform float uTime;
+      uniform float uScale;
+      varying vec3 vColor;
+      varying float vTwinkle;
+
+      void main() {
+        vColor = aColor;
+        vTwinkle = 0.45 + 0.55 * sin(uTime * 1.3 + aPhase);
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = aSize * uScale / max(-viewPosition.z, 0.001);
+        gl_Position = projectionMatrix * viewPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uOpacity;
+      varying vec3 vColor;
+      varying float vTwinkle;
+
+      void main() {
+        vec2 offset = gl_PointCoord - vec2(0.5);
+        float distance = length(offset);
+        if (distance > 0.5) discard;
+
+        float core = smoothstep(0.5, 0.0, distance);
+        float halo = pow(core, 3.0);
+        gl_FragColor = vec4(vColor * (0.7 + halo * 1.5), (core * 0.45 + halo * 0.55) * uOpacity * vTwinkle);
+      }
+    `,
     transparent: true,
-    opacity: isCompact ? 0.5 : 0.64,
-    vertexColors: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
@@ -135,10 +177,13 @@ function createCoreGlowTexture() {
     return null;
   }
 
+  // 多段缓慢衰减，避免叠加两层后出现可见的圆环边界。
   const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, "rgba(255, 248, 222, 0.98)");
-  gradient.addColorStop(0.12, "rgba(234, 188, 105, 0.72)");
-  gradient.addColorStop(0.38, "rgba(105, 180, 195, 0.2)");
+  gradient.addColorStop(0, "rgba(255, 249, 228, 1)");
+  gradient.addColorStop(0.08, "rgba(255, 226, 168, 0.72)");
+  gradient.addColorStop(0.2, "rgba(238, 176, 92, 0.36)");
+  gradient.addColorStop(0.42, "rgba(176, 140, 150, 0.14)");
+  gradient.addColorStop(0.68, "rgba(96, 150, 178, 0.05)");
   gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
   context.fillStyle = gradient;
   context.fillRect(0, 0, 128, 128);
@@ -213,47 +258,142 @@ function createArchiveCore() {
   const glowTexture = createCoreGlowTexture();
   let glow = null;
 
+  // 两层柔光叠加模拟 bloom：外层大而淡铺开氛围，内层小而亮收住核心。
+  // 单层 sprite 要么糊成一片雾，要么亮度不够，撑不起“恒星”的感觉。
+  let outerGlow = null;
+
   if (glowTexture) {
+    const outerMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: "#c98f4e",
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending
+    });
+    outerGlow = new THREE.Sprite(outerMaterial);
+    outerGlow.scale.set(5.6, 5.6, 1);
+    outerGlow.renderOrder = -4;
+    group.add(outerGlow);
+
     const glowMaterial = new THREE.SpriteMaterial({
       map: glowTexture,
-      color: "#f0c77d",
+      color: "#ffd9a0",
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.6,
       depthWrite: false,
       depthTest: false,
       blending: THREE.AdditiveBlending
     });
     glow = new THREE.Sprite(glowMaterial);
-    glow.scale.set(3.1, 3.1, 1);
+    glow.scale.set(2.6, 2.6, 1);
     glow.renderOrder = -3;
     group.add(glow);
   }
 
-  const coreGeometry = new THREE.SphereGeometry(0.48, 24, 16);
-  const coreMaterial = new THREE.MeshPhongMaterial({
-    color: "#d59a43",
-    emissive: "#e6ad57",
-    emissiveIntensity: 0.74,
-    specular: "#fff0c2",
-    shininess: 110,
-    transparent: true,
-    opacity: 0.98,
-    depthWrite: false
+  // 菲涅尔着色：边缘越接近视线切面越亮，球体才有体积感。
+  // 之前的 emissive Phong 把整个球压成一块没有层次的橙色圆盘。
+  const coreGeometry = new THREE.SphereGeometry(0.52, 48, 32);
+  const coreMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uDeep: { value: new THREE.Color("#7d4413") },
+      uBody: { value: new THREE.Color("#e0a45c") },
+      uRim: { value: new THREE.Color("#ffe6ae") }
+    },
+    vertexShader: `
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uDeep;
+      uniform vec3 uBody;
+      uniform vec3 uRim;
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        vec3 normal = normalize(vNormalWorld);
+        vec3 view = normalize(vViewDirection);
+
+        // 固定的斜上方主光，给球体一个明确的明暗交界线
+        vec3 keyLight = normalize(vec3(0.55, 0.68, 0.85));
+        float lambert = clamp(dot(normal, keyLight), 0.0, 1.0);
+        float shaped = 0.18 + pow(lambert, 0.85) * 0.92;
+
+        float facing = 1.0 - clamp(dot(normal, view), 0.0, 1.0);
+        float rim = pow(facing, 2.6);
+        float breath = 0.94 + 0.06 * sin(uTime * 1.25);
+
+        vec3 color = mix(uDeep, uBody, shaped);
+        color += uRim * rim * 1.35;
+        color += uRim * pow(facing, 7.0) * 0.7;
+
+        gl_FragColor = vec4(color * breath, 1.0);
+      }
+    `,
+    depthWrite: true
   });
   const core = new THREE.Mesh(coreGeometry, coreMaterial);
   core.renderOrder = 2;
   group.add(core);
 
-  const facetGeometry = new THREE.IcosahedronGeometry(0.68, 1);
-  const facetMaterial = new THREE.MeshBasicMaterial({
-    color: "#f8dfaa",
+  // 大气层：反面渲染 + 加法混合，在球体外沿堆出一圈柔光
+  const atmosphereGeometry = new THREE.SphereGeometry(0.62, 40, 26);
+  const atmosphereMaterial = new THREE.ShaderMaterial({
+    uniforms: { uGlow: { value: new THREE.Color("#f6c47c") } },
+    vertexShader: `
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uGlow;
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        float facing = 1.0 - clamp(dot(normalize(vNormalWorld), normalize(vViewDirection)), 0.0, 1.0);
+        float shell = pow(facing, 3.2);
+        gl_FragColor = vec4(uGlow, shell * 0.85);
+      }
+    `,
+    side: THREE.BackSide,
     transparent: true,
-    opacity: 0.46,
-    wireframe: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
-  const facetShell = new THREE.Mesh(facetGeometry, facetMaterial);
+  const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+  atmosphere.renderOrder = 1;
+  group.add(atmosphere);
+
+  // 晶壳改用棱线而非实心 wireframe：加法混合下的满屏白线会把核心糊掉
+  const facetSource = new THREE.IcosahedronGeometry(0.74, 1);
+  const facetGeometry = new THREE.EdgesGeometry(facetSource);
+  facetSource.dispose();
+  const facetMaterial = new THREE.LineBasicMaterial({
+    color: "#f4cf94",
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  const facetShell = new THREE.LineSegments(facetGeometry, facetMaterial);
   group.add(facetShell);
 
   const glassGeometry = new THREE.IcosahedronGeometry(0.82, 2);
@@ -271,12 +411,35 @@ function createArchiveCore() {
   glassShell.scale.set(1, 1.08, 0.9);
   group.add(glassShell);
 
-  const globeGeometry = new THREE.SphereGeometry(0.88, 18, 10);
-  const globeMaterial = new THREE.MeshBasicMaterial({
-    color: "#7fbcc5",
-    transparent: true,
-    opacity: 0.17,
+  // 经纬球用深度衰减的着色器：背面线条压暗，球才有前后关系而不是一团网。
+  const globeGeometry = new THREE.SphereGeometry(0.9, 22, 12);
+  const globeMaterial = new THREE.ShaderMaterial({
+    uniforms: { uLine: { value: new THREE.Color("#7fbcc5") } },
+    vertexShader: `
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uLine;
+      varying vec3 vNormalWorld;
+      varying vec3 vViewDirection;
+
+      void main() {
+        float towardsViewer = clamp(dot(normalize(vNormalWorld), normalize(vViewDirection)), 0.0, 1.0);
+        // 正对镜头的那片经纬线正好压在核心最亮处，压暗它才看得见球体的渐变
+        float depthFade = mix(0.2, 0.07, towardsViewer);
+        gl_FragColor = vec4(uLine, depthFade);
+      }
+    `,
     wireframe: true,
+    transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending
   });
@@ -305,13 +468,15 @@ function createArchiveCore() {
   return {
     group,
     core,
+    atmosphere,
     facetShell,
     glassShell,
     coordinateGlobe,
     structuralFrame,
     energyRings,
     detailLayer,
-    glow
+    glow,
+    outerGlow
   };
 }
 
@@ -536,6 +701,9 @@ function initializeHeroScene(targetCanvas) {
     orbitalSystem.core.scale.setScalar(pulse);
     orbitalSystem.core.rotation.x += deltaSeconds * 0.11;
     orbitalSystem.core.rotation.y += deltaSeconds * 0.19;
+    orbitalSystem.core.material.uniforms.uTime.value = time;
+    orbitalSystem.atmosphere.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
+    particles.material.uniforms.uTime.value = time;
     orbitalSystem.facetShell.rotation.x -= deltaSeconds * 0.08;
     orbitalSystem.facetShell.rotation.y += deltaSeconds * 0.13;
     orbitalSystem.glassShell.rotation.x += deltaSeconds * 0.035;

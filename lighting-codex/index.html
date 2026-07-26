@@ -3,51 +3,307 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lighting Codex · 双子星光影魔典</title>
+<title>双子星光影魔典 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="按氛围检索光影词：光线方向、空气感、镜头语言与材质表现的可复制词条。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/lighting-codex/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="双子星光影魔典 · 星穹枢庭">
+  <meta property="og:description" content="按氛围检索光影词：光线方向、空气感、镜头语言与材质表现的可复制词条。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/lighting-codex/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-/* === CATEGORY NAV === */
-.cat-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
+[hidden] { display: none !important; }
+
+/* === 检索工具条 === */
+.codex-tools { display: flex; flex-direction: column; gap: 0.9rem; }
+
+.search-field { position: relative; display: flex; align-items: center; }
+.search-field .search-icon {
+  position: absolute; left: 0.85rem; color: var(--xq-text-faint);
+  font-size: 0.85rem; pointer-events: none;
+}
+.search-field input[type="search"] {
+  padding-left: 2.3rem; padding-right: 2.4rem;
+  -webkit-appearance: none; appearance: none;
+}
+.search-field input[type="search"]::-webkit-search-decoration,
+.search-field input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+.search-clear {
+  position: absolute; right: 0.5rem;
+  display: grid; width: 1.6rem; height: 1.6rem; place-items: center;
+  border: none; border-radius: var(--xq-r-pill); background: transparent;
+  color: var(--xq-text-faint); cursor: pointer; font-family: inherit; font-size: 0.78rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease);
+}
+.search-clear:hover { background: var(--xq-accent-soft); color: var(--xq-gold-bright); }
+
+/* === 分类导航 === */
+.cat-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .cat-btn {
-  padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
-  background: rgba(232,168,96,0.04); border: 1px solid rgba(232,168,96,0.1); color: rgba(200,200,224,0.5);
-  font-family: inherit; letter-spacing: 0.03em;
+  position: relative; overflow: hidden;
+  padding: 0.4rem 0.9rem; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet); color: var(--xq-text-muted);
+  cursor: pointer; font-family: inherit; font-size: 0.78rem; letter-spacing: 0.03em;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
 }
-.cat-btn:hover { border-color: rgba(232,168,96,0.3); color: #d0b880; }
-.cat-btn.active { background: rgba(232,168,96,0.15); border-color: #e8a860; color: #e8a860; }
+.cat-btn:hover { border-color: var(--xq-line-strong); color: var(--xq-gold-bright); transform: translateY(-1px); }
+.cat-btn .cat-count { margin-left: 0.35rem; color: var(--xq-text-faint); font-family: var(--xq-font-mono); font-size: 0.72em; }
+.cat-btn[aria-pressed="true"] {
+  border-color: var(--xq-gold); background: var(--xq-accent-soft); color: var(--xq-gold);
+  box-shadow: 0 0 0 1px rgba(232, 168, 96, 0.16), 0 6px 20px rgba(232, 168, 96, 0.14);
+}
+.cat-btn[aria-pressed="true"] .cat-count { color: var(--xq-gold-bright); }
 
-/* === LIGHTING GRID === */
+.result-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.result-line .drag-hint { color: var(--xq-text-faint); font-size: 0.72rem; }
+
+/* === 光影卡片 === */
 .light-card {
-  background: rgba(10,10,24,0.5); border: 1px solid rgba(255,215,150,0.06);
-  border-radius: 10px; padding: 0.8rem 1rem; cursor: pointer; transition: all 0.2s;
-  display: flex; flex-direction: column; gap: 0.3rem;
+  display: flex; width: 100%; flex-direction: column; gap: 0.55rem;
+  padding: 0.85rem 0.95rem; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: var(--xq-surface); color: inherit;
+  cursor: pointer; font-family: inherit; text-align: left;
+  animation: cardIn 420ms var(--xq-ease-out) both;
+  animation-delay: calc(var(--i, 0) * 24ms);
+  transition: transform var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease);
 }
-.light-card:hover { border-color: rgba(232,168,96,0.3); background: rgba(20,20,40,0.6); transform: translateY(-1px); }
-.light-card .l-en { font-size: 0.82rem; color: #d0b880; font-family: 'Consolas', monospace; }
-.light-card .l-cn { font-size: 0.7rem; color: rgba(200,200,224,0.4); }
-.light-card .l-cat { font-size: 0.6rem; color: rgba(200,200,224,0.25); margin-top: 0.2rem; }
-.light-card.copied { animation: copiedFlash 0.5s ease; }
-@keyframes copiedFlash { 0%{border-color:#e8a860;box-shadow:0 0 12px rgba(232,168,96,0.3)} 100%{border-color:rgba(255,215,150,0.06)} }
+.light-card:hover {
+  border-color: var(--xq-line-strong); background: var(--xq-surface-strong);
+  box-shadow: var(--xq-shadow-md); transform: translateY(-3px);
+}
+.light-card:active { transform: translateY(-1px) scale(0.995); }
+.light-card.is-dragging { opacity: 0.45; transform: scale(0.97); }
+.light-card.is-picked { border-color: rgba(232, 168, 96, 0.4); }
+.light-card.is-picked .l-en::after {
+  margin-left: 0.4rem; color: var(--xq-gold-bright); content: "✓"; font-size: 0.9em;
+}
+.light-card.copied { animation: copiedFlash 560ms var(--xq-ease) both; }
+@keyframes copiedFlash {
+  0% { border-color: var(--xq-gold); box-shadow: 0 0 0 0 rgba(232, 168, 96, 0.45); }
+  100% { border-color: var(--xq-line-soft); box-shadow: 0 0 0 14px rgba(232, 168, 96, 0); }
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
 
-/* === SANDBOX === */
-.sandbox-area { min-height: 80px; }
-#sandboxTags { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 2.2rem; align-items: flex-start; }
-.sandbox-chip {
-  display: inline-flex; align-items: center; gap: 0.3rem;
-  padding: 0.25rem 0.6rem; border-radius: 16px; font-size: 0.75rem;
-  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2); color: #d0b880;
-  cursor: default;
+.l-head { display: flex; align-items: flex-start; gap: 0.7rem; }
+.l-body { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.l-en {
+  color: var(--xq-gold); font-family: var(--xq-font-mono); font-size: 0.82rem;
+  line-height: 1.45; overflow-wrap: anywhere;
 }
-.sandbox-chip .remove { cursor: pointer; font-size: 0.7rem; opacity: 0.5; margin-left: 0.1rem; }
-.sandbox-chip .remove:hover { opacity: 1; color: #e08080; }
-#sandboxPrompt { min-height: 50px; }
+.l-cn { color: var(--xq-text-muted); font-size: 0.72rem; }
+.l-desc { color: var(--xq-text-faint); font-size: 0.68rem; line-height: 1.6; }
+.l-cat {
+  align-self: flex-start; padding: 0.1rem 0.55rem;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-pill);
+  color: var(--xq-text-faint); font-size: 0.62rem; letter-spacing: 0.04em;
+}
+
+.grid-empty {
+  padding: 2.4rem 1rem; border: 1px dashed var(--xq-line-soft); border-radius: var(--xq-r-lg);
+  color: var(--xq-text-faint); font-size: 0.82rem; text-align: center;
+}
+
+/* === 场景球：用纯 CSS 渐变把每个光影词画成一颗可看的小球 === */
+.l-orb {
+  position: relative; overflow: hidden;
+  width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--xq-ink);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 14px rgba(0, 0, 0, 0.42);
+  transition: transform var(--xq-dur) var(--xq-spring), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.light-card:hover .l-orb,
+.light-card:focus-visible .l-orb {
+  box-shadow: inset 0 0 0 1px rgba(255, 226, 178, 0.24), 0 6px 22px rgba(0, 0, 0, 0.5);
+  transform: scale(1.08);
+}
+
+.l-orb--backlight { background: radial-gradient(circle at 50% 50%, #05060f 0 38%, rgba(255, 236, 196, 0.95) 42%, rgba(232, 168, 96, 0.3) 62%, transparent 80%), #06070f; }
+.l-orb--rim { background: radial-gradient(circle at 80% 30%, rgba(255, 242, 214, 0.95), transparent 44%), radial-gradient(circle at 42% 64%, #131a34, #05060f); }
+.l-orb--silhouette { background: linear-gradient(180deg, rgba(255, 214, 160, 0.9), rgba(196, 126, 90, 0.4) 58%, #05060f); }
+.l-orb--silhouette::after {
+  position: absolute; bottom: -5px; left: 50%; width: 17px; height: 26px;
+  border-radius: 50% 50% 34% 34%; background: #04050b; content: ""; transform: translateX(-50%);
+}
+.l-orb--chromatic { background: linear-gradient(102deg, rgba(255, 62, 132, 0.6), transparent 44%), linear-gradient(262deg, rgba(64, 226, 255, 0.6), transparent 44%), #07080f; }
+.l-orb--rays { background: repeating-linear-gradient(196deg, rgba(255, 238, 200, 0.42) 0 5px, transparent 5px 13px), radial-gradient(circle at 50% 40%, #16204a, #05060f); }
+.l-orb--dim { background: radial-gradient(circle at 50% 36%, rgba(232, 168, 96, 0.26), transparent 64%), #070810; }
+.l-orb--dark { background: radial-gradient(circle at 50% 42%, rgba(128, 140, 190, 0.12), transparent 62%), #04050a; }
+.l-orb--night { background: linear-gradient(180deg, #101740, #05060f); }
+.l-orb--night::after {
+  position: absolute; top: 12px; left: 13px; width: 2px; height: 2px; border-radius: 50%;
+  background: #fff; box-shadow: 9px 5px 0 -0.4px rgba(255, 255, 255, 0.8), 18px -3px 0 -0.6px rgba(255, 255, 255, 0.7),
+    4px 16px 0 -0.5px rgba(255, 255, 255, 0.65), 21px 15px 0 -0.4px rgba(255, 255, 255, 0.75), 13px 24px 0 -0.6px rgba(255, 255, 255, 0.55);
+  content: "";
+}
+.l-orb--candle { background: radial-gradient(circle at 50% 64%, rgba(255, 200, 118, 0.95), rgba(224, 124, 52, 0.45) 32%, transparent 66%), #08060d; }
+.l-orb--fire { background: radial-gradient(circle at 50% 72%, rgba(255, 234, 158, 0.95), rgba(232, 112, 42, 0.7) 30%, rgba(152, 34, 22, 0.36) 54%, transparent 76%), #0a0408; }
+.l-orb--moon { background: radial-gradient(circle at 36% 32%, rgba(220, 236, 255, 0.95), rgba(122, 162, 222, 0.32) 40%, transparent 66%), linear-gradient(180deg, #0b1230, #05060f); }
+.l-orb--twilight { background: linear-gradient(180deg, rgba(126, 114, 194, 0.8), rgba(232, 142, 122, 0.5) 56%, #0d0d24); }
+.l-orb--noir { background: repeating-linear-gradient(112deg, rgba(246, 242, 232, 0.86) 0 4px, rgba(4, 5, 12, 0.94) 4px 12px); }
+.l-orb--sun { background: radial-gradient(circle at 50% 44%, #fff8e2, #f7d9a0 26%, rgba(232, 168, 96, 0.48) 54%, transparent 78%), #0a0c1a; }
+.l-orb--golden { background: linear-gradient(158deg, #f7d9a0, #e8a860 42%, #c07f38 70%, #35210f); }
+.l-orb--bluehour { background: linear-gradient(180deg, #7b98db, #2d3f7c 54%, #090f26); }
+.l-orb--cold { background: radial-gradient(circle at 50% 44%, rgba(214, 238, 255, 0.88), rgba(96, 146, 206, 0.3) 48%, transparent 76%), #070b18; }
+.l-orb--overcast { background: linear-gradient(180deg, rgba(210, 216, 234, 0.72), rgba(124, 134, 164, 0.4) 60%, rgba(18, 22, 40, 0.95)); }
+.l-orb--soft { background: radial-gradient(ellipse 72% 72% at 50% 40%, rgba(255, 248, 236, 0.82), rgba(202, 202, 224, 0.2) 56%, transparent 80%), #0c0f1c; }
+.l-orb--dappled { background: radial-gradient(circle at 30% 28%, rgba(255, 238, 196, 0.82) 0 17%, transparent 19%), radial-gradient(circle at 68% 50%, rgba(255, 238, 196, 0.6) 0 12%, transparent 14%), radial-gradient(circle at 44% 74%, rgba(255, 238, 196, 0.5) 0 10%, transparent 12%), radial-gradient(circle at 76% 22%, rgba(255, 238, 196, 0.4) 0 7%, transparent 9%), #0a1016; }
+.l-orb--rainbow { background: conic-gradient(from 210deg, #e07d70, #e8a860, #d8e07d, #7ec8a8, #74c4d4, #ab9cdb, #e07d70); }
+.l-orb--window { background: linear-gradient(114deg, transparent 0 32%, rgba(255, 242, 208, 0.88) 34% 47%, transparent 49% 54%, rgba(255, 242, 208, 0.6) 56% 66%, transparent 68%), #0a0c1a; }
+.l-orb--burst { background: radial-gradient(circle at 50% 50%, #fff 0 14%, #ffd390 24%, rgba(255, 128, 48, 0.6) 38%, transparent 66%), #0a0508; }
+.l-orb--warm { background: radial-gradient(circle at 50% 50%, rgba(255, 208, 154, 0.88), rgba(198, 122, 62, 0.34) 50%, transparent 76%), #0d0a12; }
+.l-orb--studio { background: radial-gradient(ellipse 62% 92% at 50% 0%, rgba(255, 250, 236, 0.95), rgba(255, 240, 212, 0.22) 48%, transparent 72%), #0a0c1a; }
+.l-orb--spot { background: radial-gradient(ellipse 32% 104% at 50% -6%, rgba(255, 248, 222, 0.96), rgba(255, 240, 202, 0.16) 54%, transparent 74%), #06070f; }
+.l-orb--fluorescent { background: linear-gradient(180deg, rgba(228, 242, 255, 0.9) 0 20%, rgba(150, 182, 202, 0.22) 20% 30%, rgba(11, 15, 28, 1) 62%); }
+.l-orb--fairy { background: radial-gradient(circle at 24% 30%, rgba(255, 216, 150, 0.95) 0 9%, transparent 11%), radial-gradient(circle at 52% 20%, rgba(255, 216, 150, 0.85) 0 7%, transparent 9%), radial-gradient(circle at 76% 38%, rgba(255, 216, 150, 0.9) 0 8%, transparent 10%), radial-gradient(circle at 34% 66%, rgba(255, 216, 150, 0.8) 0 7%, transparent 9%), radial-gradient(circle at 66% 74%, rgba(255, 216, 150, 0.85) 0 8%, transparent 10%), #0a0810; }
+.l-orb--sparkle { background: radial-gradient(circle at 34% 34%, #fff 0 6%, transparent 8%), radial-gradient(circle at 66% 28%, rgba(255, 255, 255, 0.85) 0 4%, transparent 6%), radial-gradient(circle at 58% 68%, rgba(255, 255, 255, 0.9) 0 5%, transparent 7%), radial-gradient(circle at 24% 70%, rgba(255, 236, 196, 0.7) 0 4%, transparent 6%), radial-gradient(circle at 50% 50%, rgba(120, 150, 220, 0.24), transparent 70%), #06070f; }
+.l-orb--bokeh { background: radial-gradient(circle at 30% 36%, rgba(255, 226, 178, 0.42) 0 22%, transparent 24%), radial-gradient(circle at 68% 30%, rgba(178, 214, 232, 0.36) 0 17%, transparent 19%), radial-gradient(circle at 56% 72%, rgba(255, 178, 205, 0.34) 0 20%, transparent 22%), #080a16; }
+.l-orb--neon { background: linear-gradient(122deg, rgba(255, 58, 178, 0.78), transparent 48%), linear-gradient(298deg, rgba(58, 232, 255, 0.78), transparent 48%), #06060f; }
+.l-orb--drama { background: linear-gradient(102deg, rgba(255, 238, 202, 0.92) 0 40%, rgba(5, 6, 15, 0.98) 42%); }
+.l-orb--cine { background: linear-gradient(120deg, rgba(255, 152, 82, 0.62), transparent 54%), linear-gradient(300deg, rgba(78, 192, 212, 0.62), transparent 54%), #06080f; }
+.l-orb--glow { background: radial-gradient(circle at 50% 50%, #fff4d2, rgba(232, 168, 96, 0.55) 34%, transparent 70%), #07080f; }
+.l-orb--bio { background: radial-gradient(circle at 34% 62%, rgba(126, 232, 190, 0.9), transparent 44%), radial-gradient(circle at 68% 34%, rgba(116, 196, 212, 0.7), transparent 42%), #021210; }
+.l-orb--magic { background: radial-gradient(circle at 50% 50%, transparent 0 28%, rgba(171, 156, 219, 0.9) 30% 39%, transparent 41%), radial-gradient(circle at 50% 50%, rgba(116, 196, 212, 0.4), transparent 72%), #07041a; }
+.l-orb--lightning { background: linear-gradient(162deg, transparent 43%, rgba(232, 246, 255, 0.95) 45% 49%, transparent 51%), linear-gradient(18deg, transparent 46%, rgba(200, 226, 255, 0.6) 48% 50%, transparent 52%), #060814; }
+.l-orb--laser { background: linear-gradient(38deg, transparent 45%, rgba(255, 68, 96, 0.95) 47% 53%, transparent 55%), radial-gradient(circle at 50% 50%, #150818, #05030a); }
+.l-orb--holo { background: repeating-linear-gradient(180deg, rgba(126, 224, 255, 0.34) 0 2px, transparent 2px 5px), radial-gradient(circle at 50% 50%, rgba(126, 224, 255, 0.42), transparent 72%), #04101a; }
+.l-orb--portal { background: radial-gradient(ellipse 40% 64% at 50% 50%, rgba(146, 122, 255, 0.92), rgba(92, 220, 255, 0.4) 50%, transparent 72%), #05030f; }
+.l-orb--flare { background: radial-gradient(circle at 30% 32%, rgba(255, 255, 255, 0.95) 0 12%, transparent 22%), radial-gradient(circle at 52% 50%, rgba(126, 224, 255, 0.5) 0 8%, transparent 16%), radial-gradient(circle at 72% 68%, rgba(255, 158, 96, 0.55) 0 9%, transparent 17%), #08090f; }
+.l-orb--reflect { background: linear-gradient(180deg, rgba(255, 238, 196, 0.82) 0 46%, rgba(255, 238, 196, 0.24) 48% 52%, rgba(20, 32, 62, 0.95)); }
+.l-orb--water { background: repeating-radial-gradient(circle at 50% 16%, rgba(146, 224, 255, 0.34) 0 4px, transparent 4px 10px), linear-gradient(180deg, #0b2c48, #04101c); }
+.l-orb--aurora { background: linear-gradient(158deg, rgba(126, 232, 190, 0.72), rgba(116, 196, 212, 0.5) 42%, rgba(171, 156, 219, 0.5) 66%, #05060f); }
+
+/* 只在悬停/聚焦时点亮循环动画，静止时不占用一整页的合成资源 */
+.light-card:hover .l-orb--candle,
+.light-card:focus-visible .l-orb--candle,
+.light-card:hover .l-orb--fire,
+.light-card:focus-visible .l-orb--fire { animation: orbFlicker 1.5s var(--xq-ease) infinite; }
+.light-card:hover .l-orb--glow,
+.light-card:focus-visible .l-orb--glow,
+.light-card:hover .l-orb--bio,
+.light-card:focus-visible .l-orb--bio { animation: orbPulse 2.4s var(--xq-ease) infinite; }
+.light-card:hover .l-orb--magic,
+.light-card:focus-visible .l-orb--magic,
+.light-card:hover .l-orb--rainbow,
+.light-card:focus-visible .l-orb--rainbow { animation: orbSpin 7s linear infinite; }
+.light-card:hover .l-orb--lightning,
+.light-card:focus-visible .l-orb--lightning { animation: orbStrike 1.8s steps(1, end) infinite; }
+
+@keyframes orbFlicker { 0%, 100% { filter: brightness(1); } 30% { filter: brightness(1.28); } 55% { filter: brightness(0.86); } 78% { filter: brightness(1.16); } }
+@keyframes orbPulse { 0%, 100% { filter: brightness(0.92); } 50% { filter: brightness(1.32); } }
+@keyframes orbSpin { to { transform: rotate(360deg) scale(1.08); } }
+@keyframes orbStrike { 0%, 62%, 100% { filter: brightness(0.7); } 66%, 74% { filter: brightness(1.7); } 70% { filter: brightness(0.9); } }
+
+/* === 沙箱 === */
+.sandbox-subject {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0.6rem; margin-bottom: 0.9rem;
+}
+.sandbox-subject label { color: var(--xq-text-muted); font-size: 0.76rem; letter-spacing: 0.04em; }
+.sandbox-subject select { width: auto; min-width: 9rem; }
+.sandbox-subject input[type="text"] { width: auto; min-width: min(16rem, 100%); flex: 1 1 12rem; }
+
+.sandbox-drop {
+  padding: 0.9rem; border: 1px dashed var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(6, 8, 18, 0.34);
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-ease);
+}
+.sandbox-drop.is-dragover {
+  border-color: var(--xq-gold); background: var(--xq-accent-soft);
+  box-shadow: var(--xq-glow-gold); transform: scale(1.006);
+}
+.sandbox-hint { color: var(--xq-text-faint); font-size: 0.78rem; }
+
+#sandboxTags { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.4rem; }
+.sandbox-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.7rem; border: 1px solid rgba(232, 168, 96, 0.24);
+  border-radius: var(--xq-r-pill); background: rgba(232, 168, 96, 0.13);
+  color: var(--xq-gold); cursor: grab; font-size: 0.75rem;
+  animation: chipIn 300ms var(--xq-spring) both;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-ease);
+}
+.sandbox-chip:hover { border-color: var(--xq-gold); transform: translateY(-1px); }
+.sandbox-chip.is-dragging { cursor: grabbing; opacity: 0.4; }
+.sandbox-chip.is-conflict { border-color: var(--xq-danger); background: rgba(224, 125, 112, 0.16); color: #f0aea3; }
+.sandbox-chip .chip-remove {
+  display: grid; width: 1.1rem; height: 1.1rem; place-items: center;
+  border: none; border-radius: 50%; background: transparent;
+  color: inherit; cursor: pointer; font-family: inherit; font-size: 0.62rem; opacity: 0.55;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    opacity var(--xq-dur-fast) var(--xq-ease);
+}
+.sandbox-chip .chip-remove:hover { background: rgba(224, 125, 112, 0.24); color: var(--xq-danger); opacity: 1; }
+@keyframes chipIn { from { opacity: 0; transform: translateY(-6px) scale(0.9); } }
+
+.sandbox-warn { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+.warn-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.25rem 0.7rem; border: 1px solid rgba(224, 125, 112, 0.42);
+  border-radius: var(--xq-r-pill); background: rgba(224, 125, 112, 0.12);
+  color: #f0aea3; font-size: 0.72rem;
+  animation: warnIn 360ms var(--xq-spring) both;
+}
+.warn-chip code { background: none; color: inherit; font-size: 0.94em; }
+@keyframes warnIn { from { opacity: 0; transform: translateY(-5px); } }
+
+#sandboxPrompt { min-height: 50px; margin-top: 0.4rem; }
+#sandboxPromptContainer { margin-top: 1rem; }
+
+/* === 使用指南 === */
+.sub-h { color: var(--xq-gold); font-size: 0.82rem; margin-bottom: 0.5rem; }
+.sub-h.neg { color: var(--xq-danger); }
+.guide-list { color: var(--xq-text-muted); font-size: 0.8rem; line-height: 1.9; }
+.combo-btn {
+  padding: 2px 8px; border: 1px solid var(--xq-line-soft); border-radius: 5px;
+  background: var(--xq-accent-soft); color: #ecc99c;
+  cursor: pointer; font-family: var(--xq-font-mono); font-size: 0.78rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+.combo-btn:hover {
+  border-color: var(--xq-gold); background: rgba(232, 168, 96, 0.2);
+  color: var(--xq-gold-bright); transform: translateY(-1px);
+}
+
+/* === 响应式 === */
+@media (max-width: 520px) {
+  .l-orb { width: 38px; height: 38px; }
+  .light-card { padding: 0.75rem 0.8rem; }
+  .cat-btn { font-size: 0.72rem; }
+  .sandbox-subject select,
+  .sandbox-subject input[type="text"] { width: 100%; flex: 1 1 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light-card,
+  .sandbox-chip,
+  .warn-chip { animation: none; }
+  .light-card.copied { animation: none; border-color: var(--xq-gold); }
+  .light-card:hover .l-orb,
+  .light-card:focus-visible .l-orb { transform: none; animation: none; }
+  .sandbox-drop.is-dragover { transform: none; }
+}
 </style>
 </head>
 <body>
 
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
   <header class="page-header fade-in">
     <h1>✨ 双子星光影魔典</h1>
@@ -58,39 +314,67 @@
   <section class="panel fade-in d1">
     <p class="text-muted" style="line-height:1.8;">
       光影是二次元画面的灵魂。正确的环境光标签能让角色与场景融为一体，错误的光影标签会让画面看起来"贴图感"十足。
-      本魔典收录 <strong class="text-gold">80+ 种</strong> 高频环境光影标签，覆盖轮廓光、昏暗灯、自然光、室内光、特效光五大类。
-      点击任意标签即可复制英文标签名到剪贴板，拖入沙箱可组合生成复合光影 Prompt。
+      本魔典收录 <strong class="text-gold" id="lightTotal">…</strong> 高频环境光影标签，覆盖轮廓光、昏暗灯、自然光、室内光、特效光五大类。
+      每张卡片左侧的<strong class="text-gold">场景球</strong>是该光效的纯 CSS 预览；点击卡片即可复制英文标签并送入沙箱，
+      也可以直接把卡片<strong class="text-gold">拖进</strong>下方沙箱自由组合成复合 Prompt。
     </p>
   </section>
 
-  <!-- === CATEGORY NAV === -->
-  <div class="cat-nav fade-in d1" id="catNav">
-    <button class="cat-btn active" data-cat="all">全部 (80+)</button>
-    <button class="cat-btn" data-cat="rim">轮廓光 · Rim & Back</button>
-    <button class="cat-btn" data-cat="dim">昏暗灯 · Dim & Dark</button>
-    <button class="cat-btn" data-cat="natural">自然光 · Natural</button>
-    <button class="cat-btn" data-cat="indoor">室内光 · Indoor</button>
-    <button class="cat-btn" data-cat="fx">特效光 · FX</button>
-  </div>
+  <!-- === SEARCH + CATEGORY NAV === -->
+  <section class="panel fade-in d1">
+    <div class="codex-tools">
+      <div class="search-field">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <label class="xq-sr" for="lightSearch">搜索光影标签</label>
+        <input type="search" id="lightSearch" placeholder="搜索光影词：逆光 / golden / 霓虹 / 体积光…" autocomplete="off" spellcheck="false">
+        <button type="button" class="search-clear" id="searchClear" aria-label="清空搜索" hidden>✕</button>
+      </div>
+      <div class="cat-nav" id="catNav" role="group" aria-label="光影分类筛选"></div>
+      <div class="result-line">
+        <span class="text-muted" id="lightCount" role="status" aria-live="polite"></span>
+        <span class="drag-hint">提示：卡片可直接拖入沙箱，沙箱内的标签也能拖动排序</span>
+      </div>
+    </div>
+  </section>
 
   <!-- === LIGHTING GRID === -->
-  <section class="gs-grid gs-grid-3 fade-in d2" id="lightGrid"></section>
+  <section class="gs-grid gs-grid-3 fade-in d2" id="lightGrid" aria-label="光影标签列表"></section>
+  <p class="grid-empty" id="lightEmpty" hidden>没有匹配的光影词，换个关键词或切换分类试试 ✨</p>
 
   <!-- === MAGIC SANDBOX === -->
   <section class="panel fade-in d3 mt-2">
     <div class="panel-title">🧪 提示词魔法沙箱</div>
-    <p class="text-muted mb-1">点击上方光影标签将它们加入沙箱，组合多个光影标签生成复合 Prompt。</p>
-    <div class="sandbox-area">
-      <div id="sandboxTags" style="margin-bottom:0.8rem;"></div>
-      <div id="sandboxPromptContainer" style="display:none;">
-        <h4 style="color:#e8a860;font-size:0.82rem;margin-bottom:0.4rem;">生成的复合 Prompt：</h4>
-        <pre id="sandboxPrompt" style="white-space:pre-wrap;word-break:break-word;"></pre>
-        <div class="flex-row mt-1">
-          <button class="btn btn-primary btn-sm" onclick="copySandbox()">📋 复制复合 Prompt</button>
-          <button class="btn btn-ghost btn-sm" onclick="clearSandbox()">✕ 清空沙箱</button>
-        </div>
+    <p class="text-muted mb-1">点击或拖拽光影卡片把它们送进沙箱，组合多个光影标签生成复合 Prompt。沙箱内容会自动保存在本机。</p>
+
+    <div class="sandbox-subject">
+      <label for="subjectSelect">主体前缀</label>
+      <select id="subjectSelect">
+        <option value="1girl">1girl · 单个女性角色</option>
+        <option value="1boy">1boy · 单个男性角色</option>
+        <option value="2girls">2girls · 两位女性角色</option>
+        <option value="1girl, 1boy">1girl, 1boy · 一男一女</option>
+        <option value="scenery, no humans">scenery, no humans · 纯场景</option>
+        <option value="none">不加主体前缀</option>
+        <option value="custom">自定义…</option>
+      </select>
+      <label class="xq-sr" for="subjectCustom">自定义主体前缀</label>
+      <input type="text" id="subjectCustom" placeholder="例如：1girl, solo, long hair" hidden>
+    </div>
+
+    <div class="sandbox-drop" id="sandboxDrop">
+      <div id="sandboxTags" role="list"></div>
+      <p id="sandboxEmpty" class="sandbox-hint">沙箱空空如也…点击上方光影卡片，或把卡片拖到这里 ✨</p>
+    </div>
+
+    <div class="sandbox-warn" id="sandboxWarn" role="status" aria-live="polite"></div>
+
+    <div id="sandboxPromptContainer" hidden>
+      <h4 class="sub-h">生成的复合 Prompt</h4>
+      <pre id="sandboxPrompt"></pre>
+      <div class="flex-row mt-1">
+        <button class="btn btn-primary btn-sm" type="button" id="copySandbox">📋 复制复合 Prompt</button>
+        <button class="btn btn-ghost btn-sm" type="button" id="clearSandbox">✕ 清空沙箱</button>
       </div>
-      <p id="sandboxEmpty" class="text-muted">沙箱空空如也…点击上方光影卡片填充它吧 ✨</p>
     </div>
   </section>
 
@@ -99,23 +383,24 @@
     <div class="panel-title">📖 光影标签使用指南</div>
     <div class="gs-grid gs-grid-2">
       <div>
-        <h4 style="color:#e8a860;font-size:0.82rem;margin-bottom:0.5rem;">✅ 正确用法</h4>
-        <p class="text-muted" style="line-height:1.8;">
+        <h4 class="sub-h">✅ 正确用法</h4>
+        <p class="guide-list">
           · 1-2 个主光源 + 1 个氛围光 = 最佳效果<br>
-          · <code>backlighting + rim lighting</code> → 轮廓光组合<br>
-          · <code>sunlight + god rays</code> → 自然光穿透<br>
-          · <code>cinematic lighting + volumetric</code> → 电影级<br>
+          · <button type="button" class="combo-btn" data-tags="backlighting,rim lighting">backlighting + rim lighting</button> → 轮廓光组合<br>
+          · <button type="button" class="combo-btn" data-tags="sunlight,god rays">sunlight + god rays</button> → 自然光穿透<br>
+          · <button type="button" class="combo-btn" data-tags="cinematic lighting,volumetric lighting">cinematic + volumetric</button> → 电影级<br>
           · 先定光源方向，再选光影强度，最后补细节
         </p>
       </div>
       <div>
-        <h4 style="color:#e08080;font-size:0.82rem;margin-bottom:0.5rem;">❌ 避雷指南</h4>
-        <p class="text-muted" style="line-height:1.8;">
+        <h4 class="sub-h neg">❌ 避雷指南</h4>
+        <p class="guide-list">
           · <code>sunlight + moonlight</code> → 光源矛盾<br>
-          · <code>bright + dim lighting</code> → 亮度冲突<br>
-          · <code>backlighting + frontal lighting</code> → 方向互斥<br>
+          · <code>blinding light + dim lighting</code> → 亮度冲突<br>
+          · <code>backlighting + overhead lighting</code> → 方向互斥<br>
           · 不堆超过 4 个光影标签 → 污染画面<br>
-          · <code>lens flare + dark scene</code> → 不合逻辑
+          · <code>lens flare + dark</code> → 不合逻辑<br>
+          · 沙箱会自动为以上组合亮起红色警示 chip
         </p>
       </div>
     </div>
@@ -125,186 +410,612 @@
 
 <script src="../assets/gemini.js"></script>
 <script>
-// === LIGHTING DATA: 80+ tags in 5 categories ===
-var LIGHTS = [
-  // RIM & BACK (轮廓光)
-  { en:'backlighting', cn:'逆光/背光', cat:'rim', desc:'光源在主体后方，形成发丝光效果' },
-  { en:'rim lighting', cn:'轮廓光/边缘光', cat:'rim', desc:'主体边缘有一圈亮光，突出轮廓' },
-  { en:'rim light', cn:'轮缘光', cat:'rim', desc:'rim lighting 的同义标签' },
-  { en:'edge lighting', cn:'边缘高光', cat:'rim', desc:'强调物体边缘的高光' },
-  { en:'hair light', cn:'发丝光', cat:'rim', desc:'专门照亮头发的背光' },
-  { en:'silhouette', cn:'剪影', cat:'rim', desc:'主体呈黑暗轮廓，背景明亮' },
-  { en:'contre-jour', cn:'逆光摄影', cat:'rim', desc:'法式逆光，镜头直对光源' },
-  { en:'strong backlight', cn:'强逆光', cat:'rim', desc:'强烈的背光效果' },
-  { en:'light rays from behind', cn:'后方光束', cat:'rim', desc:'从主体后方射来的光束' },
-  { en:'chromatic aberration rim', cn:'色差边缘光', cat:'rim', desc:'带色差的边缘光效' },
+(function () {
+  'use strict';
 
-  // DIM & DARK (昏暗光)
-  { en:'dim lighting', cn:'昏暗光线', cat:'dim', desc:'整体偏暗的环境照明' },
-  { en:'dark', cn:'黑暗', cat:'dim', desc:'极暗环境，几乎无光' },
-  { en:'darkness', cn:'漆黑', cat:'dim', desc:'浓厚黑暗氛围' },
-  { en:'low light', cn:'低光', cat:'dim', desc:'光线不足的环境' },
-  { en:'night', cn:'夜晚', cat:'dim', desc:'夜间场景' },
-  { en:'candlelight', cn:'烛光', cat:'dim', desc:'蜡烛照明的暖暗环境' },
-  { en:'moonlight', cn:'月光', cat:'dim', desc:'月亮照明的冷暗环境' },
-  { en:'twilight', cn:'暮光', cat:'dim', desc:'黄昏/黎明时的微弱光线' },
-  { en:'dusk', cn:'黄昏', cat:'dim', desc:'黄昏时分的柔和光线' },
-  { en:'dark room', cn:'暗室', cat:'dim', desc:'黑暗的室内空间' },
-  { en:'shadow', cn:'阴影', cat:'dim', desc:'强调阴影对比' },
-  { en:'silhouette lighting', cn:'剪影光', cat:'dim', desc:'剪影风格的光影处理' },
-  { en:'noir lighting', cn:'黑色电影光', cat:'dim', desc:'高对比黑白光影风格' },
-  { en:'crepuscular rays', cn:'云隙光/曙暮光条', cat:'dim', desc:'从云层缝隙射出的光柱' },
+  /* === 光影数据：fx 决定卡片左侧场景球用哪套渐变 === */
+  const LIGHTS = [
+    // RIM & BACK (轮廓光)
+    { en: 'backlighting', cn: '逆光/背光', cat: 'rim', fx: 'backlight', desc: '光源在主体后方，形成发丝光效果' },
+    { en: 'rim lighting', cn: '轮廓光/边缘光', cat: 'rim', fx: 'rim', desc: '主体边缘有一圈亮光，突出轮廓' },
+    { en: 'rim light', cn: '轮缘光', cat: 'rim', fx: 'rim', desc: 'rim lighting 的同义标签' },
+    { en: 'edge lighting', cn: '边缘高光', cat: 'rim', fx: 'rim', desc: '强调物体边缘的高光' },
+    { en: 'hair light', cn: '发丝光', cat: 'rim', fx: 'backlight', desc: '专门照亮头发的背光' },
+    { en: 'silhouette', cn: '剪影', cat: 'rim', fx: 'silhouette', desc: '主体呈黑暗轮廓，背景明亮' },
+    { en: 'contre-jour', cn: '逆光摄影', cat: 'rim', fx: 'backlight', desc: '法式逆光，镜头直对光源' },
+    { en: 'strong backlight', cn: '强逆光', cat: 'rim', fx: 'backlight', desc: '强烈的背光效果' },
+    { en: 'light rays from behind', cn: '后方光束', cat: 'rim', fx: 'rays', desc: '从主体后方射来的光束' },
+    { en: 'chromatic aberration rim', cn: '色差边缘光', cat: 'rim', fx: 'chromatic', desc: '带色差的边缘光效' },
 
-  // NATURAL (自然光)
-  { en:'sunlight', cn:'阳光', cat:'natural', desc:'明亮的自然阳光' },
-  { en:'natural lighting', cn:'自然光照', cat:'natural', desc:'模拟真实自然光环境' },
-  { en:'golden hour', cn:'黄金时刻', cat:'natural', desc:'日出/日落时分的暖金色光线' },
-  { en:'blue hour', cn:'蓝色时刻', cat:'natural', desc:'日出前/日落后蓝调光线' },
-  { en:'morning light', cn:'晨光', cat:'natural', desc:'清晨柔和光线' },
-  { en:'afternoon light', cn:'午后光', cat:'natural', desc:'下午的明亮光线' },
-  { en:'sunset', cn:'日落', cat:'natural', desc:'日落时分的橙色光线' },
-  { en:'sunrise', cn:'日出', cat:'natural', desc:'日出时分的粉色光线' },
-  { en:'overcast', cn:'阴天', cat:'natural', desc:'多云天气的柔和漫射光' },
-  { en:'shade', cn:'树荫/阴影', cat:'natural', desc:'在阴影下的柔和光线' },
-  { en:'dappled light', cn:'斑驳光', cat:'natural', desc:'穿过树叶的斑驳光影' },
-  { en:'god rays', cn:'圣光/丁达尔光', cat:'natural', desc:'穿过缝隙的可见光束' },
-  { en:'tyndall effect', cn:'丁达尔效应', cat:'natural', desc:'光线在胶体中散射的现象' },
-  { en:'rainbow', cn:'彩虹', cat:'natural', desc:'雨后/水雾中的彩虹' },
-  { en:'light through window', cn:'窗外光', cat:'natural', desc:'从窗户射入的自然光' },
-  { en:'blinding light', cn:'眩目光', cat:'natural', desc:'刺眼的强光' },
+    // DIM & DARK (昏暗光)
+    { en: 'dim lighting', cn: '昏暗光线', cat: 'dim', fx: 'dim', desc: '整体偏暗的环境照明' },
+    { en: 'dark', cn: '黑暗', cat: 'dim', fx: 'dark', desc: '极暗环境，几乎无光' },
+    { en: 'darkness', cn: '漆黑', cat: 'dim', fx: 'dark', desc: '浓厚黑暗氛围' },
+    { en: 'low light', cn: '低光', cat: 'dim', fx: 'dim', desc: '光线不足的环境' },
+    { en: 'night', cn: '夜晚', cat: 'dim', fx: 'night', desc: '夜间场景' },
+    { en: 'candlelight', cn: '烛光', cat: 'dim', fx: 'candle', desc: '蜡烛照明的暖暗环境' },
+    { en: 'moonlight', cn: '月光', cat: 'dim', fx: 'moon', desc: '月亮照明的冷暗环境' },
+    { en: 'twilight', cn: '暮光', cat: 'dim', fx: 'twilight', desc: '黄昏/黎明时的微弱光线' },
+    { en: 'dusk', cn: '黄昏', cat: 'dim', fx: 'twilight', desc: '黄昏时分的柔和光线' },
+    { en: 'dark room', cn: '暗室', cat: 'dim', fx: 'dark', desc: '黑暗的室内空间' },
+    { en: 'shadow', cn: '阴影', cat: 'dim', fx: 'noir', desc: '强调阴影对比' },
+    { en: 'silhouette lighting', cn: '剪影光', cat: 'dim', fx: 'silhouette', desc: '剪影风格的光影处理' },
+    { en: 'noir lighting', cn: '黑色电影光', cat: 'dim', fx: 'noir', desc: '高对比黑白光影风格' },
+    { en: 'crepuscular rays', cn: '云隙光/曙暮光条', cat: 'dim', fx: 'rays', desc: '从云层缝隙射出的光柱' },
 
-  // INDOOR (室内光)
-  { en:'indoor lighting', cn:'室内光', cat:'indoor', desc:'室内人造光源环境' },
-  { en:'studio lighting', cn:'影棚光', cat:'indoor', desc:'专业摄影棚照明' },
-  { en:'softbox lighting', cn:'柔光箱光', cat:'indoor', desc:'柔光箱打出的柔和均匀光' },
-  { en:'fluorescent light', cn:'荧光灯', cat:'indoor', desc:'冷白色荧光管照明' },
-  { en:'incandescent light', cn:'白炽灯', cat:'indoor', desc:'暖黄色钨丝灯光' },
-  { en:'warm lighting', cn:'暖光', cat:'indoor', desc:'温暖色调的照明' },
-  { en:'cold lighting', cn:'冷光', cat:'indoor', desc:'冷色调（蓝白）照明' },
-  { en:'stage lighting', cn:'舞台光', cat:'indoor', desc:'剧场/舞台聚光灯效果' },
-  { en:'spotlight', cn:'聚光灯', cat:'indoor', desc:'单一束集中光线' },
-  { en:'classroom lighting', cn:'教室灯光', cat:'indoor', desc:'典型教室荧光灯环境' },
-  { en:'ambient light', cn:'环境光', cat:'indoor', desc:'均匀散布的整体照明' },
-  { en:'overhead lighting', cn:'顶光', cat:'indoor', desc:'从头顶打来的光线' },
-  { en:'fairy lights', cn:'小灯串/仙女灯', cat:'indoor', desc:'装饰性小灯泡串' },
-  { en:'lantern light', cn:'灯笼光', cat:'indoor', desc:'纸灯笼/灯笼发出的暖光' },
+    // NATURAL (自然光)
+    { en: 'sunlight', cn: '阳光', cat: 'natural', fx: 'sun', desc: '明亮的自然阳光' },
+    { en: 'natural lighting', cn: '自然光照', cat: 'natural', fx: 'sun', desc: '模拟真实自然光环境' },
+    { en: 'golden hour', cn: '黄金时刻', cat: 'natural', fx: 'golden', desc: '日出/日落时分的暖金色光线' },
+    { en: 'blue hour', cn: '蓝色时刻', cat: 'natural', fx: 'bluehour', desc: '日出前/日落后蓝调光线' },
+    { en: 'morning light', cn: '晨光', cat: 'natural', fx: 'golden', desc: '清晨柔和光线' },
+    { en: 'afternoon light', cn: '午后光', cat: 'natural', fx: 'sun', desc: '下午的明亮光线' },
+    { en: 'sunset', cn: '日落', cat: 'natural', fx: 'golden', desc: '日落时分的橙色光线' },
+    { en: 'sunrise', cn: '日出', cat: 'natural', fx: 'twilight', desc: '日出时分的粉色光线' },
+    { en: 'overcast', cn: '阴天', cat: 'natural', fx: 'overcast', desc: '多云天气的柔和漫射光' },
+    { en: 'shade', cn: '树荫/阴影', cat: 'natural', fx: 'overcast', desc: '在阴影下的柔和光线' },
+    { en: 'dappled light', cn: '斑驳光', cat: 'natural', fx: 'dappled', desc: '穿过树叶的斑驳光影' },
+    { en: 'god rays', cn: '圣光/丁达尔光', cat: 'natural', fx: 'rays', desc: '穿过缝隙的可见光束' },
+    { en: 'tyndall effect', cn: '丁达尔效应', cat: 'natural', fx: 'rays', desc: '光线在胶体中散射的现象' },
+    { en: 'rainbow', cn: '彩虹', cat: 'natural', fx: 'rainbow', desc: '雨后/水雾中的彩虹' },
+    { en: 'light through window', cn: '窗外光', cat: 'natural', fx: 'window', desc: '从窗户射入的自然光' },
+    { en: 'blinding light', cn: '眩目光', cat: 'natural', fx: 'burst', desc: '刺眼的强光' },
 
-  // FX (特效光)
-  { en:'neon lights', cn:'霓虹灯', cat:'fx', desc:'彩色霓虹管灯光' },
-  { en:'cyberpunk lighting', cn:'赛博朋克光', cat:'fx', desc:'赛博朋克风的霓虹/蓝紫光' },
-  { en:'volumetric lighting', cn:'体积光', cat:'fx', desc:'可见的体积光柱效果' },
-  { en:'dramatic lighting', cn:'戏剧光', cat:'fx', desc:'高对比度戏剧化光影' },
-  { en:'cinematic lighting', cn:'电影光', cat:'fx', desc:'电影级光影质感' },
-  { en:'glowing', cn:'发光', cat:'fx', desc:'物体自发光效果' },
-  { en:'bioluminescence', cn:'生物荧光', cat:'fx', desc:'生物体自发光（萤火虫/深海）' },
-  { en:'magic circle glow', cn:'魔法阵光', cat:'fx', desc:'魔法阵发出的光芒' },
-  { en:'explosion light', cn:'爆炸光', cat:'fx', desc:'爆炸产生的强烈光线' },
-  { en:'fire light', cn:'火光', cat:'fx', desc:'火焰照明的跳动光线' },
-  { en:'lightning', cn:'闪电', cat:'fx', desc:'闪电瞬间的强烈光照' },
-  { en:'laser', cn:'激光', cat:'fx', desc:'激光束/激光效果' },
-  { en:'hologram', cn:'全息光', cat:'fx', desc:'全息投影的虚化光线' },
-  { en:'portal light', cn:'传送门光', cat:'fx', desc:'传送门/虫洞光芒' },
-  { en:'lens flare', cn:'镜头光晕', cat:'fx', desc:'镜头直对光源产生的光晕' },
-  { en:'sparkle', cn:'星光/闪烁', cat:'fx', desc:'细小光芒闪烁效果' },
-  { en:'bokeh', cn:'散景', cat:'fx', desc:'焦外虚化的圆形光斑' },
-  { en:'reflection light', cn:'反射光', cat:'fx', desc:'水面/镜面反射的光线' },
-  { en:'rainbow lighting', cn:'彩虹光', cat:'fx', desc:'多色渐变彩虹光效' },
-  { en:'glitch light', cn:'故障艺术光', cat:'fx', desc:'数字故障风的RGB分离光效' },
-  { en:'underwater lighting', cn:'水下光', cat:'fx', desc:'水底折射的波光效果' },
-  { en:'aurora', cn:'极光', cat:'fx', desc:'北极光/南极光效果' }
-];
+    // INDOOR (室内光)
+    { en: 'indoor lighting', cn: '室内光', cat: 'indoor', fx: 'warm', desc: '室内人造光源环境' },
+    { en: 'studio lighting', cn: '影棚光', cat: 'indoor', fx: 'studio', desc: '专业摄影棚照明' },
+    { en: 'softbox lighting', cn: '柔光箱光', cat: 'indoor', fx: 'soft', desc: '柔光箱打出的柔和均匀光' },
+    { en: 'fluorescent light', cn: '荧光灯', cat: 'indoor', fx: 'fluorescent', desc: '冷白色荧光管照明' },
+    { en: 'incandescent light', cn: '白炽灯', cat: 'indoor', fx: 'warm', desc: '暖黄色钨丝灯光' },
+    { en: 'warm lighting', cn: '暖光', cat: 'indoor', fx: 'warm', desc: '温暖色调的照明' },
+    { en: 'cold lighting', cn: '冷光', cat: 'indoor', fx: 'cold', desc: '冷色调（蓝白）照明' },
+    { en: 'stage lighting', cn: '舞台光', cat: 'indoor', fx: 'studio', desc: '剧场/舞台聚光灯效果' },
+    { en: 'spotlight', cn: '聚光灯', cat: 'indoor', fx: 'spot', desc: '单一束集中光线' },
+    { en: 'classroom lighting', cn: '教室灯光', cat: 'indoor', fx: 'fluorescent', desc: '典型教室荧光灯环境' },
+    { en: 'ambient light', cn: '环境光', cat: 'indoor', fx: 'soft', desc: '均匀散布的整体照明' },
+    { en: 'overhead lighting', cn: '顶光', cat: 'indoor', fx: 'spot', desc: '从头顶打来的光线' },
+    { en: 'fairy lights', cn: '小灯串/仙女灯', cat: 'indoor', fx: 'fairy', desc: '装饰性小灯泡串' },
+    { en: 'lantern light', cn: '灯笼光', cat: 'indoor', fx: 'candle', desc: '纸灯笼/灯笼发出的暖光' },
 
-// === RENDER LIGHT GRID ===
-var grid = document.getElementById('lightGrid');
-var currentCat = 'all';
+    // FX (特效光)
+    { en: 'neon lights', cn: '霓虹灯', cat: 'fx', fx: 'neon', desc: '彩色霓虹管灯光' },
+    { en: 'cyberpunk lighting', cn: '赛博朋克光', cat: 'fx', fx: 'neon', desc: '赛博朋克风的霓虹/蓝紫光' },
+    { en: 'volumetric lighting', cn: '体积光', cat: 'fx', fx: 'rays', desc: '可见的体积光柱效果' },
+    { en: 'dramatic lighting', cn: '戏剧光', cat: 'fx', fx: 'drama', desc: '高对比度戏剧化光影' },
+    { en: 'cinematic lighting', cn: '电影光', cat: 'fx', fx: 'cine', desc: '电影级光影质感' },
+    { en: 'glowing', cn: '发光', cat: 'fx', fx: 'glow', desc: '物体自发光效果' },
+    { en: 'bioluminescence', cn: '生物荧光', cat: 'fx', fx: 'bio', desc: '生物体自发光（萤火虫/深海）' },
+    { en: 'magic circle glow', cn: '魔法阵光', cat: 'fx', fx: 'magic', desc: '魔法阵发出的光芒' },
+    { en: 'explosion light', cn: '爆炸光', cat: 'fx', fx: 'burst', desc: '爆炸产生的强烈光线' },
+    { en: 'fire light', cn: '火光', cat: 'fx', fx: 'fire', desc: '火焰照明的跳动光线' },
+    { en: 'lightning', cn: '闪电', cat: 'fx', fx: 'lightning', desc: '闪电瞬间的强烈光照' },
+    { en: 'laser', cn: '激光', cat: 'fx', fx: 'laser', desc: '激光束/激光效果' },
+    { en: 'hologram', cn: '全息光', cat: 'fx', fx: 'holo', desc: '全息投影的虚化光线' },
+    { en: 'portal light', cn: '传送门光', cat: 'fx', fx: 'portal', desc: '传送门/虫洞光芒' },
+    { en: 'lens flare', cn: '镜头光晕', cat: 'fx', fx: 'flare', desc: '镜头直对光源产生的光晕' },
+    { en: 'sparkle', cn: '星光/闪烁', cat: 'fx', fx: 'sparkle', desc: '细小光芒闪烁效果' },
+    { en: 'bokeh', cn: '散景', cat: 'fx', fx: 'bokeh', desc: '焦外虚化的圆形光斑' },
+    { en: 'reflection light', cn: '反射光', cat: 'fx', fx: 'reflect', desc: '水面/镜面反射的光线' },
+    { en: 'rainbow lighting', cn: '彩虹光', cat: 'fx', fx: 'rainbow', desc: '多色渐变彩虹光效' },
+    { en: 'glitch light', cn: '故障艺术光', cat: 'fx', fx: 'chromatic', desc: '数字故障风的RGB分离光效' },
+    { en: 'underwater lighting', cn: '水下光', cat: 'fx', fx: 'water', desc: '水底折射的波光效果' },
+    { en: 'aurora', cn: '极光', cat: 'fx', fx: 'aurora', desc: '北极光/南极光效果' }
+  ];
 
-function renderGrid(cat){
-  currentCat = cat;
-  var filtered = cat === 'all' ? LIGHTS : LIGHTS.filter(function(l){ return l.cat === cat; });
-  var html = '';
-  filtered.forEach(function(l){
-    html += '<div class="light-card" data-en="'+l.en+'" data-cat="'+l.cat+'" onclick="onLightClick(this,\''+l.en.replace(/'/g,"\\'")+'\')">';
-    html += '<span class="l-en">'+l.en+'</span>';
-    html += '<span class="l-cn">'+l.cn+'</span>';
-    html += '<span class="l-cat">'+l.desc+'</span>';
-    html += '</div>';
-  });
-  grid.innerHTML = html;
-  document.getElementById('catNav').querySelectorAll('.cat-btn').forEach(function(b){
-    b.classList.toggle('active', b.dataset.cat === cat);
-  });
-}
+  const CATEGORIES = [
+    { id: 'rim', label: '轮廓光 · Rim & Back', short: '轮廓光' },
+    { id: 'dim', label: '昏暗灯 · Dim & Dark', short: '昏暗灯' },
+    { id: 'natural', label: '自然光 · Natural', short: '自然光' },
+    { id: 'indoor', label: '室内光 · Indoor', short: '室内光' },
+    { id: 'fx', label: '特效光 · FX', short: '特效光' }
+  ];
 
-// === CAT NAV CLICKS ===
-document.getElementById('catNav').addEventListener('click', function(e){
-  if (e.target.classList.contains('cat-btn')) renderGrid(e.target.dataset.cat);
-});
+  /* 互斥规则：两侧同时出现即视为冲突，why 直接显示在警示 chip 上 */
+  const CONFLICT_RULES = [
+    {
+      why: '光源矛盾',
+      a: ['sunlight', 'natural lighting', 'golden hour', 'morning light', 'afternoon light', 'sunrise', 'sunset', 'blinding light', 'god rays', 'lens flare', 'light through window'],
+      b: ['moonlight', 'night', 'darkness', 'dark', 'dark room', 'candlelight', 'noir lighting']
+    },
+    {
+      why: '亮度冲突',
+      a: ['blinding light', 'spotlight', 'stage lighting', 'studio lighting', 'explosion light', 'lightning'],
+      b: ['dim lighting', 'low light', 'dark', 'darkness', 'dark room']
+    },
+    {
+      why: '方向互斥',
+      a: ['backlighting', 'strong backlight', 'contre-jour', 'silhouette', 'silhouette lighting'],
+      b: ['overhead lighting', 'spotlight', 'studio lighting', 'softbox lighting']
+    },
+    {
+      why: '色温冲突',
+      a: ['warm lighting', 'incandescent light', 'candlelight', 'fire light', 'lantern light'],
+      b: ['cold lighting', 'fluorescent light', 'blue hour', 'moonlight']
+    }
+  ];
 
-// === LIGHT CARD CLICK: COPY + ADD TO SANDBOX ===
-function onLightClick(el, tag){
-  gsCopy(tag);
-  el.classList.add('copied');
-  setTimeout(function(){ el.classList.remove('copied'); }, 500);
-  addToSandbox(tag);
-}
+  const MAX_TAGS_HINT = 4;
+  const STORE_KEY = 'xq.lighting-codex.v1';
+  const DND_TYPE_CARD = 'application/x-xq-light';
+  const DND_TYPE_CHIP = 'application/x-xq-chip';
 
-// === SANDBOX LOGIC ===
-var sandboxTags = [];
+  const grid = document.getElementById('lightGrid');
+  const gridEmpty = document.getElementById('lightEmpty');
+  const catNav = document.getElementById('catNav');
+  const searchInput = document.getElementById('lightSearch');
+  const searchClear = document.getElementById('searchClear');
+  const countLabel = document.getElementById('lightCount');
+  const dropZone = document.getElementById('sandboxDrop');
+  const chipsBox = document.getElementById('sandboxTags');
+  const sandboxEmpty = document.getElementById('sandboxEmpty');
+  const warnBox = document.getElementById('sandboxWarn');
+  const promptBox = document.getElementById('sandboxPromptContainer');
+  const promptOut = document.getElementById('sandboxPrompt');
+  const subjectSelect = document.getElementById('subjectSelect');
+  const subjectCustom = document.getElementById('subjectCustom');
 
-function addToSandbox(tag){
-  if (sandboxTags.indexOf(tag) >= 0) { gsToast('已在沙箱中'); return; }
-  sandboxTags.push(tag);
-  renderSandbox();
-}
+  const byTag = new Map(LIGHTS.map((light) => [light.en, light]));
+  const catLabel = new Map(CATEGORIES.map((cat) => [cat.id, cat.short]));
 
-function removeFromSandbox(idx){
-  sandboxTags.splice(idx, 1);
-  renderSandbox();
-}
+  const state = { cat: 'all', query: '', tags: [], subject: '1girl', custom: '' };
 
-function renderSandbox(){
-  var container = document.getElementById('sandboxTags');
-  var promptContainer = document.getElementById('sandboxPromptContainer');
-  var empty = document.getElementById('sandboxEmpty');
-  var prompt = document.getElementById('sandboxPrompt');
-
-  if (sandboxTags.length === 0){
-    container.innerHTML = '';
-    promptContainer.style.display = 'none';
-    empty.style.display = 'block';
-    return;
+  function toast(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else if (typeof window.gsToast === 'function') window.gsToast(message);
   }
 
-  empty.style.display = 'none';
-  promptContainer.style.display = 'block';
+  function copyText(text, source) {
+    if (window.XQ && typeof window.XQ.copy === 'function') return window.XQ.copy(text, source);
+    if (typeof window.gsCopy === 'function') return window.gsCopy(text, source);
+    return false;
+  }
 
-  // Render chips
-  var html = '';
-  sandboxTags.forEach(function(t, i){
-    html += '<span class="sandbox-chip">'+t+'<span class="remove" onclick="event.stopPropagation();removeFromSandbox('+i+')">✕</span></span>';
+  /* ------------------------------------------------------------ 本地存档 */
+  function loadState() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    } catch {
+      saved = null;
+    }
+    if (!saved || typeof saved !== 'object') return;
+
+    if (Array.isArray(saved.tags)) state.tags = saved.tags.filter((tag) => byTag.has(tag));
+    if (typeof saved.subject === 'string' && [...subjectSelect.options].some((option) => option.value === saved.subject)) {
+      state.subject = saved.subject;
+    }
+    if (typeof saved.custom === 'string') state.custom = saved.custom.slice(0, 200);
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ tags: state.tags, subject: state.subject, custom: state.custom }));
+    } catch {
+      // 隐私模式下写入会抛错，沙箱退化成仅本次会话有效即可
+    }
+  }
+
+  /* -------------------------------------------------------------- 卡片区 */
+  function matchesQuery(light, query) {
+    if (!query) return true;
+    const haystack = `${light.en} ${light.cn} ${light.desc} ${catLabel.get(light.cat) || ''}`.toLowerCase();
+    return haystack.includes(query);
+  }
+
+  function visibleLights() {
+    const query = state.query.trim().toLowerCase();
+    return LIGHTS.filter((light) => (state.cat === 'all' || light.cat === state.cat) && matchesQuery(light, query));
+  }
+
+  function buildCard(light, index) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'light-card xq-spotlight';
+    card.draggable = true;
+    card.dataset.en = light.en;
+    card.dataset.cat = light.cat;
+    card.style.setProperty('--i', String(Math.min(index, 24)));
+
+    const head = document.createElement('span');
+    head.className = 'l-head';
+
+    const orb = document.createElement('span');
+    orb.className = `l-orb l-orb--${light.fx}`;
+    orb.setAttribute('aria-hidden', 'true');
+
+    const body = document.createElement('span');
+    body.className = 'l-body';
+
+    const en = document.createElement('span');
+    en.className = 'l-en';
+    en.textContent = light.en;
+
+    const cn = document.createElement('span');
+    cn.className = 'l-cn';
+    cn.textContent = light.cn;
+
+    const desc = document.createElement('span');
+    desc.className = 'l-desc';
+    desc.textContent = light.desc;
+
+    body.append(en, cn, desc);
+    head.append(orb, body);
+
+    const cat = document.createElement('span');
+    cat.className = 'l-cat';
+    cat.textContent = catLabel.get(light.cat) || light.cat;
+
+    card.append(head, cat);
+    card.setAttribute('aria-label', `复制并加入沙箱：${light.en}，${light.cn}`);
+    return card;
+  }
+
+  function renderGrid() {
+    const list = visibleLights();
+    const fragment = document.createDocumentFragment();
+    list.forEach((light, index) => fragment.append(buildCard(light, index)));
+
+    grid.replaceChildren(fragment);
+    gridEmpty.hidden = list.length > 0;
+    countLabel.textContent = state.query.trim()
+      ? `匹配到 ${list.length} 条光影词`
+      : `共 ${list.length} 条光影词`;
+
+    syncPicked();
+  }
+
+  function renderCatNav() {
+    const fragment = document.createDocumentFragment();
+    const entries = [{ id: 'all', label: '全部', count: LIGHTS.length }].concat(
+      CATEGORIES.map((cat) => ({
+        id: cat.id,
+        label: cat.label,
+        count: LIGHTS.filter((light) => light.cat === cat.id).length
+      }))
+    );
+
+    entries.forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cat-btn';
+      button.dataset.cat = entry.id;
+      button.setAttribute('aria-pressed', String(entry.id === state.cat));
+      button.append(document.createTextNode(entry.label));
+
+      const count = document.createElement('span');
+      count.className = 'cat-count';
+      count.textContent = String(entry.count);
+      button.append(count);
+
+      fragment.append(button);
+    });
+
+    catNav.replaceChildren(fragment);
+  }
+
+  function syncCatNav() {
+    catNav.querySelectorAll('.cat-btn').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.cat === state.cat));
+    });
+  }
+
+  function syncPicked() {
+    const picked = new Set(state.tags);
+    grid.querySelectorAll('.light-card').forEach((card) => {
+      card.classList.toggle('is-picked', picked.has(card.dataset.en));
+    });
+  }
+
+  /* ---------------------------------------------------------------- 沙箱 */
+  function detectConflicts(tags) {
+    const set = new Set(tags);
+    const seen = new Set();
+    const found = [];
+
+    CONFLICT_RULES.forEach((rule) => {
+      rule.a.forEach((left) => {
+        if (!set.has(left)) return;
+        rule.b.forEach((right) => {
+          if (!set.has(right) || left === right) return;
+          const key = [left, right].sort().join('|');
+          if (seen.has(key)) return;
+          seen.add(key);
+          found.push({ left, right, why: rule.why });
+        });
+      });
+    });
+
+    return found;
+  }
+
+  function renderWarnings() {
+    const conflicts = detectConflicts(state.tags);
+    const fragment = document.createDocumentFragment();
+
+    conflicts.slice(0, 5).forEach((conflict) => {
+      const chip = document.createElement('span');
+      chip.className = 'warn-chip';
+      chip.append(document.createTextNode('⚠ '));
+
+      const left = document.createElement('code');
+      left.textContent = conflict.left;
+      const right = document.createElement('code');
+      right.textContent = conflict.right;
+
+      chip.append(left, document.createTextNode(' ⇄ '), right, document.createTextNode(` · ${conflict.why}`));
+      fragment.append(chip);
+    });
+
+    if (state.tags.length > MAX_TAGS_HINT) {
+      const chip = document.createElement('span');
+      chip.className = 'warn-chip';
+      chip.textContent = `⚠ 已堆叠 ${state.tags.length} 个光影词 · 建议不超过 ${MAX_TAGS_HINT} 个`;
+      fragment.append(chip);
+    }
+
+    warnBox.replaceChildren(fragment);
+
+    const conflicted = new Set();
+    conflicts.forEach((conflict) => {
+      conflicted.add(conflict.left);
+      conflicted.add(conflict.right);
+    });
+    chipsBox.querySelectorAll('.sandbox-chip').forEach((chip) => {
+      chip.classList.toggle('is-conflict', conflicted.has(chip.dataset.tag));
+    });
+  }
+
+  function subjectPrefix() {
+    if (state.subject === 'none') return '';
+    if (state.subject === 'custom') return state.custom.trim();
+    return state.subject;
+  }
+
+  function renderPrompt() {
+    if (!state.tags.length) {
+      promptBox.hidden = true;
+      promptOut.textContent = '';
+      return;
+    }
+    promptBox.hidden = false;
+    promptOut.textContent = [subjectPrefix()].concat(state.tags, 'high quality, detailed')
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  function renderSandbox() {
+    const fragment = document.createDocumentFragment();
+
+    state.tags.forEach((tag) => {
+      const chip = document.createElement('span');
+      chip.className = 'sandbox-chip';
+      chip.setAttribute('role', 'listitem');
+      chip.draggable = true;
+      chip.dataset.tag = tag;
+
+      const label = document.createElement('span');
+      label.textContent = tag;
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'chip-remove';
+      remove.dataset.remove = tag;
+      remove.setAttribute('aria-label', `从沙箱移除 ${tag}`);
+      remove.textContent = '✕';
+
+      chip.append(label, remove);
+      fragment.append(chip);
+    });
+
+    chipsBox.replaceChildren(fragment);
+    sandboxEmpty.hidden = state.tags.length > 0;
+
+    renderWarnings();
+    renderPrompt();
+    syncPicked();
+    saveState();
+  }
+
+  function addTag(tag, index) {
+    if (!byTag.has(tag)) return false;
+    if (state.tags.includes(tag)) {
+      toast('已在沙箱中');
+      return false;
+    }
+    const at = typeof index === 'number' ? Math.max(0, Math.min(index, state.tags.length)) : state.tags.length;
+    state.tags.splice(at, 0, tag);
+    renderSandbox();
+    return true;
+  }
+
+  function removeTag(tag) {
+    const at = state.tags.indexOf(tag);
+    if (at < 0) return;
+    state.tags.splice(at, 1);
+    renderSandbox();
+  }
+
+  function moveTag(tag, index) {
+    const from = state.tags.indexOf(tag);
+    if (from < 0) return;
+    state.tags.splice(from, 1);
+    const to = Math.max(0, Math.min(index > from ? index - 1 : index, state.tags.length));
+    state.tags.splice(to, 0, tag);
+    renderSandbox();
+  }
+
+  /* ------------------------------------------------------------ 事件绑定 */
+  catNav.addEventListener('click', (event) => {
+    const button = event.target.closest('.cat-btn');
+    if (!button) return;
+    state.cat = button.dataset.cat;
+    syncCatNav();
+    renderGrid();
   });
-  container.innerHTML = html;
 
-  // Generate composite prompt
-  var promptText = '1girl, ' + sandboxTags.join(', ') + ', high quality, detailed';
-  prompt.textContent = promptText;
-}
+  let searchTimer = 0;
+  searchInput.addEventListener('input', () => {
+    searchClear.hidden = !searchInput.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.query = searchInput.value;
+      renderGrid();
+    }, 90);
+  });
 
-function copySandbox(){
-  var text = document.getElementById('sandboxPrompt').textContent;
-  if (!text.trim()) return gsToast('沙箱为空');
-  gsCopy(text);
-}
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !searchInput.value) return;
+    event.stopPropagation();
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+  });
 
-function clearSandbox(){
-  sandboxTags = [];
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClear.hidden = true;
+    state.query = '';
+    renderGrid();
+    searchInput.focus();
+  });
+
+  grid.addEventListener('click', (event) => {
+    const card = event.target.closest('.light-card');
+    if (!card) return;
+    const tag = card.dataset.en;
+    copyText(tag, card);
+    card.classList.remove('copied');
+    void card.offsetWidth;
+    card.classList.add('copied');
+    setTimeout(() => card.classList.remove('copied'), 600);
+    addTag(tag);
+  });
+
+  grid.addEventListener('dragstart', (event) => {
+    const card = event.target.closest('.light-card');
+    if (!card) return;
+    card.classList.add('is-dragging');
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', card.dataset.en);
+    event.dataTransfer.setData(DND_TYPE_CARD, card.dataset.en);
+  });
+
+  grid.addEventListener('dragend', (event) => {
+    const card = event.target.closest('.light-card');
+    if (card) card.classList.remove('is-dragging');
+  });
+
+  chipsBox.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-remove]');
+    if (!button) return;
+    removeTag(button.dataset.remove);
+  });
+
+  chipsBox.addEventListener('dragstart', (event) => {
+    const chip = event.target.closest('.sandbox-chip');
+    if (!chip) return;
+    chip.classList.add('is-dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', chip.dataset.tag);
+    event.dataTransfer.setData(DND_TYPE_CHIP, chip.dataset.tag);
+  });
+
+  chipsBox.addEventListener('dragend', (event) => {
+    const chip = event.target.closest('.sandbox-chip');
+    if (chip) chip.classList.remove('is-dragging');
+  });
+
+  /** 落点索引：命中某个 chip 的左半边就插在它前面，否则追加到末尾。 */
+  function insertionIndex(x, y) {
+    const chips = Array.from(chipsBox.querySelectorAll('.sandbox-chip'));
+    for (let i = 0; i < chips.length; i += 1) {
+      const rect = chips[i].getBoundingClientRect();
+      if (y < rect.bottom && x < rect.left + rect.width / 2) return i;
+    }
+    return chips.length;
+  }
+
+  dropZone.addEventListener('dragover', (event) => {
+    const types = event.dataTransfer ? Array.from(event.dataTransfer.types) : [];
+    if (!types.includes(DND_TYPE_CARD) && !types.includes(DND_TYPE_CHIP) && !types.includes('text/plain')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = types.includes(DND_TYPE_CHIP) ? 'move' : 'copy';
+    dropZone.classList.add('is-dragover');
+  });
+
+  dropZone.addEventListener('dragleave', (event) => {
+    if (!dropZone.contains(event.relatedTarget)) dropZone.classList.remove('is-dragover');
+  });
+
+  dropZone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dropZone.classList.remove('is-dragover');
+
+    const moved = event.dataTransfer.getData(DND_TYPE_CHIP);
+    const index = insertionIndex(event.clientX, event.clientY);
+
+    if (moved) {
+      moveTag(moved, index);
+      return;
+    }
+
+    const tag = event.dataTransfer.getData(DND_TYPE_CARD) || event.dataTransfer.getData('text/plain');
+    if (addTag(String(tag).trim(), index)) toast('已拖入沙箱', 'ok');
+  });
+
+  subjectSelect.addEventListener('change', () => {
+    state.subject = subjectSelect.value;
+    subjectCustom.hidden = state.subject !== 'custom';
+    if (state.subject === 'custom') subjectCustom.focus();
+    renderPrompt();
+    saveState();
+  });
+
+  subjectCustom.addEventListener('input', () => {
+    state.custom = subjectCustom.value;
+    renderPrompt();
+    saveState();
+  });
+
+  document.getElementById('copySandbox').addEventListener('click', (event) => {
+    const text = promptOut.textContent.trim();
+    if (!text) {
+      toast('沙箱为空');
+      return;
+    }
+    copyText(text, event.currentTarget);
+  });
+
+  document.getElementById('clearSandbox').addEventListener('click', () => {
+    state.tags = [];
+    renderSandbox();
+    toast('沙箱已清空');
+  });
+
+  document.addEventListener('click', (event) => {
+    const combo = event.target.closest('.combo-btn');
+    if (!combo) return;
+    const tags = combo.dataset.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    const added = tags.filter((tag) => !state.tags.includes(tag) && byTag.has(tag));
+    tags.forEach((tag) => {
+      if (byTag.has(tag) && !state.tags.includes(tag)) state.tags.push(tag);
+    });
+    renderSandbox();
+    toast(added.length ? `已载入组合：${added.join(' + ')}` : '这个组合已经在沙箱里了', added.length ? 'ok' : undefined);
+  });
+
+  /* ---------------------------------------------------------------- 启动 */
+  document.getElementById('lightTotal').textContent = `${LIGHTS.length} 种`;
+  loadState();
+  subjectSelect.value = state.subject;
+  subjectCustom.value = state.custom;
+  subjectCustom.hidden = state.subject !== 'custom';
+  renderCatNav();
+  renderGrid();
   renderSandbox();
-  gsToast('沙箱已清空');
-}
-
-// === INIT ===
-renderGrid('all');
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

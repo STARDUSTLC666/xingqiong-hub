@@ -1,22 +1,399 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>页面迷航 · 星穹枢庭</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>星路迷航 · 星穹枢庭</title>
+  <meta name="description" content="这个星门暂时没有打开。回到星穹枢庭，或从推荐入口继续你的创作路径。">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/sanctuary.css">
   <style>
-    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#090719;color:#f3eaff;font-family:"Microsoft YaHei",system-ui,sans-serif;}
-    main{max-width:680px;padding:40px;border:1px solid rgba(190,150,255,.28);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.03));box-shadow:0 24px 90px rgba(40,20,90,.45);}
-    h1{font-size:clamp(32px,7vw,68px);margin:0 0 12px;}
-    p{line-height:1.8;color:#cfc2ef;}
-    a{color:#ffd6ff;text-decoration:none;border-bottom:1px solid rgba(255,214,255,.5);}
+    /* 404 可能被服务器用在任意深度的路径上，相对路径的样式表未必到得了；
+       所以关键颜色一律写成 var(--xq-*, 兜底值)，让这一页在裸奔时也不难看。 */
+    *, *::before, *::after { box-sizing: border-box; padding: 0; margin: 0; }
+
+    html { background-color: var(--xq-void, #05060f); }
+
+    body {
+      display: flex; min-height: 100vh; flex-direction: column;
+      background: var(--xq-ink, #0a0c1a);
+      color: var(--xq-text-soft, rgba(228, 228, 246, 0.74));
+      font-family: var(--xq-font-sans, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+      line-height: 1.75;
+    }
+
+    .lost {
+      position: relative; z-index: 2;
+      display: flex; width: min(940px, 100%); flex: 1 1 auto; flex-direction: column;
+      padding: clamp(28px, 6vw, 64px) clamp(16px, 4vw, 32px) 48px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .lost > * { animation: lostIn 620ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .lost > *:nth-child(1) { animation-delay: 40ms; }
+    .lost > *:nth-child(2) { animation-delay: 100ms; }
+    .lost > *:nth-child(3) { animation-delay: 160ms; }
+    .lost > *:nth-child(4) { animation-delay: 220ms; }
+    .lost > *:nth-child(5) { animation-delay: 280ms; }
+    .lost > *:nth-child(n + 6) { animation-delay: 340ms; }
+    @keyframes lostIn { from { opacity: 0; transform: translateY(16px); } }
+
+    .lost-tag {
+      align-self: center;
+      padding: 5px 14px;
+      border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      border-radius: var(--xq-r-pill, 999px);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--xq-text-faint, rgba(200, 202, 228, 0.33));
+      font-family: var(--xq-font-mono, "Consolas", ui-monospace, monospace);
+      font-size: 0.7rem; letter-spacing: 0.22em;
+    }
+
+    /* === 迷航罗盘：刻度环 + 雷达扫掠 + 一根找不到北的指针 === */
+    .lost-dial {
+      position: relative;
+      display: grid; width: clamp(158px, 36vw, 212px); aspect-ratio: 1;
+      margin: clamp(18px, 4vw, 30px) auto clamp(14px, 3vw, 22px);
+      place-items: center;
+    }
+
+    .lost-dial__face {
+      position: absolute; inset: 0;
+      border: 1px solid var(--xq-line, rgba(255, 226, 178, 0.1));
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(232, 168, 96, 0.09), transparent 64%),
+        radial-gradient(circle at 50% 50%, transparent 61%, rgba(255, 226, 178, 0.08) 62%, transparent 63%),
+        radial-gradient(circle at 50% 50%, transparent 39%, rgba(255, 226, 178, 0.07) 40%, transparent 41%);
+      box-shadow: inset 0 0 46px rgba(3, 4, 10, 0.7);
+    }
+
+    .lost-dial__ticks {
+      position: absolute; inset: 7px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(from 0deg, rgba(255, 226, 178, 0.34) 0deg 0.7deg, transparent 0.7deg 15deg);
+      -webkit-mask: radial-gradient(circle, transparent 82%, #000 84%);
+      mask: radial-gradient(circle, transparent 82%, #000 84%);
+      animation: dialSpin 54s linear infinite;
+    }
+
+    .lost-dial__sweep {
+      position: absolute; inset: 12px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(116, 196, 212, 0.3), rgba(116, 196, 212, 0.04) 46deg, transparent 92deg);
+      animation: dialSpin 5.5s linear infinite;
+    }
+
+    .lost-dial__orbit { position: absolute; inset: -7px; animation: dialSpin 24s linear infinite reverse; }
+    .lost-dial__orbit::after {
+      position: absolute; top: -3px; left: 50%; content: "✦";
+      color: var(--xq-gold-bright, #f7d9a0); font-size: 0.82rem;
+      text-shadow: 0 0 14px rgba(232, 168, 96, 0.85);
+      transform: translateX(-50%);
+    }
+
+    .lost-dial__needle {
+      position: absolute; top: 13%; left: 50%; width: 2px; height: 37%;
+      border-radius: var(--xq-r-pill, 999px);
+      background: linear-gradient(180deg, var(--xq-coral, #e07d70), rgba(224, 125, 112, 0));
+      transform-origin: 50% 100%;
+      animation: needleLost 11s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+    }
+
+    .lost-dial__code {
+      position: relative;
+      color: var(--xq-gold, #e8a860);
+      font-family: var(--xq-font-mono, "Consolas", ui-monospace, monospace);
+      font-size: clamp(1.6rem, 5.6vw, 2.3rem); font-weight: 700; letter-spacing: 0.14em;
+      text-shadow: 0 0 26px rgba(232, 168, 96, 0.4);
+    }
+
+    @keyframes dialSpin { to { transform: rotate(360deg); } }
+    @keyframes needleLost {
+      0% { transform: translateX(-50%) rotate(6deg); }
+      16% { transform: translateX(-50%) rotate(142deg); }
+      30% { transform: translateX(-50%) rotate(88deg); }
+      52% { transform: translateX(-50%) rotate(268deg); }
+      68% { transform: translateX(-50%) rotate(203deg); }
+      86% { transform: translateX(-50%) rotate(331deg); }
+      100% { transform: translateX(-50%) rotate(366deg); }
+    }
+
+    .lost h1 {
+      background: linear-gradient(100deg, var(--xq-gold-bright, #f7d9a0), var(--xq-gold, #e8a860) 36%, var(--xq-rose, #ffb2cd) 62%, var(--xq-gold-bright, #f7d9a0));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 240% 100%;
+      animation: lostIn 620ms cubic-bezier(0.16, 1, 0.3, 1) both, lostShine 11s linear infinite;
+      font-family: var(--xq-font-serif, Georgia, serif);
+      font-size: clamp(2rem, 8vw, 3.2rem); font-weight: 800; letter-spacing: 0.14em; line-height: 1.2;
+    }
+    @keyframes lostShine { to { background-position: 240% 0; } }
+
+    .lost-copy {
+      max-width: 46ch; margin: 14px auto 0;
+      color: var(--xq-text-muted, rgba(208, 210, 234, 0.53));
+      font-size: 0.9rem;
+    }
+    .lost-copy kbd {
+      padding: 1px 6px;
+      border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--xq-gold, #e8a860);
+      font-family: var(--xq-font-mono, ui-monospace, monospace); font-size: 0.76em;
+    }
+
+    .lost-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 26px; }
+    .lost-btn {
+      position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      border: 1px solid var(--xq-line, rgba(255, 226, 178, 0.1));
+      border-radius: var(--xq-r-md, 12px);
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--xq-gold, #e8a860);
+      cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+      letter-spacing: 0.03em; text-decoration: none;
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+    }
+    .lost-btn:hover {
+      border-color: var(--xq-line-strong, rgba(255, 226, 178, 0.28));
+      background: var(--xq-accent-soft, rgba(232, 168, 96, 0.1));
+      color: var(--xq-gold-bright, #f7d9a0);
+      transform: translateY(-2px);
+    }
+    .lost-btn--primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--xq-gold-bright, #f7d9a0), var(--xq-gold, #e8a860) 46%, var(--xq-gold-deep, #c07f38));
+      box-shadow: 0 6px 22px rgba(232, 168, 96, 0.24);
+      color: #201404;
+    }
+    .lost-btn--primary:hover { box-shadow: 0 10px 34px rgba(232, 168, 96, 0.38); color: #201404; }
+    /* 悬停时扫过的一道高光，和站内按钮保持同一套语言 */
+    .lost-btn::after {
+      position: absolute; top: 0; bottom: 0; left: -60%; width: 45%; content: "";
+      background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.26), transparent);
+      pointer-events: none; transform: skewX(-18deg);
+      transition: left 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .lost-btn:hover::after { left: 120%; }
+    .lost-btn kbd {
+      padding: 2px 6px;
+      border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--xq-text-faint, rgba(200, 202, 228, 0.33));
+      font-family: var(--xq-font-mono, ui-monospace, monospace); font-size: 0.68rem;
+    }
+
+    /* === 推荐星门 === */
+    .lost-gates { margin-top: clamp(34px, 7vw, 54px); text-align: left; }
+    .lost-gates h2 {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      margin-bottom: 18px;
+      color: var(--xq-gold, #e8a860);
+      font-family: var(--xq-font-serif, Georgia, serif);
+      font-size: 1rem; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .lost-gates h2::before {
+      width: 3px; height: 1.05em; flex: 0 0 auto; content: "";
+      border-radius: var(--xq-r-pill, 999px);
+      background: linear-gradient(180deg, var(--xq-gold-bright, #f7d9a0), transparent);
+    }
+
+    .gate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(238px, 1fr)); gap: 12px; list-style: none; }
+
+    .gate-card {
+      position: relative; isolation: isolate;
+      display: flex; height: 100%; align-items: flex-start; gap: 12px;
+      padding: 15px 16px;
+      border: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      border-radius: var(--xq-r-md, 12px);
+      background: var(--xq-surface, rgba(21, 27, 56, 0.56));
+      color: inherit; text-decoration: none;
+      transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1), border-color 280ms ease, box-shadow 280ms ease, background 280ms ease;
+    }
+    .gate-card:hover {
+      border-color: var(--xq-line-strong, rgba(255, 226, 178, 0.28));
+      background: var(--xq-surface-strong, rgba(24, 31, 64, 0.84));
+      box-shadow: var(--xq-shadow-md, 0 14px 40px rgba(0, 0, 0, 0.32));
+      transform: translateY(-3px);
+    }
+    /* 指针高光的坐标由 sanctuary.js 写入 --xq-mx / --xq-my */
+    .gate-card::after {
+      position: absolute; z-index: -1; inset: 0; content: "";
+      border-radius: inherit;
+      background: radial-gradient(220px circle at var(--xq-mx, 50%) var(--xq-my, 50%), var(--xq-accent-soft, rgba(232, 168, 96, 0.1)), transparent 68%);
+      opacity: 0; pointer-events: none;
+      transition: opacity 280ms ease;
+    }
+    .gate-card:hover::after { opacity: 1; }
+
+    .gate-icon {
+      display: grid; width: 38px; height: 38px; flex: 0 0 auto;
+      border: 1px solid var(--xq-line, rgba(255, 226, 178, 0.1));
+      border-radius: 11px;
+      background: linear-gradient(140deg, rgba(232, 168, 96, 0.22), rgba(116, 196, 212, 0.12));
+      font-size: 1.05rem;
+      place-items: center;
+      transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 280ms ease;
+    }
+    .gate-card:hover .gate-icon { box-shadow: 0 0 18px rgba(232, 168, 96, 0.3); transform: scale(1.09) rotate(-4deg); }
+
+    .gate-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+    .gate-name { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; color: var(--xq-text, #eceaf6); font-size: 0.9rem; font-weight: 700; }
+    .gate-en { color: var(--xq-text-faint, rgba(200, 202, 228, 0.33)); font-family: var(--xq-font-mono, ui-monospace, monospace); font-size: 0.66rem; letter-spacing: 0.06em; }
+    .gate-role { color: var(--xq-text-muted, rgba(208, 210, 234, 0.53)); font-size: 0.76rem; line-height: 1.6; }
+    .gate-badge {
+      padding: 1px 7px;
+      border: 1px solid rgba(224, 125, 112, 0.34);
+      border-radius: var(--xq-r-pill, 999px);
+      background: rgba(224, 125, 112, 0.14);
+      color: #e89a90; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.04em;
+    }
+    .gate-arrow { margin-left: auto; align-self: center; color: var(--xq-text-faint, rgba(200, 202, 228, 0.33)); font-size: 0.82rem; transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1), color 280ms ease; }
+    .gate-card:hover .gate-arrow { color: var(--xq-gold, #e8a860); transform: translateX(4px); }
+
+    .lost-foot {
+      padding-top: 22px;
+      border-top: 1px solid var(--xq-line-soft, rgba(255, 255, 255, 0.06));
+      margin-top: clamp(30px, 6vw, 46px);
+      color: var(--xq-text-faint, rgba(200, 202, 228, 0.33));
+      font-size: 0.74rem;
+    }
+    .lost-foot a { color: var(--xq-text-muted, rgba(208, 210, 234, 0.53)); text-decoration: none; }
+    .lost-foot a:hover { color: var(--xq-gold, #e8a860); }
+
+    @media (max-width: 480px) {
+      .lost-actions .lost-btn { flex: 1 1 100%; justify-content: center; }
+      .gate-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lost > *,
+      .lost h1,
+      .lost-dial__ticks,
+      .lost-dial__sweep,
+      .lost-dial__orbit,
+      .lost-dial__needle { animation: none; }
+      .lost h1 { -webkit-text-fill-color: initial; background: none; color: var(--xq-gold-bright, #f7d9a0); }
+      .lost-btn:hover,
+      .gate-card:hover { transform: none; }
+      .gate-card:hover .gate-icon { transform: none; }
+    }
   </style>
 </head>
 <body>
-  <main>
+  <main class="lost">
+    <p class="lost-tag">ERR · 404 · GATE NOT FOUND</p>
+
+    <div class="lost-dial" aria-hidden="true">
+      <span class="lost-dial__face"></span>
+      <span class="lost-dial__ticks"></span>
+      <span class="lost-dial__sweep"></span>
+      <span class="lost-dial__orbit"></span>
+      <span class="lost-dial__needle"></span>
+      <span class="lost-dial__code">404</span>
+    </div>
+
     <h1>星路迷航</h1>
-    <p>这个星门暂时没有打开，回到「星穹枢庭」重新选择入口吧。</p>
-    <p><a href="/xingqiong-hub/">返回首页</a></p>
+    <p class="lost-copy">
+      罗盘转了半天也没找到坐标——这个星门暂时没有打开，或者它的地址已经改道。
+      回到「星穹枢庭」重新选择入口，也可以按 <kbd>Ctrl</kbd> + <kbd>K</kbd> 直接检索星门。
+    </p>
+
+    <div class="lost-actions">
+      <a class="lost-btn lost-btn--primary" href="./">← 返回星穹枢庭</a>
+      <button class="lost-btn" type="button" data-xq-open-cmdk aria-haspopup="dialog">
+        <span aria-hidden="true">✦</span>星门检索<kbd>Ctrl K</kbd>
+      </button>
+    </div>
+
+    <section class="lost-gates" aria-labelledby="gatesTitle">
+      <h2 id="gatesTitle">你可能想去的星门</h2>
+      <ul class="gate-grid">
+        <li>
+          <a class="gate-card" href="./portal/index.html">
+            <span class="gate-icon" aria-hidden="true">🌙</span>
+            <span class="gate-copy">
+              <span class="gate-name">星穹绘所</span>
+              <span class="gate-en">STAR LAB</span>
+              <span class="gate-role">连接 ComfyUI 的出图工作台</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a class="gate-card" href="./krea2/index.html">
+            <span class="gate-icon" aria-hidden="true">🎨</span>
+            <span class="gate-copy">
+              <span class="gate-name">Krea2 提示词工匠</span>
+              <span class="gate-en">KREA2 ARTISAN</span>
+              <span class="gate-role">八卡槽提示词整理与扩写</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a class="gate-card" href="./lighting-codex/index.html">
+            <span class="gate-icon" aria-hidden="true">✨</span>
+            <span class="gate-copy">
+              <span class="gate-name">双子星光影魔典</span>
+              <span class="gate-en">LIGHTING CODEX</span>
+              <span class="gate-role">光影方向、氛围与镜头质感</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a class="gate-card" href="./prompt-reader/index.html">
+            <span class="gate-icon" aria-hidden="true">📖</span>
+            <span class="gate-copy">
+              <span class="gate-name">Prompt Reader</span>
+              <span class="gate-en">METADATA READER</span>
+              <span class="gate-role">读取图片里的提示词与工作流</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a class="gate-card" href="./cyber-summon/index.html">
+            <span class="gate-icon" aria-hidden="true">🔮</span>
+            <span class="gate-copy">
+              <span class="gate-name">赛博魔典<span class="gate-badge">18+</span></span>
+              <span class="gate-en">CYBER SUMMON</span>
+              <span class="gate-role">标签组合、加权与复制</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a class="gate-card" href="./decoder-terminal/index.html">
+            <span class="gate-icon" aria-hidden="true">💻</span>
+            <span class="gate-copy">
+              <span class="gate-name">解码终端</span>
+              <span class="gate-en">DECODER TERMINAL</span>
+              <span class="gate-role">还原约定格式与编码消息</span>
+            </span>
+            <span class="gate-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <footer class="lost-foot">
+      星穹枢庭 · Personal Creative Archive · <a href="./">返回枢庭首页</a>
+    </footer>
   </main>
+
+  <!-- xq:shared-runtime -->
+  <script src="assets/sanctuary.js" defer></script>
 </body>
 </html>

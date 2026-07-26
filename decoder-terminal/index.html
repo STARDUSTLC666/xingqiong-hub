@@ -1,272 +1,642 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌟 栖栖姐妹专属解码器</title>
+<title>解码终端 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="还原约定格式或编码消息，并检查内容能否在目标工具中正确传递。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/decoder-terminal/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="解码终端 · 星穹枢庭">
+  <meta property="og:description" content="还原约定格式或编码消息，并检查内容能否在目标工具中正确传递。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/decoder-terminal/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
+<link rel="stylesheet" href="../assets/gemini.css">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    background: #0a0a1a;
-    color: #e0e0e0;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-  }
-  .container {
-    max-width: 720px;
-    width: 100%;
-    background: #12122a;
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 0 60px rgba(180,100,255,0.1);
-  }
-  h1 {
-    font-size: 1.5rem;
-    color: #d4a0ff;
-    margin-bottom: 0.5rem;
-    text-align: center;
-  }
-  .subtitle {
-    text-align: center;
-    color: #888;
-    font-size: 0.85rem;
-    margin-bottom: 2rem;
-  }
-  .label {
-    color: #aaa;
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .label::before {
-    content: '';
-    width: 8px; height: 8px;
-    background: #d4a0ff;
-    border-radius: 50%;
-  }
-  textarea {
-    width: 100%;
-    min-height: 120px;
-    background: #0d0d20;
-    border: 1px solid #2a2a4a;
-    border-radius: 8px;
-    color: #e0e0e0;
-    padding: 1rem;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 0.85rem;
-    resize: vertical;
-  }
-  textarea:focus {
-    outline: none;
-    border-color: #d4a0ff;
-    box-shadow: 0 0 12px rgba(180,100,255,0.15);
-  }
-  .row {
-    display: flex;
-    gap: 0.75rem;
-    margin: 1rem 0;
-  }
-  button {
-    flex: 1;
-    padding: 0.75rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-  .btn-decode {
-    background: linear-gradient(135deg, #7b3fff, #b44fff);
-    color: white;
-  }
-  .btn-decode:hover { box-shadow: 0 0 20px rgba(180,100,255,0.3); }
-  .btn-copy {
-    background: #1a1a3a;
-    color: #ccc;
-    border: 1px solid #333;
-  }
-  .btn-copy:hover { background: #252545; }
-  .btn-clear {
-    background: transparent;
-    color: #666;
-    border: 1px solid #222;
-  }
-  .btn-clear:hover { background: #1a1a2a; color: #aaa; }
-  .output {
-    margin-top: 1rem;
-    background: #0a0a15;
-    border: 1px solid #2a2a4a;
-    border-radius: 8px;
-    padding: 1.5rem;
-    min-height: 80px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 0.9rem;
-    line-height: 1.7;
-    display: none;
-  }
-  .output.show { display: block; }
-  .badge {
-    display: inline-block;
-    background: #7b3fff22;
-    color: #b44fff;
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    margin-right: 0.5rem;
-  }
-  .method-tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .method-tab {
-    padding: 0.4rem 1rem;
-    border-radius: 6px;
-    background: #1a1a3a;
-    color: #888;
-    border: 1px solid #2a2a4a;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-  }
-  .method-tab.active {
-    background: #7b3fff22;
-    color: #d4a0ff;
-    border-color: #7b3fff;
-  }
+/* 解码终端：CRT 主题。协议组的强调色是青，原页面的紫只保留成点缀色。 */
+main.page {
+  --xq-page: 900px;
+  --dt-neon: var(--xq-violet);
+  --dt-screen: var(--xq-mint);
+}
+
+/* ------------------------------------------------------------ 方法选项卡 */
+.dt-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.dt-tab {
+  position: relative; display: flex; flex: 1 1 148px; min-width: 0;
+  flex-direction: column; gap: 2px;
+  padding: 9px 14px;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--xq-text-muted);
+  cursor: pointer; font-family: var(--xq-font-sans); font-size: 0.82rem; text-align: left;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.dt-tab:hover { border-color: var(--xq-line-strong); background: var(--xq-accent-soft); color: var(--xq-text); transform: translateY(-2px); }
+.dt-tab[aria-pressed="true"] {
+  border-color: rgba(171, 156, 219, 0.5);
+  background: linear-gradient(140deg, rgba(171, 156, 219, 0.2), rgba(116, 196, 212, 0.1));
+  color: var(--xq-text);
+  box-shadow: 0 8px 26px rgba(116, 196, 212, 0.14);
+}
+.dt-tab__hint { color: var(--xq-text-faint); font-family: var(--xq-font-mono); font-size: 0.64rem; letter-spacing: 0.06em; }
+.dt-tab.is-suggested {
+  border-color: rgba(126, 200, 168, 0.45);
+  animation: dt-nudge 2.4s var(--xq-ease) infinite;
+}
+.dt-tab.is-suggested::after {
+  position: absolute; top: -8px; right: -6px;
+  padding: 1px 7px; border-radius: var(--xq-r-pill);
+  background: var(--xq-ok); color: #06140e;
+  content: "建议"; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+}
+
+.dt-suggest {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  padding: 9px 13px; margin-top: 12px;
+  border: 1px solid rgba(126, 200, 168, 0.24); border-radius: var(--xq-r-md);
+  background: rgba(126, 200, 168, 0.07);
+  color: var(--xq-ok); font-size: 0.76rem; line-height: 1.7;
+  animation: dt-fade var(--xq-dur) var(--xq-ease-out) both;
+}
+.dt-suggest[hidden] { display: none; }
+.dt-suggest__text { flex: 1 1 200px; }
+
+/* ------------------------------------------------------------------ 表单 */
+.dt-field { margin-top: 18px; }
+.dt-field[hidden] { display: none; }
+.dt-label { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; color: var(--xq-text-muted); font-size: 0.78rem; letter-spacing: 0.03em; }
+.dt-label::before {
+  width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--xq-accent); box-shadow: 0 0 10px var(--xq-accent); content: "";
+}
+.dt-help { margin-top: 7px; color: var(--xq-text-faint); font-size: 0.71rem; letter-spacing: 0.03em; }
+.dt-help kbd {
+  padding: 1px 5px; border: 1px solid var(--xq-line-soft); border-radius: 4px;
+  background: rgba(0, 0, 0, 0.32); font-family: var(--xq-font-mono); font-size: 0.66rem;
+}
+#dtInput { min-height: 134px; font-family: var(--xq-font-mono); font-size: 0.82rem; }
+#dtXorKey { width: 130px; font-family: var(--xq-font-mono); }
+.dt-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+/* -------------------------------------------------------------- CRT 终端 */
+.dt-term { margin-top: 4px; }
+.dt-bar {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px;
+  border: 1px solid var(--xq-line-soft); border-bottom: 0;
+  border-radius: var(--xq-r-md) var(--xq-r-md) 0 0;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--xq-text-faint); font-family: var(--xq-font-mono); font-size: 0.68rem; letter-spacing: 0.1em;
+}
+.dt-bar__led {
+  width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--xq-text-faint);
+  transition: background var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.dt-term.is-ok .dt-bar__led { background: var(--xq-ok); box-shadow: 0 0 12px var(--xq-ok); }
+.dt-term.is-error .dt-bar__led { background: var(--xq-danger); box-shadow: 0 0 12px var(--xq-danger); }
+.dt-bar__spacer { flex: 1 1 auto; }
+
+.dt-screen {
+  position: relative; overflow: hidden;
+  min-height: 152px; padding: 18px 20px;
+  border: 1px solid var(--xq-line-soft); border-radius: 0 0 var(--xq-r-md) var(--xq-r-md);
+  background:
+    radial-gradient(120% 150% at 50% -30%, rgba(116, 196, 212, 0.08), transparent 62%),
+    rgba(4, 6, 14, 0.86);
+  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.62);
+}
+/* 扫描线纹理 */
+.dt-screen::before {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px);
+  content: ""; mix-blend-mode: overlay; opacity: 0.6; pointer-events: none;
+}
+/* 缓慢下移的一道回扫光 */
+.dt-screen::after {
+  position: absolute; top: -40%; right: 0; left: 0; height: 40%;
+  background: linear-gradient(180deg, transparent, rgba(150, 240, 210, 0.06), transparent);
+  animation: dt-sweep 6.5s linear infinite;
+  content: ""; pointer-events: none;
+}
+.dt-term.is-ok .dt-screen { animation: dt-pulse 1s var(--xq-ease-out); }
+.dt-term.is-error .dt-screen { border-color: rgba(224, 125, 112, 0.45); animation: dt-shake 450ms var(--xq-ease); }
+
+.dt-out {
+  display: inline; padding: 0; border: 0; margin: 0;
+  background: none;
+  color: var(--dt-screen); font-family: var(--xq-font-mono); font-size: 0.84rem; line-height: 1.85;
+  text-shadow: 0 0 14px rgba(126, 200, 168, 0.32);
+  white-space: pre-wrap; word-break: break-word;
+}
+.dt-term.is-idle .dt-out { color: var(--xq-text-faint); text-shadow: none; }
+.dt-term.is-error .dt-out { color: #f0b3aa; text-shadow: 0 0 14px rgba(224, 125, 112, 0.3); }
+.dt-cursor {
+  display: inline-block; width: 0.5em; height: 1em; margin-left: 3px; vertical-align: -0.14em;
+  background: var(--dt-screen); box-shadow: 0 0 12px rgba(126, 200, 168, 0.55);
+  animation: dt-blink 1.1s steps(2, end) infinite;
+}
+.dt-term.is-idle .dt-cursor { background: var(--xq-text-faint); box-shadow: none; }
+.dt-term.is-error .dt-cursor { background: var(--xq-danger); box-shadow: 0 0 12px rgba(224, 125, 112, 0.5); }
+
+/* ------------------------------------------------------------ 说明与互链 */
+.dt-notes { padding-left: 1.15rem; margin: 0; color: var(--xq-text-muted); font-size: 0.8rem; line-height: 1.95; }
+.dt-notes code { font-size: 0.76rem; }
+.dt-links { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(224px, 1fr)); }
+.dt-link {
+  display: block; padding: 14px 16px;
+  border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(255, 255, 255, 0.03);
+  transition: transform var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    background var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.dt-link:hover { border-color: var(--xq-line-strong); background: var(--xq-accent-soft); box-shadow: var(--xq-shadow-md); transform: translateY(-3px); }
+.dt-link strong { display: block; margin-bottom: 4px; color: var(--xq-gold); font-size: 0.86rem; }
+.dt-link span { display: block; color: var(--xq-text-faint); font-size: 0.74rem; line-height: 1.65; }
+
+/* ------------------------------------------------------------------ 动效 */
+@keyframes dt-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes dt-sweep { from { transform: translateY(0); } to { transform: translateY(360%); } }
+@keyframes dt-fade { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes dt-nudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(126, 200, 168, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(126, 200, 168, 0.12); }
+}
+@keyframes dt-pulse {
+  0% { box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.62), 0 0 0 0 rgba(126, 200, 168, 0.45); }
+  100% { box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.62), 0 0 0 18px rgba(126, 200, 168, 0); }
+}
+@keyframes dt-shake {
+  10%, 90% { transform: translateX(-3px); }
+  20%, 80% { transform: translateX(5px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+
+/* ---------------------------------------------------------------- 响应式 */
+@media (max-width: 480px) {
+  .dt-tab { flex: 1 1 100%; }
+  .dt-actions .btn { flex: 1 1 100%; }
+  .dt-screen { padding: 15px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-screen::after,
+  .dt-cursor,
+  .dt-tab.is-suggested,
+  .dt-term.is-ok .dt-screen,
+  .dt-term.is-error .dt-screen,
+  .dt-suggest { animation: none; }
+  .dt-cursor { opacity: 0.7; }
+}
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
-<a href="../index.html" style="position:fixed;top:1.2rem;left:1.5rem;z-index:100;color:rgba(200,200,224,0.4);text-decoration:none;font-size:0.8rem;letter-spacing:0.04em;transition:color 0.3s;font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;" onmouseover="this.style.color='#e8a860'" onmouseout="this.style.color='rgba(200,200,224,0.4)'">← 返回双子星秘境</a>
-<div class="container" style="position:relative;z-index:2;">
-  <h1>🌸 栖栖姐妹·语义还原终端</h1>
-  <div class="subtitle">// 信使只负责传递，语义在此处苏醒</div>
+<main class="page">
+  <a class="back-link" href="../index.html">← 返回星穹枢庭</a>
 
-  <div class="method-tabs">
-    <button class="method-tab active" onclick="setMethod('base64')">Base64</button>
-    <button class="method-tab" onclick="setMethod('xor')">XOR 密钥</button>
-    <button class="method-tab" onclick="setMethod('firstChar')">首字提取</button>
-    <button class="method-tab" onclick="setMethod('stitch')">段间拼接</button>
-  </div>
+  <header class="page-header">
+    <h1>💻 解码终端</h1>
+    <p class="subtitle">栖栖姐妹 · 语义还原终端 // 信使只负责传递，语义在此处苏醒</p>
+  </header>
 
-  <div id="xorKeyRow" style="display:none;">
-    <div class="label">密钥 (数字)</div>
-    <input type="number" id="xorKey" value="137" style="width:100px;background:#0d0d20;border:1px solid #2a2a4a;color:#e0e0e0;padding:0.3rem 0.6rem;border-radius:4px;">
-  </div>
+  <section class="panel" data-xq-reveal>
+    <h2 class="panel-title">还原方式</h2>
 
-  <div class="label" id="inputLabel">输入载体文本</div>
-  <textarea id="input" placeholder="粘贴 AI 输出的编码内容..."></textarea>
+    <div class="dt-tabs" id="dtTabs" role="group" aria-label="选择解码方法">
+      <button type="button" class="dt-tab" data-method="base64" aria-pressed="true">
+        Base64<span class="dt-tab__hint">标准编码</span>
+      </button>
+      <button type="button" class="dt-tab" data-method="xor" aria-pressed="false">
+        XOR 密钥<span class="dt-tab__hint">异或 + Base64</span>
+      </button>
+      <button type="button" class="dt-tab" data-method="firstChar" aria-pressed="false">
+        首字提取<span class="dt-tab__hint">藏头文本</span>
+      </button>
+      <button type="button" class="dt-tab" data-method="stitch" aria-pressed="false">
+        段间拼接<span class="dt-tab__hint">chunk 标记</span>
+      </button>
+    </div>
 
-  <div class="row">
-    <button class="btn-decode" onclick="decode()">✨ 苏醒</button>
-    <button class="btn-copy" onclick="copyResult()">📋 复制</button>
-    <button class="btn-clear" onclick="clearAll()">清空</button>
-  </div>
+    <p class="dt-suggest" id="dtSuggest" hidden>
+      <span class="dt-suggest__text" id="dtSuggestText"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="dtSuggestApply">采用建议</button>
+    </p>
 
-  <div class="output" id="output"></div>
-</div>
+    <div class="dt-field" id="dtXorRow" hidden>
+      <label class="dt-label" for="dtXorKey">密钥（0–255 的整数）</label>
+      <input type="number" id="dtXorKey" value="137" min="0" max="255" step="1" inputmode="numeric">
+    </div>
+
+    <div class="dt-field">
+      <label class="dt-label" for="dtInput" id="dtInputLabel">输入载体文本</label>
+      <textarea id="dtInput" spellcheck="false" placeholder="粘贴 AI 输出的编码内容…" aria-describedby="dtInputHelp"></textarea>
+      <p class="dt-help" id="dtInputHelp"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd> 直接解码；粘贴后终端会自动判断可能的编码方式。</p>
+    </div>
+
+    <div class="dt-actions">
+      <button type="button" class="btn btn-primary" id="dtDecode">✨ 苏醒</button>
+      <button type="button" class="btn btn-ghost" id="dtCopy">📋 复制结果</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dtSample">载入示例</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dtClear">清空</button>
+    </div>
+  </section>
+
+  <section class="panel" data-xq-reveal style="--xq-reveal-delay:70ms">
+    <h2 class="panel-title">还原输出</h2>
+    <div class="dt-term is-idle" id="dtTerm">
+      <div class="dt-bar">
+        <span class="dt-bar__led" aria-hidden="true"></span>
+        <span aria-hidden="true">XQ://DECODER</span>
+        <span class="dt-bar__spacer"></span>
+        <span id="dtStatus" role="status">待机</span>
+      </div>
+      <div class="dt-screen" role="region" aria-label="还原输出">
+        <pre class="dt-out" id="dtOut"></pre><span class="dt-cursor" aria-hidden="true"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" data-xq-reveal style="--xq-reveal-delay:140ms">
+    <h2 class="panel-title">四种方式各管什么</h2>
+    <ul class="dt-notes">
+      <li><strong>Base64</strong>：最常见的载体，自动兼容 URL-safe 变体与缺失的 <code>=</code> 填充。</li>
+      <li><strong>XOR 密钥</strong>：先按 Base64 还原字节，再逐字节与密钥异或；密钥不对只会得到乱码，不会报错。</li>
+      <li><strong>首字提取</strong>：取每个非空行的第一个字符，用来读藏头式的段落。</li>
+      <li><strong>段间拼接</strong>：抽出成对 chunk 标记之间的正文，按顺序拼回一整段。</li>
+    </ul>
+  </section>
+
+  <section class="panel" data-xq-reveal style="--xq-reveal-delay:210ms">
+    <h2 class="panel-title">接着去哪</h2>
+    <div class="dt-links">
+      <a class="dt-link" href="../moon-scroll/index.html">
+        <strong>🌙 月卷协议</strong>
+        <span>先看消息格式怎么写，再回来验证能不能还原。</span>
+      </a>
+      <a class="dt-link" href="../secret-scroll/index.html">
+        <strong>📜 密使之札</strong>
+        <span>更复杂的文本规则与术语，在那边整理成册。</span>
+      </a>
+      <a class="dt-link" href="../prompt-engine/index.html">
+        <strong>🌿 Anima3 灵感魔盒</strong>
+        <span>把解码出的视觉需求拆成稳定的提示词结构。</span>
+      </a>
+    </div>
+  </section>
+</main>
 
 <script>
-let currentMethod = 'base64';
+(function () {
+  'use strict';
 
-function setMethod(m) {
-  currentMethod = m;
-  document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('xorKeyRow').style.display = m === 'xor' ? 'block' : 'none';
-  document.getElementById('inputLabel').textContent = 
-    m === 'firstChar' ? '输入多段落文本（每段首字将被提取）' :
-    m === 'stitch' ? '输入包含隐藏标记的文本（标记格式：<!-- chunk N -->内容<!-- /chunk N -->）' :
-    '输入载体文本';
-  document.getElementById('output').classList.remove('show');
-}
+  const STORE_KEY = 'xq:decoder:method';
+  const IDLE_TEXT = '// 待机中 —— 粘贴载体文本，按下「苏醒」或 Ctrl + Enter。';
+  const CHUNK_MARKER = /<!--\s*chunk\s+\d+\s*-->/;
+  const CHUNK_PAIR = /<!--\s*chunk\s+\d+\s*-->([\s\S]*?)<!--\s*\/chunk\s+\d+\s*-->/g;
+  const stillQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-function decode() {
-  const raw = document.getElementById('input').value.trim();
-  if (!raw) return alert('请先粘贴内容～');
-  
-  let result = '';
-  try {
-    switch(currentMethod) {
-      case 'base64':
-        const cleaned = raw.replace(/\s/g, '');
-        result = atob(cleaned);
-        try { result = decodeURIComponent(escape(result)); } catch(e) {}
-        break;
-      case 'xor':
-        const key = parseInt(document.getElementById('xorKey').value) || 137;
-        const bytes = atob(raw.replace(/\s/g, ''));
-        let out = '';
-        for (let i = 0; i < bytes.length; i++) {
-          out += String.fromCharCode(bytes.charCodeAt(i) ^ key);
-        }
-        result = out;
-        try { result = decodeURIComponent(escape(result)); } catch(e) {}
-        break;
-      case 'firstChar':
-        const paras = raw.split('\n').filter(l => l.trim());
-        result = paras.map(l => l.trim()[0]).join('');
-        break;
-      case 'stitch':
-        const matches = raw.match(/<!--\s*chunk\s+\d+\s*-->([\s\S]*?)<!--\s*\/chunk\s+\d+\s*-->/g);
-        if (matches) {
-          result = matches.map(m => {
-            const inner = m.match(/<!--\s*chunk\s+\d+\s*-->([\s\S]*?)<!--\s*\/chunk\s+\d+\s*-->/);
-            return inner ? inner[1].trim() : '';
-          }).join('\n');
-        } else {
-          result = '[未找到 chunk 标记]';
-        }
-        break;
+  const METHODS = {
+    base64: {
+      name: 'Base64',
+      label: '输入载体文本（Base64 编码）',
+      reason: '这段内容只由 Base64 字符组成',
+      sample: '5pyI5YWJ6JC95Zyo56qX5Y+w5LiK77yM5oiR5oqK6L+Z5Y+l6K+d5Lqk57uZ5L+h5L2/44CC'
+    },
+    xor: {
+      name: 'XOR 密钥',
+      label: '输入载体文本（先 Base64 还原字节，再按密钥异或）',
+      reason: '这段 Base64 直接解出来不是可读文本',
+      sample: 'bCYPYBssbxEmbTEJbTEAbTEKZjUFbC4ZbC4ZYSc5bDcebBIXbTYoagkL'
+    },
+    firstChar: {
+      name: '首字提取',
+      label: '输入多段落文本（每段首字将被提取）',
+      reason: '这段文本有多个自然段',
+      sample: '月色正好，适合出门散步。\n光影落在石阶上，一层层退去。\n不必等我，先把画稿交出去。\n灭掉灯，我们明早再谈。'
+    },
+    stitch: {
+      name: '段间拼接',
+      label: '输入包含隐藏标记的文本（标记格式：<!-- chunk N -->内容<!-- /chunk N -->）',
+      reason: '这段文本里带 chunk 标记',
+      sample: '以下是随手写的备忘，无需在意。<!-- chunk 1 -->月光落在窗台上，<!-- /chunk 1 -->\n中间夹着一堆无关的碎语。<!-- chunk 2 -->我把这句话交给信使。<!-- /chunk 2 -->'
     }
-  } catch(e) {
-    result = '解码失败: ' + e.message + '\n试试其他方法～';
+  };
+
+  const tabs = document.getElementById('dtTabs');
+  const suggestBar = document.getElementById('dtSuggest');
+  const suggestText = document.getElementById('dtSuggestText');
+  const suggestApply = document.getElementById('dtSuggestApply');
+  const xorRow = document.getElementById('dtXorRow');
+  const xorKey = document.getElementById('dtXorKey');
+  const inputLabel = document.getElementById('dtInputLabel');
+  const input = document.getElementById('dtInput');
+  const term = document.getElementById('dtTerm');
+  const screenOut = document.getElementById('dtOut');
+  const statusEl = document.getElementById('dtStatus');
+
+  let method = 'base64';
+  let payload = '';
+  let suggestion = '';
+  let typeFrame = 0;
+
+  /* -------------------------------------------------------------- 小工具 */
+  function notify(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') {
+      window.XQ.toast(message, tone);
+      return;
+    }
+    if (typeof window.gsToast === 'function') window.gsToast(message);
   }
-  
-  const output = document.getElementById('output');
-  output.textContent = result;
-  output.classList.add('show');
-}
 
-function copyResult() {
-  const text = document.getElementById('output').textContent;
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target;
-    const orig = btn.textContent;
-    btn.textContent = '✅ 已复制';
-    setTimeout(() => btn.textContent = orig, 1500);
+  // 隐私模式下 localStorage 会直接抛错，读写都要能安静失败。
+  function readStored() {
+    try {
+      return localStorage.getItem(STORE_KEY);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStored(value) {
+    try {
+      localStorage.setItem(STORE_KEY, value);
+    } catch (error) {
+      /* 忽略：记不住方法不影响解码 */
+    }
+  }
+
+  /* -------------------------------------------------------------- 解码核 */
+  function fromBase64(text) {
+    let compact = text.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+    if (!/^[A-Za-z0-9+/]*$/.test(compact)) throw new Error('内容里有 Base64 字符集之外的字符');
+    const remainder = compact.length % 4;
+    if (remainder === 1) throw new Error('Base64 长度不合法（少了一个字符？）');
+    if (remainder === 2) compact += '==';
+    else if (remainder === 3) compact += '=';
+    if (!compact) throw new Error('没有可解析的 Base64 内容');
+    return atob(compact);
+  }
+
+  function toBytes(binary) {
+    return Uint8Array.from(binary, (ch) => ch.charCodeAt(0) & 0xff);
+  }
+
+  /** 解出来是不是「人能读的一段话」。只看合法 UTF-8 不够：
+      异或过的载荷常常全是 ASCII 控制符，同样能通过 UTF-8 校验。 */
+  function looksReadable(binary) {
+    let text;
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(toBytes(binary));
+    } catch (error) {
+      return false;
+    }
+
+    const chars = Array.from(text);
+    if (!chars.length) return false;
+
+    let noise = 0;
+    for (const ch of chars) {
+      const code = ch.codePointAt(0);
+      if (code === 0xfffd || (code < 32 && code !== 9 && code !== 10 && code !== 13)) noise += 1;
+    }
+
+    return noise / chars.length < 0.05;
+  }
+
+  // 解不出 UTF-8 时按原样返回：至少让人看见字节长什么样，好判断该换哪个方法。
+  function binaryToText(binary) {
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(toBytes(binary));
+    } catch (error) {
+      return binary;
+    }
+  }
+
+  function decodeWith(name, raw) {
+    if (name === 'base64') return binaryToText(fromBase64(raw));
+
+    if (name === 'xor') {
+      const parsed = Number.parseInt(xorKey.value, 10);
+      const key = Number.isFinite(parsed) ? ((parsed % 256) + 256) % 256 : 137;
+      const binary = fromBase64(raw);
+      let mixed = '';
+      for (let i = 0; i < binary.length; i += 1) {
+        mixed += String.fromCharCode((binary.charCodeAt(i) & 0xff) ^ key);
+      }
+      return binaryToText(mixed);
+    }
+
+    if (name === 'firstChar') {
+      const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) throw new Error('没有可提取的段落');
+      return lines.map((line) => Array.from(line)[0]).join('');
+    }
+
+    const pieces = [];
+    let match;
+    CHUNK_PAIR.lastIndex = 0;
+    while ((match = CHUNK_PAIR.exec(raw)) !== null) pieces.push(match[1].trim());
+    if (!pieces.length) throw new Error('未找到成对的 chunk 标记');
+    return pieces.join('\n');
+  }
+
+  /** 按内容特征猜一个方法；猜不出来返回空串。 */
+  function detect(raw) {
+    if (!raw) return '';
+    if (CHUNK_MARKER.test(raw)) return 'stitch';
+
+    const compact = raw.replace(/\s+/g, '');
+    if (compact.length >= 8 && /^[A-Za-z0-9+/\-_]+={0,2}$/.test(compact) && !/^[A-Za-z]+$/.test(compact)) {
+      try {
+        return looksReadable(fromBase64(compact)) ? 'base64' : 'xor';
+      } catch (error) {
+        /* 不是合法 Base64，交给下面的段落判断 */
+      }
+    }
+
+    return raw.split('\n').filter((line) => line.trim()).length >= 3 ? 'firstChar' : '';
+  }
+
+  /* ------------------------------------------------------------ 终端渲染 */
+  function typeOut(text) {
+    if (typeFrame) {
+      cancelAnimationFrame(typeFrame);
+      typeFrame = 0;
+    }
+
+    const chars = Array.from(text);
+    // 超长结果逐字打会拖很久，直接落屏。
+    if (stillQuery.matches || chars.length > 2400) {
+      screenOut.textContent = text;
+      return;
+    }
+
+    screenOut.textContent = '';
+    const step = Math.max(1, Math.ceil(chars.length / 70));
+    let cursor = 0;
+
+    function tick() {
+      cursor = Math.min(chars.length, cursor + step);
+      screenOut.textContent = chars.slice(0, cursor).join('');
+      typeFrame = cursor < chars.length ? requestAnimationFrame(tick) : 0;
+    }
+
+    typeFrame = requestAnimationFrame(tick);
+  }
+
+  function render(text, state, label) {
+    term.classList.remove('is-idle', 'is-ok', 'is-error');
+    // 强制回流，让同一个状态连续触发时动画能重放。
+    void term.offsetWidth;
+    term.classList.add(state);
+    statusEl.textContent = label;
+
+    if (state === 'is-ok') {
+      payload = text;
+      typeOut(text);
+      return;
+    }
+
+    payload = '';
+    if (typeFrame) {
+      cancelAnimationFrame(typeFrame);
+      typeFrame = 0;
+    }
+    screenOut.textContent = text;
+  }
+
+  function toIdle() {
+    render(IDLE_TEXT, 'is-idle', '待机');
+  }
+
+  /* -------------------------------------------------------------- 交互 */
+  function refreshSuggestion() {
+    suggestion = detect(input.value.trim());
+
+    tabs.querySelectorAll('.dt-tab').forEach((tab) => {
+      tab.classList.toggle('is-suggested', Boolean(suggestion) && suggestion !== method && tab.dataset.method === suggestion);
+    });
+
+    if (!suggestion || suggestion === method) {
+      suggestBar.hidden = true;
+      return;
+    }
+
+    suggestText.textContent = '侦测到' + METHODS[suggestion].reason + '，建议改用「' + METHODS[suggestion].name + '」。';
+    suggestApply.textContent = '切换并解码';
+    suggestBar.hidden = false;
+  }
+
+  function setMethod(name) {
+    if (!METHODS[name]) return;
+    method = name;
+    writeStored(name);
+
+    tabs.querySelectorAll('.dt-tab').forEach((tab) => {
+      tab.setAttribute('aria-pressed', String(tab.dataset.method === name));
+    });
+
+    xorRow.hidden = name !== 'xor';
+    inputLabel.textContent = METHODS[name].label;
+    refreshSuggestion();
+  }
+
+  function decode() {
+    const raw = input.value.trim();
+
+    if (!raw) {
+      notify('请先粘贴要还原的内容～', 'error');
+      toIdle();
+      input.focus();
+      return;
+    }
+
+    let text = '';
+    try {
+      text = decodeWith(method, raw);
+    } catch (error) {
+      render('// 解码失败：' + error.message + '\n// 换一个方法再试试，或者检查内容有没有被截断。', 'is-error', '失败');
+      notify('解码失败，换个方法试试', 'error');
+      return;
+    }
+
+    if (!text) {
+      render('// 还原结果是空的，可能选错了方法。', 'is-error', '空结果');
+      return;
+    }
+
+    render(text, 'is-ok', '完成 · ' + Array.from(text).length + ' 字');
+    refreshSuggestion();
+  }
+
+  tabs.addEventListener('click', (event) => {
+    const tab = event.target.closest('.dt-tab');
+    if (!tab) return;
+    setMethod(tab.dataset.method);
+    toIdle();
   });
-}
 
-function clearAll() {
-  document.getElementById('input').value = '';
-  document.getElementById('output').textContent = '';
-  document.getElementById('output').classList.remove('show');
-}
-</script>
-<script>
-(function(){
-  const c=document.getElementById('starfield');
-  if(!c)return;
-  const ctx=c.getContext('2d');
-  let stars=[];
-  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
-  resize();window.addEventListener('resize',resize);
-  for(let i=0;i<160;i++)stars.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.6+0.2,a:Math.random()*Math.PI*2,s:Math.random()*0.006+0.002});
-  function draw(){ctx.clearRect(0,0,c.width,c.height);for(const s of stars){s.a+=s.s;const alpha=0.15+Math.sin(s.a)*0.2;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(200,180,140,'+alpha+')';ctx.fill();}requestAnimationFrame(draw);}
-  draw();
+  suggestApply.addEventListener('click', () => {
+    if (!suggestion) return;
+    setMethod(suggestion);
+    decode();
+  });
+
+  input.addEventListener('input', refreshSuggestion);
+  xorKey.addEventListener('input', () => {
+    if (method === 'xor' && payload) decode();
+  });
+
+  document.getElementById('dtDecode').addEventListener('click', decode);
+  document.getElementById('dtClear').addEventListener('click', () => {
+    input.value = '';
+    toIdle();
+    refreshSuggestion();
+    input.focus();
+  });
+
+  document.getElementById('dtSample').addEventListener('click', () => {
+    input.value = METHODS[method].sample;
+    refreshSuggestion();
+    decode();
+  });
+
+  document.getElementById('dtCopy').addEventListener('click', (event) => {
+    if (!payload) {
+      notify('还没有可复制的结果～');
+      return;
+    }
+    if (typeof window.gsCopy === 'function') window.gsCopy(payload, event.currentTarget);
+  });
+
+  // 命令面板打开时把快捷键让给它。
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return;
+    if (document.querySelector('.xq-cmdk.is-open')) return;
+    event.preventDefault();
+    decode();
+  });
+
+  const stored = readStored();
+  setMethod(METHODS[stored] ? stored : 'base64');
+  toIdle();
 })();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

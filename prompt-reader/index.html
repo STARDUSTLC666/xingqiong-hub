@@ -3,166 +3,660 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prompt Reader · 提示词与元数据管理</title>
+<title>Prompt Reader · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="在浏览器中直接读取图片保存的 prompt、workflow、seed 与生成参数。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/prompt-reader/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="Prompt Reader · 星穹枢庭">
+  <meta property="og:description" content="在浏览器中直接读取图片保存的 prompt、workflow、seed 与生成参数。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/prompt-reader/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-/* === PAGE SPECIFIC === */
-.drop-zone {
-  border: 2px dashed rgba(232,168,96,0.18);
-  border-radius: 16px;
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.35s;
-  background: rgba(10,10,24,0.3);
+/* === PAGE SPECIFIC ===
+   页面局部令牌全部从全站 --xq-* 推导：工具页的 --xq-accent 会自动变青，
+   这里不再出现任何写死的色值。 */
+.page {
+  --pr-glow: 0 0 42px -8px var(--xq-accent);
+  --pr-pos: var(--xq-mint);
+  --pr-neg: var(--xq-coral);
+  --pr-par: var(--xq-violet);
+  --pr-json: var(--xq-cyan);
+  --pr-raw: var(--xq-text-muted);
+}
+
+.reader-lede {
+  margin-bottom: 1rem;
+  color: var(--xq-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.8;
+}
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--xq-text-soft);
+  font-family: var(--xq-font-mono);
+  font-size: 0.72em;
+}
+
+/* ---------------------------------------------------------------- 投放区 */
+/* 火花要能飞出边框，所以外壳负责定位、按钮自己负责裁切。 */
+.drop-shell {
   position: relative;
 }
-.drop-zone.drag-over {
-  border-color: #e8a860;
-  background: rgba(232,168,96,0.06);
-  box-shadow: 0 0 40px rgba(232,168,96,0.12);
-}
-.drop-icon { font-size: 2.5rem; margin-bottom: 0.6rem; }
-.drop-text { font-size: 0.9rem; color: rgba(200,200,224,0.4); letter-spacing: 0.04em; }
-.drop-text strong { color: #e8a860; }
 
-.results { margin-top: 1.5rem; }
-.result-card {
-  background: rgba(16,16,36,0.5);
-  border: 1px solid rgba(255,215,150,0.06);
-  border-radius: 12px;
-  padding: 1.2rem;
-  margin-bottom: 1rem;
-  animation: fadeIn 0.4s ease both;
+.drop-zone {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(1.5rem, 5vw, 2.6rem) 1.25rem;
+  border: 2px dashed var(--xq-line);
+  border-radius: var(--xq-r-lg);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--xq-accent-soft), transparent 62%),
+    rgba(6, 8, 18, 0.42);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  gap: 0.85rem;
+  text-align: center;
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
 }
-.result-card .filename {
-  font-size: 0.85rem;
-  color: #e8a860;
-  margin-bottom: 0.8rem;
-  font-family: 'Noto Serif SC', serif;
+
+.drop-zone:hover {
+  border-color: var(--xq-line-strong);
+  transform: translateY(-2px);
+}
+
+.drop-zone.is-over {
+  border-color: var(--xq-accent);
+  border-style: solid;
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--xq-accent-soft), transparent 70%),
+    rgba(6, 8, 18, 0.28);
+  box-shadow: var(--pr-glow), var(--xq-inner-top);
+  transform: scale(1.015);
+}
+
+.drop-zone__orb {
+  position: relative;
+  display: grid;
+  width: 66px;
+  height: 66px;
+  border: 1px solid var(--xq-line);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 28%, var(--xq-accent-soft), transparent 70%),
+    var(--xq-surface-quiet);
+  box-shadow: var(--xq-inner-top);
+  font-size: 1.8rem;
+  place-items: center;
+  transition: transform var(--xq-dur) var(--xq-spring), box-shadow var(--xq-dur) var(--xq-ease);
+}
+
+.drop-zone__orb::after {
+  position: absolute;
+  border: 1px solid var(--xq-accent);
+  border-radius: 50%;
+  content: "";
+  inset: -7px;
+  opacity: 0;
+}
+
+.drop-zone:hover .drop-zone__orb {
+  transform: translateY(-3px);
+}
+
+.drop-zone.is-over .drop-zone__orb {
+  box-shadow: var(--pr-glow);
+  transform: scale(1.12);
+}
+
+.drop-text {
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  line-height: 1.9;
+}
+
+.drop-text strong {
+  color: var(--xq-accent);
+}
+
+.drop-sub {
+  color: var(--xq-text-faint);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* 解析进行中：一道扫光代替 spinner，避免再引一套组件 */
+.drop-zone.is-busy {
+  cursor: progress;
+}
+
+.drop-zone.is-busy::before {
+  position: absolute;
+  background: linear-gradient(100deg, transparent 32%, var(--xq-accent-soft) 50%, transparent 68%);
+  background-size: 240% 100%;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+}
+
+.drop-burst {
+  position: absolute;
+  display: block;
+  inset: 0;
+  pointer-events: none;
+}
+
+.drop-burst i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--xq-gold-bright), var(--xq-accent) 55%, transparent 72%);
+}
+
+/* --------------------------------------------------------------- 结果区 */
+.results-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0 2px;
+  margin: 26px 0 12px;
+  gap: 10px;
+}
+
+.results-title {
+  color: var(--xq-gold);
+  font-family: var(--xq-font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.results-bar__spacer {
+  flex: 1 1 auto;
+}
+
+.results {
+  display: grid;
+  gap: 14px;
+}
+
+.result-card {
+  position: relative;
+  display: grid;
+  padding: clamp(14px, 2.2vw, 20px);
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-lg);
+  background: var(--xq-surface);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow: var(--xq-shadow-md), var(--xq-inner-top);
+  gap: 14px;
+  isolation: isolate;
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+
+.result-card::before {
+  position: absolute;
+  top: 0;
+  right: 22px;
+  left: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--xq-line-strong), transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.result-card:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
+}
+
+.result-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.result-thumb {
+  overflow: hidden;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 auto;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.result-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--xq-dur-slow) var(--xq-ease);
+}
+
+.result-card:hover .result-thumb img {
+  transform: scale(1.07);
+}
+
+.result-headtext {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.filename {
+  overflow-wrap: anywhere;
+  color: var(--xq-gold);
+  font-family: var(--xq-font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
+
 .meta-row {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
-  font-size: 0.78rem;
-  color: rgba(200,200,224,0.5);
-  margin-bottom: 0.8rem;
+  margin-top: 8px;
+  color: var(--xq-text-muted);
+  font-size: 0.72rem;
+  gap: 6px;
 }
-.meta-row span { background: rgba(232,168,96,0.06); padding: 0.2rem 0.6rem; border-radius: 6px; }
+
+.meta-pill {
+  padding: 2px 9px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.meta-pill--source {
+  border-color: var(--xq-line-strong);
+  color: var(--xq-accent);
+}
 
 .result-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
-  margin-bottom: 0.9rem;
-}
-.result-actions .btn {
-  min-height: 44px;
 }
 
-.prompt-block { margin-bottom: 0.8rem; }
-.prompt-block .label {
-  font-size: 0.72rem;
-  color: rgba(200,200,224,0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.3rem;
+/* -------------------------------------------------------------- 分区块 */
+.seg-stack {
+  display: grid;
+  gap: 10px;
 }
-.prompt-block.pos .label { color: rgba(180,220,180,0.4); }
-.prompt-block.neg .label { color: rgba(220,140,140,0.4); }
-.prompt-block .text {
-  font-size: 0.82rem;
-  line-height: 1.7;
-  color: #c0c0d8;
-  background: rgba(10,10,24,0.4);
-  padding: 0.8rem 1rem;
-  border-radius: 10px;
-  border-left: 2px solid rgba(232,168,96,0.15);
-  word-break: break-all;
-}
-.prompt-block.neg .text { border-left-color: rgba(220,100,100,0.15); }
 
-.collapsible { margin-top: 0.6rem; }
-.collapse-trigger {
-  font-size: 0.78rem;
-  color: rgba(200,200,224,0.4);
-  cursor: pointer;
-  user-select: none;
-  padding: 0.4rem 0;
-  transition: color 0.2s;
-}
-.collapse-trigger:hover { color: #e8a860; }
-.collapse-trigger::before { content: '▸ '; display: inline-block; transition: transform 0.25s; font-size: 0.65rem; }
-.collapse-trigger.open::before { transform: rotate(90deg); }
-.collapse-content {
-  max-height: 0;
+.seg {
+  position: relative;
   overflow: hidden;
-  transition: max-height 0.4s ease;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  transition: border-color var(--xq-dur-fast) var(--xq-ease);
 }
-.collapse-content.open { max-height: 600px; }
+
+.seg::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--seg-hue, var(--xq-accent)), transparent 86%);
+  content: "";
+}
+
+.seg:hover {
+  border-color: var(--xq-line);
+}
+
+.seg-head {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 8px 14px;
+  gap: 10px;
+}
+
+.seg-label {
+  color: var(--seg-hue, var(--xq-accent));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.seg-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  gap: 7px;
+}
+
+.seg-caret {
+  display: inline-block;
+  color: var(--xq-text-faint);
+  font-size: 0.62rem;
+  transition: transform var(--xq-dur) var(--xq-ease);
+}
+
+.seg-toggle[aria-expanded="true"] .seg-caret {
+  transform: rotate(90deg);
+}
+
+.seg-meta {
+  color: var(--xq-text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.seg-spacer {
+  flex: 1 1 auto;
+}
+
+/* 0fr → 1fr 的展开，比 max-height 更稳：长工作流不会被固定高度截断 */
+.seg-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--xq-dur-slow) var(--xq-ease-out);
+}
+
+.seg[data-open="true"] > .seg-panel {
+  grid-template-rows: 1fr;
+}
+
+.seg-panel__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.seg pre {
+  max-height: 24rem;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.seg--positive pre {
+  color: var(--xq-text-soft);
+}
 
 .translation-banner {
+  padding: 8px 14px;
+  border-top: 1px solid var(--xq-line-soft);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text-muted);
   font-size: 0.75rem;
-  color: rgba(180,180,200,0.5);
-  margin-top: 0.4rem;
-  padding: 0.3rem 0.6rem;
-  background: rgba(232,168,96,0.04);
-  border-radius: 6px;
-  line-height: 1.6;
+  line-height: 1.75;
+}
+
+.param-grid {
+  display: grid;
+  padding: 12px 14px;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+}
+
+.param-item {
+  padding: 7px 11px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-sm);
+  background: var(--xq-surface-quiet);
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+
+.param-item:hover {
+  border-color: var(--xq-line-strong);
+  transform: translateY(-2px);
+}
+
+.param-key {
+  color: var(--xq-text-faint);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.param-value {
+  overflow-wrap: anywhere;
+  color: var(--xq-text);
+  font-family: var(--xq-font-mono);
+  font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------ 缺元数据 */
+.metadata-empty {
+  padding: 14px 16px;
+  border: 1px dashed var(--xq-line-strong);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-accent-soft);
+}
+
+.metadata-empty__title {
+  color: var(--xq-accent);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.metadata-empty__body {
+  margin-top: 6px;
+  color: var(--xq-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.8;
+}
+
+.metadata-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  gap: 8px;
 }
 
 .empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: rgba(200,200,224,0.2);
+  padding: 2.6rem 1.2rem;
+  border: 1px dashed var(--xq-line-soft);
+  border-radius: var(--xq-r-lg);
+  color: var(--xq-text-faint);
   font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  line-height: 2;
+  text-align: center;
 }
-.metadata-empty {
-  padding: 0.9rem 1rem;
-  border: 1px dashed rgba(232,168,96,0.16);
-  border-radius: 10px;
-  color: rgba(200,200,224,0.52);
-  background: rgba(232,168,96,0.035);
-  font-size: 0.8rem;
-  line-height: 1.65;
+
+.empty-state strong {
+  color: var(--xq-text-muted);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- 动效 */
+@media (prefers-reduced-motion: no-preference) {
+  .drop-zone.is-over .drop-zone__orb::after {
+    animation: pr-ping 1.5s var(--xq-ease-out) infinite;
+  }
+
+  .drop-zone.is-busy::before {
+    animation: pr-sweep 1.1s linear infinite;
+  }
+
+  .drop-burst i {
+    animation: pr-spark var(--pr-spark-life, 640ms) var(--xq-ease-out) forwards;
+  }
+
+  .result-card {
+    animation: pr-card-in var(--xq-dur-slow) var(--xq-ease-out) both;
+    animation-delay: calc(var(--card-i, 0) * 70ms);
+  }
+
+  .result-head,
+  .result-actions,
+  .metadata-empty,
+  .seg {
+    animation: pr-rise 420ms var(--xq-ease-out) both;
+    animation-delay: calc(var(--card-i, 0) * 70ms + var(--seg-i, 0) * 65ms + 90ms);
+  }
+}
+
+@keyframes pr-ping {
+  from {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes pr-sweep {
+  to {
+    background-position: -240% 0;
+  }
+}
+
+@keyframes pr-spark {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--pr-spark-angle, 0deg)) translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--pr-spark-angle, 0deg)) translateX(var(--pr-spark-dist, 90px)) scale(0.2);
+  }
+}
+
+@keyframes pr-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+}
+
+@keyframes pr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* -------------------------------------------------------------- 响应式 */
+@media (pointer: coarse) {
+  .result-actions .btn,
+  .seg-copy {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .result-head {
+    flex-direction: column;
+  }
+
+  .result-thumb {
+    width: 100%;
+    height: 150px;
+  }
+
+  .param-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seg-head {
+    flex-wrap: wrap;
+  }
+
+  .seg-spacer {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .result-actions .btn,
+  .metadata-empty__actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .seg pre {
+    font-size: 0.72rem;
+  }
 }
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
   <header class="page-header">
     <h1>📖 Prompt Reader</h1>
-    <p class="subtitle">提示词与元数据管理 · ComfyUI PNG Chunk 解析</p>
+    <p class="subtitle">提示词与元数据管理 · PNG Chunk / EXIF / WebP 解析</p>
   </header>
 
-  <!-- Drop Zone -->
-  <div class="panel" id="dropZone">
-    <div class="drop-zone" id="dropArea">
-      <div class="drop-icon">🖼️</div>
-      <div class="drop-text">拖入 <strong>PNG / JPEG</strong> 图片文件<br>或 <strong>点击选择</strong>文件</div>
-      <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/webp" style="display:none;">
-    </div>
-    <div class="flex-row mt-1" style="justify-content:space-between;align-items:center;">
-      <span class="text-muted" id="fileCount">尚未选择文件</span>
-      <button class="btn btn-ghost btn-sm" id="clearBtn">清除全部</button>
-    </div>
-  </div>
+  <section class="panel" aria-labelledby="dropTitle">
+    <h2 class="panel-title" id="dropTitle">🖼️ 投入图片</h2>
+    <p class="reader-lede">
+      全部解析都在你自己的浏览器里完成，图片不会上传到任何服务器。支持 ComfyUI 的
+      <code>prompt</code> / <code>workflow</code>、A1111 与 Forge 的 <code>parameters</code>、
+      NovelAI 的 <code>Comment</code>，以及 JPEG / WebP 的 EXIF <code>UserComment</code>。
+    </p>
 
-  <!-- Results -->
-  <div id="results" class="results"></div>
+    <div class="drop-shell" id="dropShell">
+      <button class="drop-zone" id="dropArea" type="button">
+        <span class="drop-zone__orb" aria-hidden="true">🖼️</span>
+        <span class="drop-text">拖入 <strong>PNG / JPEG / WebP</strong> 图片，或点击选择文件</span>
+        <span class="drop-sub">也可以直接按 <kbd>Ctrl</kbd> + <kbd>V</kbd> 粘贴剪贴板里的图片 · 支持一次多张</span>
+      </button>
+    </div>
+
+    <label class="xq-sr" for="fileInput">选择要解析的图片文件</label>
+    <input class="xq-sr" id="fileInput" type="file" multiple accept="image/png,image/jpeg,image/webp">
+  </section>
+
+  <section class="results-section" aria-labelledby="resultsTitle">
+    <div class="results-bar">
+      <h2 class="results-title" id="resultsTitle">解析结果</h2>
+      <span class="text-muted" id="fileCount" role="status">尚未选择文件</span>
+      <span class="results-bar__spacer"></span>
+      <button class="btn btn-ghost btn-sm" id="copyAllBtn" type="button" disabled>📋 复制全部结果</button>
+      <button class="btn btn-ghost btn-sm" id="clearBtn" type="button" disabled>清除全部</button>
+    </div>
+    <div class="results" id="results"></div>
+  </section>
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
-(function(){
+(function () {
   'use strict';
 
-  // === SMART TAG DICTIONARY ===
+  /* ===================================================== 标签速查字典 ==== */
   const TAG_DICT = {
     'masterpiece':'杰作级画质',
     'best quality':'最高质量',
@@ -188,7 +682,7 @@
     'depth of field':'景深',
     'bokeh':'散景',
     'vignette':'暗角',
-    'HDR':'高动态范围',
+    'hdr':'高动态范围',
     'anime coloring':'动漫上色',
     'cel shading':'赛璐珞着色',
     'flat color':'平涂',
@@ -287,276 +781,1061 @@
     'hair flower':'发间花饰',
     'hair ribbon':'发带',
     'hair ornament':'发饰',
-    'hair bow':'蝴蝶结发饰',
+    'hair bow':'蝴蝶结发饰'
   };
 
   function translateTags(text) {
     if (!text) return '';
-    const tags = text.split(/,\s*/);
-    const translated = tags.map(t => {
-      const trimmed = t.trim().toLowerCase().replace(/^\(+|\)+$/g,'').replace(/:\d+(\.\d+)?/g,'');
-      return TAG_DICT[trimmed] || null;
-    }).filter(Boolean);
+    const seen = new Set();
+    const translated = [];
+    for (const raw of text.split(/,\s*/)) {
+      const key = raw.trim().toLowerCase().replace(/^[(\[{]+|[)\]}]+$/g, '').replace(/:\s*[\d.]+/g, '').trim();
+      const hit = TAG_DICT[key];
+      if (hit && !seen.has(hit)) {
+        seen.add(hit);
+        translated.push(hit);
+      }
+    }
     return translated.length ? '🌐 ' + translated.join(' · ') : '';
   }
 
-  // === DOM ===
-  const dropZone = document.getElementById('dropZone');
-  const dropArea = document.getElementById('dropArea');
-  const fileInput = document.getElementById('fileInput');
-  const resultsDiv = document.getElementById('results');
-  const fileCount = document.getElementById('fileCount');
-  const clearBtn = document.getElementById('clearBtn');
+  /* ========================================================= 通用工具 ==== */
+  const utf8 = new TextDecoder('utf-8');
+  const latin1 = new TextDecoder('latin1');
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const MAX_RENDER_CHARS = 160000;
 
-  let allResults = [];
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
 
-  // === DROP / CLICK ===
-  dropArea.addEventListener('click', () => fileInput.click());
-  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
-  dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
-  dropArea.addEventListener('drop', e => {
-    e.preventDefault();
-    dropArea.classList.remove('drag-over');
-    handleFiles(e.dataTransfer.files);
-  });
-  fileInput.addEventListener('change', () => handleFiles(fileInput.files));
-  clearBtn.addEventListener('click', () => { allResults = []; renderAll(); fileCount.textContent = '尚未选择文件'; });
-  resultsDiv.addEventListener('click', event => {
-    const button = event.target.closest('[data-copy-index]');
-    if (!button) return;
-    const result = allResults[Number(button.dataset.copyIndex)];
-    if (!result) return;
-    const text = buildCopyText(result, button.dataset.copyKind);
-    if (text) gsCopy(text);
-  });
+  function notify(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else if (typeof window.gsToast === 'function') window.gsToast(message);
+  }
 
-  // === PARSE PNG CHUNKS ===
-  function parsePNGChunks(buffer) {
+  function copyToClipboard(text, source) {
+    if (typeof window.gsCopy === 'function') window.gsCopy(text, source);
+  }
+
+  function formatBytes(bytes) {
+    if (!Number.isFinite(bytes)) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function pushChunk(chunks, key, value) {
+    if (!key || value == null) return;
+    const text = String(value).replace(/\0+$/, '');
+    if (!text.trim()) return;
+    if (!chunks[key]) chunks[key] = [];
+    chunks[key].push(text);
+  }
+
+  function parseJson(text) {
+    const trimmed = (text || '').trim();
+    if (!trimmed || (trimmed[0] !== '{' && trimmed[0] !== '[')) return null;
+    try {
+      return JSON.parse(trimmed);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function pretty(value) {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  /** 未压缩的 zlib 流交给浏览器解，避免为 zTXt 引入第三方 inflate 实现。 */
+  async function inflate(bytes) {
+    if (typeof DecompressionStream !== 'function' || !bytes.length) return null;
+    try {
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /* ======================================================== PNG 解析 ==== */
+  const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+
+  async function readPngChunks(buffer) {
+    if (buffer.byteLength < 12) return null;
     const view = new DataView(buffer);
-    // Check PNG signature
-    const sig = [137,80,78,71,13,10,26,10];
-    for (let i=0;i<8;i++) if (view.getUint8(i) !== sig[i]) return null;
+    for (let i = 0; i < 8; i += 1) {
+      if (view.getUint8(i) !== PNG_SIGNATURE[i]) return null;
+    }
+
+    const chunks = {};
     let offset = 8;
-    const chunks = {};
-    while (offset < buffer.byteLength) {
-      const len = view.getUint32(offset);
+
+    while (offset + 8 <= buffer.byteLength) {
+      const length = view.getUint32(offset);
       const type = String.fromCharCode(
-        view.getUint8(offset+4), view.getUint8(offset+5),
-        view.getUint8(offset+6), view.getUint8(offset+7)
+        view.getUint8(offset + 4), view.getUint8(offset + 5),
+        view.getUint8(offset + 6), view.getUint8(offset + 7)
       );
-      const data = new Uint8Array(buffer, offset+8, len);
-      offset += 12 + len;
+      const start = offset + 8;
+
+      // 长度字段来自文件本身，越界时收手，不要让 Uint8Array 抛错中断整批解析
+      if (start + length > buffer.byteLength) break;
       if (type === 'IEND') break;
+
       if (type === 'tEXt' || type === 'iTXt' || type === 'zTXt') {
-        const decoder = new TextDecoder();
-        let raw = decoder.decode(data);
-        // tEXt: keyword\0text
-        // iTXt: keyword\0flag\0method\0lang\0translated\0text
-        const nullIdx = raw.indexOf('\0');
-        if (nullIdx >= 0) {
-          const keyword = raw.substring(0, nullIdx);
-          const value = raw.substring(nullIdx + 1);
-          if (!chunks[keyword]) chunks[keyword] = [];
-          // For tEXt, value is just the text. For iTXt, skip metadata fields.
-          const cleanVal = (type === 'iTXt')
-            ? value.split('\0').pop() || value
-            : value;
-          chunks[keyword].push(cleanVal);
-        }
+        const entry = await decodePngText(type, new Uint8Array(buffer, start, length));
+        if (entry) pushChunk(chunks, entry.keyword, entry.value);
       }
+
+      offset = start + length + 4;
     }
+
     return chunks;
   }
 
-  // === PARSE JPEG EXIF ===
-  function parseJPEGComments(buffer) {
-    const arr = new Uint8Array(buffer);
+  async function decodePngText(type, bytes) {
+    const firstNull = bytes.indexOf(0);
+    if (firstNull < 0) return null;
+    const keyword = latin1.decode(bytes.subarray(0, firstNull));
+
+    if (type === 'tEXt') {
+      return { keyword, value: utf8.decode(bytes.subarray(firstNull + 1)) };
+    }
+
+    if (type === 'zTXt') {
+      const raw = await inflate(bytes.subarray(firstNull + 2));
+      return { keyword, value: raw ? utf8.decode(raw) : '（zTXt 压缩数据，当前浏览器无法解压）' };
+    }
+
+    // iTXt: keyword \0 压缩标志 压缩方法 \0 语言 \0 译名 \0 正文
+    const compressed = bytes[firstNull + 1] === 1;
+    let cursor = firstNull + 3;
+    for (let skipped = 0; skipped < 2; skipped += 1) {
+      const next = bytes.indexOf(0, cursor);
+      if (next < 0) return { keyword, value: '' };
+      cursor = next + 1;
+    }
+
+    const body = bytes.subarray(cursor);
+    if (!compressed) return { keyword, value: utf8.decode(body) };
+    const raw = await inflate(body);
+    return { keyword, value: raw ? utf8.decode(raw) : '（iTXt 压缩数据，当前浏览器无法解压）' };
+  }
+
+  /* ======================================================= JPEG 解析 ==== */
+  /** 按 marker 逐段走，而不是全文件扫 0xFFFE：压缩扫描数据里全是假阳性。 */
+  function readJpegSegments(buffer) {
+    if (buffer.byteLength < 4) return null;
+    const view = new DataView(buffer);
+    if (view.getUint16(0) !== 0xFFD8) return null;
+
     const chunks = {};
-    for (let i=0; i<arr.length-1; i++) {
-      if (arr[i]===0xFF && arr[i+1]===0xFE) {
-        // COM marker
-        const len = (arr[i+2]<<8) | arr[i+3];
-        const decoder = new TextDecoder();
-        const text = decoder.decode(arr.slice(i+4, i+2+len));
-        if (!chunks['Comment']) chunks['Comment'] = [];
-        chunks['Comment'].push(text);
-        i += 1+len;
+    let offset = 2;
+
+    while (offset + 4 <= buffer.byteLength) {
+      if (view.getUint8(offset) !== 0xFF) {
+        offset += 1;
+        continue;
       }
+
+      let marker = view.getUint8(offset + 1);
+      while (marker === 0xFF && offset + 2 < buffer.byteLength) {
+        offset += 1;
+        marker = view.getUint8(offset + 1);
+      }
+
+      if (marker === 0xD9 || marker === 0xDA) break;
+      if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD8)) {
+        offset += 2;
+        continue;
+      }
+
+      const length = view.getUint16(offset + 2);
+      if (length < 2) break;
+      const start = offset + 4;
+      const end = Math.min(start + length - 2, buffer.byteLength);
+      if (start >= end) break;
+
+      if (marker === 0xFE) {
+        pushChunk(chunks, 'Comment', utf8.decode(new Uint8Array(buffer, start, end - start)));
+      } else if (marker === 0xE1) {
+        readApp1(view, buffer, start, end, chunks);
+      }
+
+      offset = start + (length - 2);
     }
+
     return chunks;
   }
 
-  // === HANDLE FILES ===
-  async function handleFiles(fileList) {
-    const files = Array.from(fileList).filter(f => /\.(png|jpe?g|webp)$/i.test(f.name));
-    if (!files.length) { gsToast('请选择 PNG / JPEG 文件'); return; }
-    for (const file of files) {
-      const buffer = await file.arrayBuffer();
-      const ext = file.name.split('.').pop().toLowerCase();
-      let chunks = (ext === 'png') ? parsePNGChunks(buffer) : parseJPEGComments(buffer);
-      if (!chunks) chunks = {};
-
-      // Extract metadata
-      let positive = '', negative = '', workflow = '', params = '';
-      for (const [k, vals] of Object.entries(chunks)) {
-        const v = vals.join('\n');
-        const kl = k.toLowerCase();
-        if (kl.includes('positive') || kl.includes('prompt') && !kl.includes('negative')) {
-          positive = v;
-        } else if (kl.includes('negative')) {
-          negative = v;
-        } else if (kl.includes('workflow') || kl.includes('json')) {
-          workflow = v;
-        } else {
-          params += (params ? '\n' : '') + k + ': ' + v;
-        }
-      }
-
-      // Image dimensions
-      let imgInfo = '';
-      if (ext === 'png' || ext === 'webp') {
-        const blob = new Blob([buffer]);
-        const url = URL.createObjectURL(blob);
-        try {
-          const dims = await new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(`${img.naturalWidth} × ${img.naturalHeight}`);
-            img.onerror = () => resolve('');
-            img.src = url;
-          });
-          imgInfo = dims;
-          URL.revokeObjectURL(url);
-        } catch(e) { imgInfo = ''; }
-      }
-
-      allResults.push({
-        name: file.name,
-        size: (file.size/1024).toFixed(1) + ' KB',
-        type: ext.toUpperCase(),
-        dims: imgInfo,
-        positive, negative, workflow, params,
-        chunks
-      });
-    }
-
-    renderAll();
-    fileCount.textContent = `已加载 ${allResults.length} 个文件`;
-  }
-
-  // === RENDER ===
-  function renderAll() {
-    if (!allResults.length) {
-      resultsDiv.innerHTML = '<div class="empty-state">✨ 拖入图片开始解析</div>';
+  function readApp1(view, buffer, start, end, chunks) {
+    const head = latin1.decode(new Uint8Array(buffer, start, Math.min(6, end - start)));
+    if (head.startsWith('Exif')) {
+      readExif(view, start + 6, end, chunks);
       return;
     }
-    resultsDiv.innerHTML = allResults.map((r,i) => `
-      <div class="result-card" style="animation-delay:${i*0.08}s">
-        <div class="filename">📄 ${esc(r.name)}</div>
-        <div class="meta-row">
-          <span>📐 ${r.dims||'未知'}</span>
-          <span>💾 ${r.size}</span>
-          <span>🏷️ ${r.type}</span>
-        </div>
-        ${hasReadableMetadata(r) ? `
-        <div class="result-actions" aria-label="${esc(r.name)} 复制选项">
-          <button class="btn btn-primary btn-sm" type="button" data-copy-index="${i}" data-copy-kind="all">📋 复制全部</button>
-          ${r.positive ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="positive">复制正向</button>` : ''}
-          ${r.negative ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="negative">复制负向</button>` : ''}
-          ${r.params ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="params">复制参数</button>` : ''}
-          ${r.workflow ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="workflow">复制工作流</button>` : ''}
-          ${hasRawOnly(r) ? `<button class="btn btn-ghost btn-sm" type="button" data-copy-index="${i}" data-copy-kind="raw">复制原始数据</button>` : ''}
-        </div>` : `
-        <div class="metadata-empty">
-          未发现可读取的生成元数据。这通常是普通截图或导出时已清除参数；请回到首页按“无元数据时再做视觉反推”继续。
-        </div>`}
-        ${r.positive ? `
-        <div class="prompt-block pos">
-          <div class="label">✨ Positive Prompt</div>
-          <div class="text">${esc(r.positive)}</div>
-          ${translateTags(r.positive) ? `<div class="translation-banner">${translateTags(r.positive)}</div>` : ''}
-        </div>` : ''}
-        ${r.negative ? `
-        <div class="prompt-block neg">
-          <div class="label">🚫 Negative Prompt</div>
-          <div class="text">${esc(r.negative)}</div>
-        </div>` : ''}
-        ${r.params ? `
-        <div class="prompt-block">
-          <div class="label">⚙️ Parameters</div>
-          <div class="text" style="white-space:pre-wrap;">${esc(r.params)}</div>
-        </div>` : ''}
-        ${r.workflow ? `
-        <div class="collapsible">
-          <div class="collapse-trigger" data-idx="${i}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-            Workflow JSON (${(r.workflow.length/1024).toFixed(1)} KB)
-          </div>
-          <div class="collapse-content">
-            <pre style="max-height:400px;overflow-y:auto;">${esc(r.workflow)}</pre>
-          </div>
-        </div>` : ''}
-        ${Object.keys(r.chunks).length > 0 && !r.positive && !r.negative && !r.workflow ? `
-        <div class="prompt-block">
-          <div class="label">📋 Raw Metadata Chunks</div>
-          <div class="text" style="white-space:pre-wrap;">${esc(Object.entries(r.chunks).map(([k,v])=>k+': '+v).join('\n'))}</div>
-        </div>` : ''}
-      </div>
-    `).join('');
+
+    const text = utf8.decode(new Uint8Array(buffer, start, end - start));
+    if (text.indexOf('ns.adobe.com/xap') >= 0) {
+      const xmlAt = text.indexOf('<');
+      pushChunk(chunks, 'XMP', xmlAt >= 0 ? text.slice(xmlAt) : text);
+    }
   }
 
-  /** 判断结果中是否存在可以复制的提示词、参数或原始元数据。 */
-  function hasReadableMetadata(result) {
-    return Boolean(
-      result.positive
-      || result.negative
-      || result.params
-      || result.workflow
-      || Object.keys(result.chunks).length
-    );
-  }
+  const EXIF_TYPE_SIZE = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 };
+  const EXIF_TAGS = {
+    0x010e: 'ImageDescription',
+    0x0131: 'Software',
+    0x9286: 'UserComment',
+    0x9c9c: 'XPComment',
+    0x9c9e: 'XPKeywords'
+  };
 
-  /** 判断当前结果是否只剩下尚未分类的原始元数据块。 */
-  function hasRawOnly(result) {
-    return Object.keys(result.chunks).length > 0
-      && !result.positive
-      && !result.negative
-      && !result.params
-      && !result.workflow;
-  }
+  function readExif(view, base, limit, chunks) {
+    if (base + 8 > limit) return;
+    const byteOrder = view.getUint16(base);
+    if (byteOrder !== 0x4949 && byteOrder !== 0x4D4D) return;
+    const little = byteOrder === 0x4949;
+    if (view.getUint16(base + 2, little) !== 0x002A) return;
 
-  /** 按按钮类型生成清晰分段的复制文本，长工作流也无需手工框选。 */
-  function buildCopyText(result, kind) {
-    const raw = Object.entries(result.chunks)
-      .map(([key, values]) => key + ': ' + values.join('\n'))
-      .join('\n');
-    const singleValues = {
-      positive: result.positive,
-      negative: result.negative,
-      params: result.params,
-      workflow: result.workflow,
-      raw
-    };
+    const visited = new Set();
 
-    if (kind !== 'all') {
-      return singleValues[kind] || '';
+    function walk(ifd, depth) {
+      if (depth > 2 || ifd + 2 > limit || ifd < base || visited.has(ifd)) return;
+      visited.add(ifd);
+      const count = view.getUint16(ifd, little);
+
+      for (let i = 0; i < count; i += 1) {
+        const entry = ifd + 2 + i * 12;
+        if (entry + 12 > limit) return;
+        const tag = view.getUint16(entry, little);
+
+        if (tag === 0x8769 || tag === 0xa005) {
+          walk(base + view.getUint32(entry + 8, little), depth + 1);
+          continue;
+        }
+
+        const name = EXIF_TAGS[tag];
+        if (!name) continue;
+
+        const type = view.getUint16(entry + 2, little);
+        const size = (EXIF_TYPE_SIZE[type] || 0) * view.getUint32(entry + 4, little);
+        if (!size) continue;
+
+        const at = size <= 4 ? entry + 8 : base + view.getUint32(entry + 8, little);
+        if (at < base || at + size > limit) continue;
+        pushChunk(chunks, name, decodeExifValue(view, at, size, tag));
+      }
     }
 
+    walk(base + view.getUint32(base + 4, little), 0);
+  }
+
+  function decodeExifValue(view, at, size, tag) {
+    const bytes = new Uint8Array(view.buffer, at, size);
+    if (tag === 0x9286) {
+      const head = latin1.decode(bytes.subarray(0, Math.min(8, size)));
+      const body = bytes.subarray(8);
+      if (head.startsWith('UNICODE')) return decodeUnicode(body);
+      if (head.startsWith('ASCII')) return utf8.decode(body);
+      return utf8.decode(bytes);
+    }
+    if (tag === 0x9c9c || tag === 0x9c9e) return decodeUnicode(bytes);
+    return utf8.decode(bytes);
+  }
+
+  /** A1111 / piexif 写 UserComment 时的字节序和 TIFF 头不一定一致，按可读性择优。 */
+  function decodeUnicode(bytes) {
+    const candidates = [];
+    for (const label of ['utf-16le', 'utf-16be']) {
+      try {
+        candidates.push(new TextDecoder(label).decode(bytes));
+      } catch (error) {
+        /* 该编码不可用时忽略 */
+      }
+    }
+    if (!candidates.length) return '';
+    candidates.sort((a, b) => printableRatio(b) - printableRatio(a));
+    return candidates[0];
+  }
+
+  function printableRatio(text) {
+    if (!text) return 0;
+    let hits = 0;
+    for (const char of text) {
+      const code = char.codePointAt(0);
+      if ((code >= 0x20 && code <= 0x7e) || code === 0x0a) hits += 1;
+    }
+    return hits / text.length;
+  }
+
+  /* ======================================================= WebP 解析 ==== */
+  function readWebpChunks(buffer) {
+    if (buffer.byteLength < 16) return null;
+    const view = new DataView(buffer);
+    if (latin1.decode(new Uint8Array(buffer, 0, 4)) !== 'RIFF') return null;
+    if (latin1.decode(new Uint8Array(buffer, 8, 4)) !== 'WEBP') return null;
+
+    const chunks = {};
+    let offset = 12;
+
+    while (offset + 8 <= buffer.byteLength) {
+      const fourcc = latin1.decode(new Uint8Array(buffer, offset, 4));
+      const size = view.getUint32(offset + 4, true);
+      const start = offset + 8;
+      if (start + size > buffer.byteLength) break;
+
+      if (fourcc === 'EXIF' && size > 8) {
+        const head = latin1.decode(new Uint8Array(buffer, start, Math.min(6, size)));
+        const tiffAt = head.startsWith('Exif') ? start + 6 : start;
+        readExif(view, tiffAt, start + size, chunks);
+      } else if (fourcc === 'XMP ' && size) {
+        pushChunk(chunks, 'XMP', utf8.decode(new Uint8Array(buffer, start, size)));
+      }
+
+      offset = start + size + (size % 2);
+    }
+
+    return chunks;
+  }
+
+  /* ==================================================== 元数据语义层 ==== */
+  function addParam(list, key, value) {
+    if (value == null) return;
+    const text = String(value).trim();
+    const name = String(key).trim();
+    if (!text || !name) return;
+    if (list.some((item) => item.key === name && item.value === text)) return;
+    list.push({ key: name, value: text });
+  }
+
+  function pairsToText(pairs) {
+    return pairs.map((pair) => pair.key + ': ' + pair.value).join('\n');
+  }
+
+  function splitParamPairs(text) {
+    const pairs = [];
+    let token = '';
+    let depth = 0;
+    let quoted = false;
+
+    for (const char of String(text || '')) {
+      if (char === '"') quoted = !quoted;
+      if (!quoted) {
+        if (char === '{' || char === '[' || char === '(') depth += 1;
+        else if (char === '}' || char === ']' || char === ')') depth -= 1;
+        if (char === ',' && depth <= 0) {
+          pairs.push(token);
+          token = '';
+          continue;
+        }
+      }
+      token += char;
+    }
+    pairs.push(token);
+
+    const result = [];
+    for (const pair of pairs) {
+      const at = pair.indexOf(':');
+      if (at < 0) continue;
+      result.push({ key: pair.slice(0, at).trim(), value: pair.slice(at + 1).trim() });
+    }
+    return result;
+  }
+
+  const A1111_PARAM_LINE = /(^|,\s*)(Steps|Sampler|Schedule type|CFG scale|Distilled CFG Scale|Seed|Size|Model|Model hash|VAE|Denoising strength|Clip skip|Hires upscale|Version)\s*:/i;
+
+  function isParamLine(line) {
+    return A1111_PARAM_LINE.test(line || '');
+  }
+
+  function readA1111(text) {
+    const params = [];
+    const marker = '\nNegative prompt:';
+    let positive = text;
+    let negative = '';
+    let tail = '';
+
+    const negativeAt = text.indexOf(marker);
+    if (negativeAt >= 0) {
+      positive = text.slice(0, negativeAt);
+      const rest = text.slice(negativeAt + marker.length).split('\n');
+      if (isParamLine(rest[rest.length - 1])) tail = rest.pop();
+      negative = rest.join('\n').trim();
+    } else {
+      const lines = text.split('\n');
+      if (isParamLine(lines[lines.length - 1])) {
+        tail = lines.pop();
+        positive = lines.join('\n');
+      }
+    }
+
+    for (const pair of splitParamPairs(tail)) addParam(params, pair.key, pair.value);
+    return { positive: positive.trim(), negative, params, paramText: (tail || '').trim() };
+  }
+
+  function readNovelAi(data) {
+    const params = [];
+    const keys = ['steps', 'sampler', 'seed', 'scale', 'cfg_rescale', 'uncond_scale', 'strength', 'noise', 'width', 'height', 'sm', 'sm_dyn'];
+    for (const key of keys) addParam(params, key, data[key]);
+    return {
+      positive: typeof data.prompt === 'string' ? data.prompt : '',
+      negative: typeof data.uc === 'string' ? data.uc : '',
+      params,
+      paramText: pairsToText(params)
+    };
+  }
+
+  function isComfyApiGraph(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    return Object.values(value).some((node) => node && typeof node === 'object' && typeof node.class_type === 'string');
+  }
+
+  /** 顺着 [nodeId, slot] 链接往上找真正的文本节点，Set 负责挡住环形连线。 */
+  function resolveGraphText(graph, link, visited) {
+    if (!Array.isArray(link) || !link.length) return '';
+    const id = String(link[0]);
+    if (visited.has(id)) return '';
+    visited.add(id);
+
+    const node = graph[id];
+    if (!node || !node.inputs) return '';
+
+    const direct = node.inputs.text != null ? node.inputs.text
+      : node.inputs.string != null ? node.inputs.string
+      : node.inputs.value;
+    if (typeof direct === 'string' && direct.trim()) return direct;
+    if (Array.isArray(direct)) {
+      const found = resolveGraphText(graph, direct, visited);
+      if (found) return found;
+    }
+
+    for (const input of Object.values(node.inputs)) {
+      if (!Array.isArray(input)) continue;
+      const found = resolveGraphText(graph, input, visited);
+      if (found) return found;
+    }
+    return '';
+  }
+
+  function readComfyApiGraph(graph) {
+    const params = [];
+    let positive = '';
+    let negative = '';
+
+    for (const node of Object.values(graph)) {
+      if (!node || typeof node !== 'object' || !node.inputs) continue;
+      const type = String(node.class_type || '');
+      const inputs = node.inputs;
+
+      if (/sampler/i.test(type) && (inputs.positive || inputs.negative)) {
+        if (!positive) positive = resolveGraphText(graph, inputs.positive, new Set());
+        if (!negative) negative = resolveGraphText(graph, inputs.negative, new Set());
+        addParam(params, 'Seed', inputs.seed != null ? inputs.seed : inputs.noise_seed);
+        addParam(params, 'Steps', inputs.steps);
+        addParam(params, 'CFG', inputs.cfg);
+        addParam(params, 'Sampler', inputs.sampler_name);
+        addParam(params, 'Scheduler', inputs.scheduler);
+        addParam(params, 'Denoise', inputs.denoise);
+      } else if (/checkpointloader/i.test(type)) {
+        addParam(params, 'Checkpoint', inputs.ckpt_name);
+      } else if (/unetloader/i.test(type)) {
+        addParam(params, 'UNet', inputs.unet_name);
+      } else if (/vaeloader/i.test(type)) {
+        addParam(params, 'VAE', inputs.vae_name);
+      } else if (/loraloader/i.test(type)) {
+        addParam(params, 'LoRA', [inputs.lora_name, inputs.strength_model].filter((item) => item != null).join(' @ '));
+      } else if (/emptylatent|emptysd3latent/i.test(type)) {
+        if (inputs.width && inputs.height) addParam(params, 'Size', inputs.width + ' × ' + inputs.height);
+        addParam(params, 'Batch', inputs.batch_size);
+      }
+    }
+
+    if (!positive) {
+      const texts = Object.values(graph)
+        .filter((node) => node && node.inputs && typeof node.inputs.text === 'string' && node.inputs.text.trim())
+        .map((node) => node.inputs.text.trim())
+        .sort((a, b) => b.length - a.length);
+      positive = texts[0] || '';
+      if (!negative && texts.length > 1) negative = texts[1];
+    }
+
+    return { positive, negative, params, paramText: pairsToText(params) };
+  }
+
+  function readComfyWorkflow(workflow) {
+    const params = [];
+    const texts = [];
+
+    for (const node of workflow.nodes) {
+      if (!node || typeof node !== 'object') continue;
+      const type = String(node.type || '');
+      const widgets = Array.isArray(node.widgets_values) ? node.widgets_values : [];
+
+      if (/cliptextencode/i.test(type)) {
+        const text = widgets.find((value) => typeof value === 'string' && value.trim());
+        if (text) texts.push({ text: text.trim(), title: String(node.title || '') });
+      } else if (/^ksampler/i.test(type) && widgets.length >= 6) {
+        addParam(params, 'Seed', widgets[0]);
+        addParam(params, 'Steps', widgets[2]);
+        addParam(params, 'CFG', widgets[3]);
+        addParam(params, 'Sampler', widgets[4]);
+        addParam(params, 'Scheduler', widgets[5]);
+      } else if (/checkpointloader/i.test(type)) {
+        addParam(params, 'Checkpoint', widgets[0]);
+      }
+    }
+
+    const negativeNode = texts.find((item) => /neg/i.test(item.title));
+    const positiveNode = texts.find((item) => item !== negativeNode);
+    return {
+      positive: positiveNode ? positiveNode.text : '',
+      negative: negativeNode ? negativeNode.text : (texts[1] ? texts[1].text : ''),
+      params,
+      paramText: pairsToText(params)
+    };
+  }
+
+  const PLAIN_KEYS = ['parameters', 'usercomment', 'imagedescription', 'description'];
+
+  /** 把 ComfyUI / A1111 / NovelAI 各自的格式折叠成同一套分区结构。 */
+  function interpret(chunks) {
+    const keys = Object.keys(chunks);
+    const pick = (name) => {
+      const key = keys.find((item) => item.toLowerCase() === name);
+      return key ? chunks[key].join('\n') : '';
+    };
+
+    const result = { positive: '', negative: '', params: [], paramText: '', json: '', jsonLabel: 'JSON', source: '' };
+    // XMP 是整段 XML，放进参数格子只会刷屏；它仍然完整出现在「原始元数据」里
+    const consumed = new Set(['xmp']);
+
+    const promptRaw = pick('prompt');
+    const workflowRaw = pick('workflow');
+    const commentRaw = pick('comment');
+
+    let plainKey = '';
+    let plainText = '';
+    for (const name of PLAIN_KEYS) {
+      const value = pick(name);
+      if (value) {
+        plainKey = name;
+        plainText = value;
+        break;
+      }
+    }
+
+    const apiGraph = parseJson(promptRaw);
+    const workflow = parseJson(workflowRaw);
+    const comment = parseJson(commentRaw);
+
+    if (isComfyApiGraph(apiGraph)) {
+      Object.assign(result, readComfyApiGraph(apiGraph));
+      result.source = 'ComfyUI';
+      result.json = pretty(workflow || apiGraph);
+      result.jsonLabel = workflow ? 'Workflow JSON' : 'Prompt Graph JSON';
+      consumed.add('prompt').add('workflow');
+    } else if (workflow && Array.isArray(workflow.nodes)) {
+      Object.assign(result, readComfyWorkflow(workflow));
+      result.source = 'ComfyUI';
+      result.json = pretty(workflow);
+      result.jsonLabel = 'Workflow JSON';
+      consumed.add('workflow');
+    } else if (comment && typeof comment === 'object' && (typeof comment.uc === 'string' || typeof comment.prompt === 'string')) {
+      Object.assign(result, readNovelAi(comment));
+      result.source = pick('software') || 'NovelAI';
+      result.json = pretty(comment);
+      result.jsonLabel = 'Comment JSON';
+      consumed.add('comment');
+    } else if (plainText) {
+      Object.assign(result, readA1111(plainText));
+      result.source = pick('software') || (plainKey === 'parameters' ? 'A1111 / Forge' : 'EXIF 注释');
+      consumed.add(plainKey);
+    } else if (commentRaw) {
+      Object.assign(result, readA1111(commentRaw));
+      result.source = 'JPEG 注释';
+      consumed.add('comment');
+    } else if (promptRaw) {
+      result.positive = promptRaw;
+      result.source = '纯文本提示词';
+      consumed.add('prompt');
+    }
+
+    // 剩下没被消化的短键值（Software、Title、Author…）补进参数区，避免信息只剩在原始块里
+    const leftovers = [];
+    for (const key of keys) {
+      if (consumed.has(key.toLowerCase())) continue;
+      const value = chunks[key].join('\n');
+      if (value.length > 400) continue;
+      leftovers.push({ key, value });
+    }
+    for (const pair of leftovers) addParam(result.params, pair.key, pair.value);
+
+    // 参数区的复制文本要和格子里看到的一致：A1111 那行原文在前，补充键值在后
+    const extraText = pairsToText(leftovers);
+    if (!result.paramText) result.paramText = pairsToText(result.params);
+    else if (extraText) result.paramText += '\n' + extraText;
+
+    return result;
+  }
+
+  /* ============================================================ 读文件 ==== */
+  const SUPPORTED_TYPES = /^image\/(png|jpeg|jpg|webp)$/i;
+  const SUPPORTED_EXT = /\.(png|jpe?g|webp)$/i;
+
+  function isSupported(file) {
+    return Boolean(file) && (SUPPORTED_TYPES.test(file.type || '') || SUPPORTED_EXT.test(file.name || ''));
+  }
+
+  /** 用魔数而不是扩展名判断：从剪贴板粘进来的文件常常只叫 image.png。 */
+  function detectKind(file, buffer) {
+    const head = new Uint8Array(buffer, 0, Math.min(16, buffer.byteLength));
+    if (head.length >= 8 && head[0] === 0x89 && head[1] === 0x50) return 'PNG';
+    if (head.length >= 3 && head[0] === 0xFF && head[1] === 0xD8) return 'JPEG';
+    if (head.length >= 12
+      && latin1.decode(head.subarray(0, 4)) === 'RIFF'
+      && latin1.decode(head.subarray(8, 12)) === 'WEBP') return 'WEBP';
+    const ext = (file.name || '').split('.').pop();
+    return ext ? ext.toUpperCase() : '未知';
+  }
+
+  async function readDimensions(file, url) {
+    if (typeof createImageBitmap === 'function') {
+      try {
+        const bitmap = await createImageBitmap(file);
+        const size = bitmap.width + ' × ' + bitmap.height;
+        if (typeof bitmap.close === 'function') bitmap.close();
+        return size;
+      } catch (error) {
+        /* 落到 <img> 兜底 */
+      }
+    }
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image.naturalWidth + ' × ' + image.naturalHeight);
+      image.onerror = () => resolve('');
+      image.src = url;
+    });
+  }
+
+  async function readOne(file) {
+    const buffer = await file.arrayBuffer();
+    const kind = detectKind(file, buffer);
+
+    let chunks = null;
+    try {
+      if (kind === 'PNG') chunks = await readPngChunks(buffer);
+      else if (kind === 'JPEG') chunks = readJpegSegments(buffer);
+      else if (kind === 'WEBP') chunks = readWebpChunks(buffer);
+    } catch (error) {
+      chunks = null;
+    }
+
+    const safeChunks = chunks || {};
+    const info = interpret(safeChunks);
+    const previewUrl = URL.createObjectURL(file);
+    const dims = await readDimensions(file, previewUrl);
+
+    return Object.assign(info, {
+      name: file.name || '未命名图片',
+      size: formatBytes(file.size),
+      type: kind,
+      dims,
+      previewUrl,
+      raw: Object.entries(safeChunks).map(([key, values]) => key + ':\n' + values.join('\n')).join('\n\n'),
+      hasMetadata: Object.keys(safeChunks).length > 0
+    });
+  }
+
+  /* ============================================================== DOM ==== */
+  const dropShell = document.getElementById('dropShell');
+  const dropArea = document.getElementById('dropArea');
+  const fileInput = document.getElementById('fileInput');
+  const resultsBox = document.getElementById('results');
+  const fileCount = document.getElementById('fileCount');
+  const clearBtn = document.getElementById('clearBtn');
+  const copyAllBtn = document.getElementById('copyAllBtn');
+
+  let results = [];
+  let dragDepth = 0;
+
+  /* ---------------------------------------------------------- 视觉反馈 ---- */
+  function setDragState(active) {
+    dropArea.classList.toggle('is-over', active);
+  }
+
+  function setBusy(active) {
+    dropArea.classList.toggle('is-busy', active);
+    dropArea.setAttribute('aria-busy', String(active));
+    resultsBox.setAttribute('aria-busy', String(active));
+  }
+
+  function burst() {
+    if (motionQuery.matches) return;
+    const layer = el('span', 'drop-burst');
+    layer.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 16; i += 1) {
+      const spark = document.createElement('i');
+      spark.style.setProperty('--pr-spark-angle', (360 / 16) * i + Math.random() * 18 + 'deg');
+      spark.style.setProperty('--pr-spark-dist', 64 + Math.random() * 86 + 'px');
+      spark.style.setProperty('--pr-spark-life', 520 + Math.random() * 340 + 'ms');
+      layer.append(spark);
+    }
+    dropShell.append(layer);
+    setTimeout(() => layer.remove(), 1000);
+  }
+
+  /* -------------------------------------------------------------- 渲染 ---- */
+  function segmentsFor(result) {
+    const segments = [];
+    if (result.positive) {
+      segments.push({
+        kind: 'positive', label: '✨ POSITIVE PROMPT', hue: 'var(--pr-pos)',
+        text: result.positive, translation: translateTags(result.positive)
+      });
+    }
+    if (result.negative) {
+      segments.push({ kind: 'negative', label: '🚫 NEGATIVE PROMPT', hue: 'var(--pr-neg)', text: result.negative });
+    }
+    if (result.params.length) {
+      segments.push({
+        kind: 'params', label: '⚙️ 生成参数', hue: 'var(--pr-par)',
+        text: result.paramText || pairsToText(result.params), pairs: result.params
+      });
+    }
+    if (result.json) {
+      segments.push({
+        kind: 'json', label: '🧬 ' + result.jsonLabel, hue: 'var(--pr-json)',
+        text: result.json, collapsible: true
+      });
+    }
+    if (result.raw) {
+      segments.push({ kind: 'raw', label: '📋 原始元数据', hue: 'var(--pr-raw)', text: result.raw, collapsible: true });
+    }
+    return segments;
+  }
+
+  function buildSegment(segment, resultIndex, order) {
+    const box = el('section', 'seg seg--' + segment.kind);
+    box.style.setProperty('--seg-hue', segment.hue);
+    box.style.setProperty('--seg-i', String(order));
+    box.dataset.open = segment.collapsible ? 'false' : 'true';
+
+    const head = el('div', 'seg-head');
+    const panelId = 'seg-' + resultIndex + '-' + segment.kind;
+
+    if (segment.collapsible) {
+      const toggle = el('button', 'seg-toggle');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-controls', panelId);
+      toggle.append(el('span', 'seg-caret', '▸'));
+      toggle.append(el('span', 'seg-label', segment.label));
+      head.append(toggle);
+    } else {
+      head.append(el('span', 'seg-label', segment.label));
+    }
+
+    const meta = segment.pairs
+      ? segment.pairs.length + ' 项'
+      : segment.text.length > 4096
+        ? formatBytes(segment.text.length)
+        : segment.text.length + ' 字符';
+    head.append(el('span', 'seg-meta', meta));
+    head.append(el('span', 'seg-spacer'));
+
+    const copy = el('button', 'btn btn-ghost btn-sm seg-copy', '复制');
+    copy.type = 'button';
+    copy.dataset.copyIndex = String(resultIndex);
+    copy.dataset.copyKind = segment.kind;
+    copy.setAttribute('aria-label', '复制' + segment.label.replace(/^\S+\s*/, ''));
+    head.append(copy);
+    box.append(head);
+
+    const panel = el('div', 'seg-panel');
+    panel.id = panelId;
+    const inner = el('div', 'seg-panel__inner');
+
+    if (segment.pairs) {
+      const grid = el('div', 'param-grid');
+      for (const pair of segment.pairs) {
+        const item = el('div', 'param-item');
+        item.append(el('div', 'param-key', pair.key));
+        item.append(el('div', 'param-value', pair.value));
+        grid.append(item);
+      }
+      inner.append(grid);
+    } else {
+      // 超长工作流截断显示，复制按钮仍然给完整内容
+      const shown = segment.text.length > MAX_RENDER_CHARS
+        ? segment.text.slice(0, MAX_RENDER_CHARS) + '\n\n…（内容过长，此处仅预览前 ' + MAX_RENDER_CHARS.toLocaleString('zh-CN') + ' 字符，复制按钮仍会给出完整内容）'
+        : segment.text;
+      inner.append(el('pre', 'seg-body', shown));
+    }
+
+    if (segment.translation) inner.append(el('p', 'translation-banner', segment.translation));
+    panel.append(inner);
+    box.append(panel);
+    return box;
+  }
+
+  function buildMissingState() {
+    const box = el('div', 'metadata-empty');
+    box.style.setProperty('--seg-i', '1');
+    box.append(el('p', 'metadata-empty__title', '这张图里没有找到生成元数据'));
+    box.append(el('p', 'metadata-empty__body',
+      '常见原因：它是屏幕截图、被二次编辑或压缩过、经社交平台转发，或者出图时关闭了「保存生成参数」。'
+      + 'PNG 的 tEXt / iTXt 块与 JPEG 的 EXIF UserComment 一旦被剥离，就没有任何办法从像素里还原出来。'));
+
+    const actions = el('div', 'metadata-empty__actions');
+    const tagger = el('a', 'btn btn-primary btn-sm', '🔍 用 WD 标签反推器读画面');
+    tagger.href = '../wd-tagger/index.html';
+    actions.append(tagger);
+
+    const resolver = el('a', 'btn btn-ghost btn-sm', '⚡ 拖拽导入失败？去 Drag Resolver');
+    resolver.href = '../drag-resolver/index.html';
+    actions.append(resolver);
+
+    box.append(actions);
+    return box;
+  }
+
+  function buildCard(result, index) {
+    const card = el('article', 'result-card xq-spotlight');
+    card.style.setProperty('--card-i', String(Math.min(index, 8)));
+
+    const head = el('div', 'result-head');
+    head.style.setProperty('--seg-i', '0');
+
+    if (result.previewUrl) {
+      const thumb = el('div', 'result-thumb');
+      const image = document.createElement('img');
+      image.src = result.previewUrl;
+      image.alt = '';
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      thumb.append(image);
+      head.append(thumb);
+    }
+
+    const headText = el('div', 'result-headtext');
+    headText.append(el('h3', 'filename', '📄 ' + result.name));
+
+    const meta = el('div', 'meta-row');
+    meta.append(el('span', 'meta-pill', '📐 ' + (result.dims || '尺寸未知')));
+    if (result.size) meta.append(el('span', 'meta-pill', '💾 ' + result.size));
+    meta.append(el('span', 'meta-pill', '🏷️ ' + result.type));
+    if (result.source) meta.append(el('span', 'meta-pill meta-pill--source', '🔎 ' + result.source));
+    headText.append(meta);
+
+    head.append(headText);
+    card.append(head);
+
+    const segments = segmentsFor(result);
+    if (!segments.length) {
+      card.append(buildMissingState());
+      return card;
+    }
+
+    const actions = el('div', 'result-actions');
+    actions.style.setProperty('--seg-i', '1');
+    const copyAll = el('button', 'btn btn-primary btn-sm', '📋 复制全部');
+    copyAll.type = 'button';
+    copyAll.dataset.copyIndex = String(index);
+    copyAll.dataset.copyKind = 'all';
+    copyAll.setAttribute('aria-label', '复制 ' + result.name + ' 的全部元数据');
+    actions.append(copyAll);
+    card.append(actions);
+
+    const stack = el('div', 'seg-stack');
+    segments.forEach((segment, order) => stack.append(buildSegment(segment, index, order + 2)));
+    card.append(stack);
+
+    return card;
+  }
+
+  function buildEmptyState() {
+    const box = el('div', 'empty-state');
+    box.append(el('div', null, '✨ 还没有图片'));
+    const hint = el('div', null, '');
+    hint.append(document.createTextNode('把出图结果拖进上面的星门，或按 '));
+    hint.append(el('strong', null, 'Ctrl + V'));
+    hint.append(document.createTextNode(' 粘贴剪贴板里的图片'));
+    box.append(hint);
+    return box;
+  }
+
+  function renderAll() {
+    resultsBox.textContent = '';
+    if (!results.length) {
+      resultsBox.append(buildEmptyState());
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    results.forEach((result, index) => fragment.append(buildCard(result, index)));
+    resultsBox.append(fragment);
+  }
+
+  function updateStatus() {
+    const readable = results.filter((item) => item.hasMetadata).length;
+    fileCount.textContent = results.length
+      ? '已加载 ' + results.length + ' 张 · 其中 ' + readable + ' 张带元数据'
+      : '尚未选择文件';
+    clearBtn.disabled = !results.length;
+    copyAllBtn.disabled = !readable;
+  }
+
+  /* -------------------------------------------------------------- 复制 ---- */
+  function buildCopyText(result, kind) {
+    if (kind === 'positive') return result.positive;
+    if (kind === 'negative') return result.negative;
+    if (kind === 'params') return result.paramText || pairsToText(result.params);
+    if (kind === 'json') return result.json;
+    if (kind === 'raw') return result.raw;
+
     const sections = ['文件: ' + result.name];
+    if (result.source) sections.push('来源: ' + result.source);
     if (result.positive) sections.push('Positive Prompt:\n' + result.positive);
     if (result.negative) sections.push('Negative Prompt:\n' + result.negative);
-    if (result.params) sections.push('Parameters:\n' + result.params);
-    if (result.workflow) sections.push('Workflow JSON:\n' + result.workflow);
-    if (hasRawOnly(result) && raw) sections.push('Raw Metadata:\n' + raw);
+    if (result.params.length) sections.push('Parameters:\n' + pairsToText(result.params));
+    if (result.json) sections.push(result.jsonLabel + ':\n' + result.json);
     return sections.join('\n\n');
   }
 
-  /** 转义文件名和元数据，避免动态结果写入 HTML 结构。 */
-  function esc(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
+  /* -------------------------------------------------------------- 事件 ---- */
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []).filter(isSupported);
+    if (!files.length) {
+      notify('只认 PNG / JPEG / WebP 图片，换个文件试试', 'error');
+      return;
+    }
+
+    setBusy(true);
+    let failed = 0;
+    let missing = 0;
+
+    for (const file of files) {
+      try {
+        const parsed = await readOne(file);
+        if (!parsed.hasMetadata) missing += 1;
+        results.push(parsed);
+      } catch (error) {
+        failed += 1;
+        notify('「' + (file.name || '图片') + '」读取失败：' + (error && error.message ? error.message : '文件已损坏或无法访问'), 'error');
+      }
+    }
+
+    setBusy(false);
+    renderAll();
+    updateStatus();
+
+    const parsed = files.length - failed;
+    if (!parsed) return;
+    burst();
+
+    if (missing === parsed) notify('已读取 ' + parsed + ' 张，但都没有元数据', 'error');
+    else notify('已解析 ' + parsed + ' 张图片', 'ok');
   }
+
+  function hasFiles(event) {
+    const transfer = event.dataTransfer;
+    return Boolean(transfer) && Array.from(transfer.types || []).indexOf('Files') >= 0;
+  }
+
+  dropArea.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    handleFiles(fileInput.files);
+    fileInput.value = '';
+  });
+
+  // 用计数器而不是单纯的 dragleave：鼠标扫过子元素时也会触发 dragleave，会让高亮闪烁
+  window.addEventListener('dragenter', (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    dragDepth += 1;
+    setDragState(true);
+  });
+
+  window.addEventListener('dragover', (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  });
+
+  window.addEventListener('dragleave', (event) => {
+    if (!hasFiles(event)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) setDragState(false);
+  });
+
+  window.addEventListener('drop', (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    dragDepth = 0;
+    setDragState(false);
+    handleFiles(event.dataTransfer.files);
+  });
+
+  document.addEventListener('paste', (event) => {
+    const clipboard = event.clipboardData;
+    if (!clipboard) return;
+    const images = Array.from(clipboard.files || []).filter(isSupported);
+    if (!images.length) return;
+    event.preventDefault();
+    handleFiles(images);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    for (const result of results) {
+      if (result.previewUrl) URL.revokeObjectURL(result.previewUrl);
+    }
+    results = [];
+    renderAll();
+    updateStatus();
+    notify('已清空解析结果');
+  });
+
+  copyAllBtn.addEventListener('click', () => {
+    const text = results
+      .filter((result) => result.hasMetadata)
+      .map((result) => buildCopyText(result, 'all'))
+      .join('\n\n' + '─'.repeat(24) + '\n\n');
+    if (text) copyToClipboard(text, copyAllBtn);
+  });
+
+  resultsBox.addEventListener('click', (event) => {
+    const toggle = event.target.closest('.seg-toggle');
+    if (toggle) {
+      const seg = toggle.closest('.seg');
+      const open = seg.dataset.open !== 'true';
+      seg.dataset.open = String(open);
+      toggle.setAttribute('aria-expanded', String(open));
+      return;
+    }
+
+    const button = event.target.closest('[data-copy-index]');
+    if (!button) return;
+    const result = results[Number(button.dataset.copyIndex)];
+    if (!result) return;
+    const text = buildCopyText(result, button.dataset.copyKind);
+    if (text) copyToClipboard(text, button);
+    else notify('这一区没有可复制的内容', 'error');
+  });
+
+  renderAll();
+  updateStatus();
 })();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

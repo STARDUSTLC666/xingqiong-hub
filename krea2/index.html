@@ -3,49 +3,383 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Krea2 提示词工匠 · Krea2 Artisan</title>
+<title>Krea2 提示词工匠 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="八卡槽分层构造 Krea2 提示词：填好主体、镜头、材质与风格，一键扩写并复制。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/krea2/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="Krea2 提示词工匠 · 星穹枢庭">
+  <meta property="og:description" content="八卡槽分层构造 Krea2 提示词：填好主体、镜头、材质与风格，一键扩写并复制。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/krea2/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
+/* ------------------------------------------------------------ 卡槽填写进度 */
+.slot-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.slot-progress__label {
+  flex: 0 0 auto;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+.slot-progress__track {
+  display: block;
+  overflow: hidden;
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+}
+.slot-progress__bar {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold-bright));
+  box-shadow: 0 0 14px var(--xq-gold-wash);
+  transition: width var(--xq-dur) var(--xq-ease-out);
+}
+
+/* ---------------------------------------------------------------- 八卡槽 */
 .slot-row {
-  display: flex; align-items: center; gap: 0.6rem;
-  padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  display: grid;
+  grid-template-columns: minmax(118px, auto) 1fr 92px;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--xq-line-soft);
+  gap: 0.7rem;
 }
+.slot-row:last-child { border-bottom: 0; }
+.slot-label {
+  display: flex;
+  grid-column: 1;
+  align-items: center;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font-size: 0.76rem;
+  gap: 0.5rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease);
+}
+.slot-row.is-filled .slot-label { color: var(--xq-text-soft); }
 .slot-num {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; color: #e8a860; flex-shrink: 0;
+  position: relative;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 50%;
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  place-items: center;
+  transition: color var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    background var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
 }
-.slot-label { width: 80px; font-size: 0.75rem; color: rgba(200,200,224,0.5); flex-shrink: 0; }
-.slot-input { flex: 1; }
-.slot-input input { font-size: 0.8rem; padding: 0.4rem 0.7rem; }
-.slot-hint { font-size: 0.65rem; color: rgba(200,200,224,0.25); min-width: 80px; text-align: right; }
-.output-area {
-  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.12);
-  border-radius: 10px; padding: 1rem; font-size: 0.82rem; line-height: 1.9;
-  color: #e0c090; min-height: 80px; white-space: pre-wrap;
+/* 填写完成的小勾，用伪元素避免为纯装饰再插一层节点 */
+.slot-num::after {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--xq-gold);
+  color: var(--xq-ink);
+  content: "✓";
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0;
+  place-items: center;
+  transform: scale(0.2);
+  transition: opacity var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
+}
+.slot-row.is-filled .slot-num {
+  border-color: var(--xq-gold);
+  background: var(--xq-gold-wash);
+  box-shadow: 0 0 0 3px var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+}
+.slot-row.is-filled .slot-num::after {
+  opacity: 1;
+  transform: scale(1);
+}
+.slot-input { grid-column: 2; }
+.slot-input input {
+  padding: 0.44rem 0.75rem;
+  font-size: 0.8rem;
+}
+.slot-hint {
+  grid-column: 3;
+  color: var(--xq-text-faint);
+  font-size: 0.66rem;
+  text-align: right;
+}
+/* 映射词注入后给输入框一次金色脉冲，让"追加到了这里"看得见 */
+.slot-input input.is-hit { animation: kreaHit 720ms var(--xq-ease-out); }
+@keyframes kreaHit {
+  0% { border-color: var(--xq-gold); box-shadow: 0 0 0 0 var(--xq-gold-wash); }
+  40% { border-color: var(--xq-gold); box-shadow: 0 0 0 6px var(--xq-gold-wash); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.slot-tip {
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
 }
 
-.example-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:0.6rem; }
+/* ------------------------------------------------------------ 按钮加载态 */
+.btn__spinner {
+  display: none;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  border-right-color: currentcolor;
+  border-top-color: currentcolor;
+  animation: kreaSpin 700ms linear infinite;
+}
+.btn.is-loading { pointer-events: none; }
+.btn.is-loading .btn__icon { display: none; }
+.btn.is-loading .btn__spinner { display: block; }
+@keyframes kreaSpin { to { transform: rotate(360deg); } }
+
+/* -------------------------------------------------------------- 输出卡片 */
+.out-stack { display: grid; gap: 0.8rem; }
+.out-card {
+  overflow: hidden;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  animation: kreaRise 520ms var(--xq-ease-out) both;
+  animation-delay: var(--krea-delay, 0ms);
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.out-card:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-md);
+}
+@keyframes kreaRise {
+  from {
+    filter: blur(5px);
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+}
+.out-card__head {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.55rem 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--xq-line-soft);
+  gap: 0.6rem;
+}
+.out-card__title {
+  display: flex;
+  align-items: center;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.7rem;
+  gap: 0.45rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.out-card__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentcolor;
+  box-shadow: 0 0 10px currentcolor;
+  color: var(--xq-gold);
+}
+.out-card--neg .out-card__dot { color: var(--xq-danger); }
+.out-card--set .out-card__dot { color: var(--xq-cyan); }
+.out-card__meta {
+  margin-left: auto;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+.out-card pre {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--xq-gold-bright);
+  font-size: 0.78rem;
+  line-height: 1.85;
+}
+.out-card--neg pre { color: var(--xq-coral); }
+.out-card--set pre { color: var(--xq-cyan); }
+.out-empty {
+  display: grid;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--xq-line);
+  border-radius: var(--xq-r-md);
+  color: var(--xq-text-faint);
+  font-size: 0.8rem;
+  gap: 0.5rem;
+  justify-items: center;
+  text-align: center;
+}
+.out-empty__icon {
+  animation: kreaBreathe 3.8s var(--xq-ease) infinite;
+  font-size: 1.5rem;
+}
+@keyframes kreaBreathe {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
+}
+
+/* -------------------------------------------------------------- 快速示例 */
+.example-cards {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
 .example-card {
-  padding: 0.7rem; border-radius: 10px; cursor: pointer;
-  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-  transition: all 0.2s;
+  display: block;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: transform var(--xq-dur) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
 }
-.example-card:hover { border-color: rgba(232,168,96,0.3); background: rgba(232,168,96,0.04); }
-.example-card h4 { font-size: 0.78rem; color: #e8a860; margin-bottom: 0.3rem; }
-.example-card p { font-size: 0.68rem; color: rgba(200,200,224,0.35); line-height: 1.5; }
+.example-card:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  box-shadow: var(--xq-shadow-md);
+  transform: translateY(-3px);
+}
+.example-card:active { transform: translateY(-1px); }
+.example-card h4 {
+  margin-bottom: 0.3rem;
+  color: var(--xq-gold);
+  font-size: 0.79rem;
+}
+.example-card p {
+  color: var(--xq-text-faint);
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
 
-.mapping-row { display: flex; gap: 0.6rem; align-items: center; padding: 0.4rem 0; }
-.mapping-row .from { width: 90px; font-size: 0.75rem; color: rgba(200,200,224,0.4); }
-.mapping-row .arrow { color: rgba(200,200,224,0.2); }
-.mapping-row .to { flex:1; font-size: 0.75rem; color: #d0c0a0; }
+/* ------------------------------------------------------------ 强映射字典 */
+.mapping-list { display: grid; gap: 0.2rem; }
+.mapping-row {
+  display: grid;
+  align-items: center;
+  padding: 0.34rem 0.35rem;
+  border-radius: var(--xq-r-sm);
+  gap: 0.6rem;
+  grid-template-columns: auto auto 1fr auto;
+  transition: background var(--xq-dur-fast) var(--xq-ease);
+}
+.mapping-row:hover { background: var(--xq-surface-quiet); }
+.map-chip {
+  font-family: inherit;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+.map-chip__plus {
+  color: var(--xq-text-faint);
+  font-size: 0.9em;
+  transition: color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.map-chip:hover .map-chip__plus {
+  color: var(--xq-gold-bright);
+  transform: rotate(90deg) scale(1.15);
+}
+.mapping-arrow { color: var(--xq-text-faint); }
+.mapping-to {
+  padding: 0;
+  background: none;
+  color: var(--xq-text-soft);
+  font-size: 0.74rem;
+  word-break: break-word;
+}
+.mapping-slot {
+  color: var(--xq-text-faint);
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 响应式 */
+@media (max-width: 640px) {
+  .slot-row {
+    padding: 0.62rem 0;
+    gap: 0.42rem 0.6rem;
+    grid-template-columns: 1fr auto;
+  }
+  .slot-label { grid-row: 1; }
+  .slot-hint {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .slot-input {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .slot-progress { flex-wrap: wrap; }
+  .slot-progress__track { flex-basis: 100%; }
+
+  .mapping-row {
+    padding: 0.5rem 0.4rem;
+    gap: 0.35rem 0.55rem;
+    grid-template-columns: auto 1fr;
+  }
+  .mapping-arrow { display: none; }
+  .mapping-to {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .mapping-slot {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+
+  .example-cards { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .out-card,
+  .out-empty__icon,
+  .btn__spinner,
+  .slot-input input.is-hit {
+    animation: none;
+  }
+  .example-card:hover,
+  .map-chip:hover .map-chip__plus {
+    transform: none;
+  }
+}
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
   <header class="page-header">
     <h1>Krea2 提示词工匠</h1>
     <p class="subtitle">Krea2 Artisan · 黄金八卡槽分层构造 + 跨域强映射 + 去糖水套路</p>
@@ -54,18 +388,30 @@
   <!-- 八卡槽 -->
   <div class="panel">
     <div class="panel-title">🎯 黄金八卡槽 (Slot Constructor)</div>
+    <div class="slot-progress">
+      <span class="slot-progress__label" id="slotProgressText">0 / 8 卡槽已填写</span>
+      <span class="slot-progress__track" id="slotProgressTrack" role="progressbar"
+            aria-valuemin="0" aria-valuemax="8" aria-valuenow="0" aria-labelledby="slotProgressText">
+        <span class="slot-progress__bar" id="slotProgressBar"></span>
+      </span>
+    </div>
     <div id="slotFields"></div>
     <div class="flex-row mt-1">
-      <button class="btn btn-primary" onclick="expandPrompt()">⚡ 扩写 Prompt</button>
-      <button class="btn btn-ghost" onclick="copyExpanded()">📋 复制</button>
-      <button class="btn btn-ghost" onclick="clearSlots()">✕ 清空</button>
+      <button type="button" class="btn btn-primary" id="btnExpand">
+        <span class="btn__icon" aria-hidden="true">⚡</span>
+        <span class="btn__spinner" aria-hidden="true"></span>
+        <span>扩写 Prompt</span>
+      </button>
+      <button type="button" class="btn btn-ghost" id="btnCopyAll">📋 复制全部</button>
+      <button type="button" class="btn btn-ghost" id="btnClear">✕ 清空</button>
+      <span class="slot-tip text-muted">输入框内 Enter 或 Ctrl + Enter 直接扩写</span>
     </div>
   </div>
 
   <!-- 输出 -->
   <div class="panel">
     <div class="panel-title">✨ 扩写结果</div>
-    <div class="output-area" id="expandedOutput">在左侧卡槽填入内容后点击「扩写 Prompt」...</div>
+    <div id="expandedOutput" aria-live="polite"></div>
   </div>
 
   <!-- 示例 -->
@@ -77,8 +423,8 @@
   <!-- 映射表 -->
   <div class="panel">
     <div class="panel-title">🔗 跨域强映射字典</div>
-    <p class="text-muted mb-1">文字描述 → 视觉元素的高精度映射。Krea 2 对这些映射词响应极强</p>
-    <div id="mappingTable"></div>
+    <p class="text-muted mb-1">文字描述 → 视觉元素的高精度映射。Krea 2 对这些映射词响应极强，点中文词即可追加到对应卡槽</p>
+    <div class="mapping-list" id="mappingTable"></div>
   </div>
 
   <!-- 去糖水 -->
@@ -95,118 +441,440 @@
 
 <script src="../assets/gemini.js"></script>
 <script>
-// === SLOTS ===
-const slots = [
-  { id:'subject', label:'1. 主体', hint:'谁/什么', eg:'young woman, red hair' },
-  { id:'action', label:'2. 动作', hint:'在做什么', eg:'walking through rain' },
-  { id:'clothing', label:'3. 着装', hint:'穿什么', eg:'white linen dress' },
-  { id:'expression', label:'4. 表情', hint:'情绪', eg:'pensive, introspective' },
-  { id:'environment', label:'5. 环境', hint:'在哪', eg:'misty Tokyo alley, neon signs' },
-  { id:'lighting', label:'6. 光影', hint:'光线', eg:'cinematic lighting, wet reflections' },
-  { id:'style', label:'7. 风格', hint:'画风', eg:'35mm film, Kodak Portra 400' },
-  { id:'mood', label:'8. 氛围', hint:'基调', eg:'melancholic, nostalgic, cinematic' },
-];
+(function () {
+  'use strict';
 
-const examples = [
-  { title:'☕ 秋日咖啡馆', slots:{subject:'young woman, brown hair',action:'holding coffee cup, looking out window',clothing:'chunky knit sweater',expression:'peaceful',environment:'cozy cafe, rainy window',lighting:'soft morning light',style:'35mm film, Fuji Provia',mood:'warm, intimate'} },
-  { title:'🌃 赛博夜行', slots:{subject:'woman, silver hair',action:'walking, glancing back',clothing:'black techwear jacket',expression:'determined',environment:'cyberpunk city, neon signs, wet streets',lighting:'neon reflections, dramatic shadows',style:'cinematic, Blade Runner',mood:'gritty, futuristic'} },
-  { title:'🌸 京都春色', slots:{subject:'young woman, black hair',action:'reaching for cherry blossom',clothing:'kimono, floral pattern',expression:'gentle smile',environment:'Kyoto temple garden, cherry blossoms',lighting:'golden hour backlighting',style:'Kodak Portra 400, medium format',mood:'serene, ethereal'} },
-  { title:'🔥 暗黑女王', slots:{subject:'woman, dark skin',action:'sitting on throne',clothing:'black leather, gold jewelry',expression:'commanding',environment:'gothic cathedral, candles',lighting:'dramatic low-key, rim light',style:'baroque painting style',mood:'powerful, mysterious'} },
-];
+  /* ------------------------------------------------------------------ 数据 */
+  const SLOTS = [
+    { id: 'subject', label: '主体', hint: '谁/什么', eg: 'young woman, red hair' },
+    { id: 'action', label: '动作', hint: '在做什么', eg: 'walking through rain' },
+    { id: 'clothing', label: '着装', hint: '穿什么', eg: 'white linen dress' },
+    { id: 'expression', label: '表情', hint: '情绪', eg: 'pensive, introspective' },
+    { id: 'environment', label: '环境', hint: '在哪', eg: 'misty Tokyo alley, neon signs' },
+    { id: 'lighting', label: '光影', hint: '光线', eg: 'cinematic lighting, wet reflections' },
+    { id: 'style', label: '风格', hint: '画风', eg: '35mm film, Kodak Portra 400' },
+    { id: 'mood', label: '氛围', hint: '基调', eg: 'melancholic, nostalgic, cinematic' }
+  ];
 
-const mappings = [
-  ['风','wind, hair movement, flying fabric, dynamic motion'],
-  ['雨','rain drops, wet surfaces, reflections, mist, bokeh'],
-  ['热','heat haze, sweat, summer glare, warm tones'],
-  ['冷','frost, breath visible, snow, cool blues, ice crystals'],
-  ['孤独','empty space, single figure, long shadows, wide shot'],
-  ['亲密','close-up, shallow depth of field, warm bokeh, soft focus'],
-  ['速度','motion blur, dynamic angle, flowing lines, dramatic perspective'],
-  ['梦幻','ethereal, floating particles, lens flare, soft glow, haze'],
-];
+  const EXAMPLES = [
+    { title: '☕ 秋日咖啡馆', slots: { subject: 'young woman, brown hair', action: 'holding coffee cup, looking out window', clothing: 'chunky knit sweater', expression: 'peaceful', environment: 'cozy cafe, rainy window', lighting: 'soft morning light', style: '35mm film, Fuji Provia', mood: 'warm, intimate' } },
+    { title: '🌃 赛博夜行', slots: { subject: 'woman, silver hair', action: 'walking, glancing back', clothing: 'black techwear jacket', expression: 'determined', environment: 'cyberpunk city, neon signs, wet streets', lighting: 'neon reflections, dramatic shadows', style: 'cinematic, Blade Runner', mood: 'gritty, futuristic' } },
+    { title: '🌸 京都春色', slots: { subject: 'young woman, black hair', action: 'reaching for cherry blossom', clothing: 'kimono, floral pattern', expression: 'gentle smile', environment: 'Kyoto temple garden, cherry blossoms', lighting: 'golden hour backlighting', style: 'Kodak Portra 400, medium format', mood: 'serene, ethereal' } },
+    { title: '🔥 暗黑女王', slots: { subject: 'woman, dark skin', action: 'sitting on throne', clothing: 'black leather, gold jewelry', expression: 'commanding', environment: 'gothic cathedral, candles', lighting: 'dramatic low-key, rim light', style: 'baroque painting style', mood: 'powerful, mysterious' } }
+  ];
 
-// === RENDER ===
-function renderSlots(){
-  document.getElementById('slotFields').innerHTML=slots.map(s=>`
-    <div class="slot-row">
-      <span class="slot-num">${s.id.charAt(0).toUpperCase()}</span>
-      <span class="slot-label">${s.label}</span>
-      <div class="slot-input"><input type="text" id="slot_${s.id}" placeholder="例: ${s.eg}"></div>
-      <span class="slot-hint">${s.hint}</span>
-    </div>
-  `).join('');
-}
+  // slot 指明这条映射默认注入哪个卡槽，让"点一下就能用"有确定去处
+  const MAPPINGS = [
+    { cn: '风', en: 'wind, hair movement, flying fabric, dynamic motion', slot: 'environment' },
+    { cn: '雨', en: 'rain drops, wet surfaces, reflections, mist, bokeh', slot: 'environment' },
+    { cn: '热', en: 'heat haze, sweat, summer glare, warm tones', slot: 'environment' },
+    { cn: '冷', en: 'frost, breath visible, snow, cool blues, ice crystals', slot: 'environment' },
+    { cn: '孤独', en: 'empty space, single figure, long shadows, wide shot', slot: 'mood' },
+    { cn: '亲密', en: 'close-up, shallow depth of field, warm bokeh, soft focus', slot: 'mood' },
+    { cn: '速度', en: 'motion blur, dynamic angle, flowing lines, dramatic perspective', slot: 'style' },
+    { cn: '梦幻', en: 'ethereal, floating particles, lens flare, soft glow, haze', slot: 'mood' }
+  ];
 
-function renderExamples(){
-  document.getElementById('examples').innerHTML=examples.map((ex,i)=>`
-    <div class="example-card" onclick="loadExample(${i})">
-      <h4>${ex.title}</h4>
-      <p>${Object.values(ex.slots).join(' · ').slice(0,80)}...</p>
-    </div>
-  `).join('');
-}
+  const NEGATIVE = 'plastic skin, doll-like, airbrushed, smooth, CGI, 3D render, overexposure, harsh lighting, photorealistic, watermark, text';
+  const SETTINGS = 'Turbo mode, strength 0.7-0.85, high fidelity';
+  const STORE_KEY = 'xq.krea2.slots.v1';
+  const MAX_LEN = 600;
 
-function renderMappings(){
-  document.getElementById('mappingTable').innerHTML=mappings.map(m=>`
-    <div class="mapping-row">
-      <span class="from">${m[0]}</span><span class="arrow">→</span><span class="to">${m[1]}</span>
-    </div>
-  `).join('');
-}
+  // 用显式状态代替从输出文本里猜是否已扩写
+  const state = { expanded: false, output: null };
 
-function loadExample(i){
-  const ex=examples[i];
-  slots.forEach(s=>{
-    document.getElementById('slot_'+s.id).value=ex.slots[s.id]||'';
-  });
-  gsToast(ex.title+' 已载入');
-}
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const byId = (id) => document.getElementById(id);
+  const toast = (message) => { if (typeof window.gsToast === 'function') window.gsToast(message); };
+  const slotIndex = (id) => SLOTS.findIndex((slot) => slot.id === id);
+  const slotTitle = (id) => (slotIndex(id) + 1) + '. ' + (SLOTS[slotIndex(id)] || { label: '' }).label;
 
-function clearSlots(){
-  slots.forEach(s=>{document.getElementById('slot_'+s.id).value='';});
-  document.getElementById('expandedOutput').textContent='在左侧卡槽填入内容后点击「扩写 Prompt」...';
-}
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
 
-function expandPrompt(){
-  const vals={};
-  let hasContent=false;
-  slots.forEach(s=>{
-    const v=document.getElementById('slot_'+s.id).value.trim();
-    vals[s.id]=v;
-    if(v) hasContent=true;
-  });
-  if(!hasContent){gsToast('请至少填写一个卡槽');return;}
+  function inputOf(id) {
+    return byId('slot_' + id);
+  }
 
-  let prompt='';
-  const items=[];
-  if(vals.subject) items.push(`Portrait of ${vals.subject}`);
-  if(vals.action) items.push(vals.action);
-  if(vals.clothing) items.push(`wearing ${vals.clothing}`);
-  if(vals.expression) items.push(`${vals.expression} expression`);
-  if(vals.environment) items.push(`in ${vals.environment}`);
-  if(vals.lighting) items.push(vals.lighting+', cinematic lighting');
-  if(vals.style) items.push(vals.style+', film photography');
-  if(vals.mood) items.push(`${vals.mood} atmosphere`);
+  /* ------------------------------------------------------------------ 渲染 */
+  function renderSlots() {
+    const host = byId('slotFields');
+    host.textContent = '';
 
-  prompt=items.join(', ');
-  prompt+=', detailed skin texture, natural imperfections, subtle film grain<br>';
-  prompt+='<br>◆ <b>Negative</b>: plastic skin, doll-like, airbrushed, smooth, CGI, 3D render, overexposure, harsh lighting, photorealistic, watermark, text<br>';
-  prompt+='<br>◆ <b>Krea 2 Settings</b>: Turbo mode, strength 0.7-0.85, high fidelity<br>';
+    SLOTS.forEach((slot, index) => {
+      const row = el('div', 'slot-row');
+      row.dataset.slot = slot.id;
 
-  document.getElementById('expandedOutput').innerHTML=prompt;
-  gsToast('Prompt 已扩写');
-}
+      const label = el('label', 'slot-label');
+      label.htmlFor = 'slot_' + slot.id;
+      const badge = el('span', 'slot-num', String(index + 1));
+      badge.setAttribute('aria-hidden', 'true');
+      label.append(badge, el('span', null, slot.label));
 
-function copyExpanded(){
-  const t=document.getElementById('expandedOutput').innerText;
-  if(t.includes('在左侧')){gsToast('请先扩写 Prompt');return;}
-  gsCopy(t);
-}
+      const field = el('div', 'slot-input');
+      const input = el('input');
+      input.type = 'text';
+      input.id = 'slot_' + slot.id;
+      input.placeholder = '例: ' + slot.eg;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.maxLength = MAX_LEN;
+      input.setAttribute('aria-describedby', 'hint_' + slot.id);
+      field.append(input);
 
-renderSlots();
-renderExamples();
-renderMappings();
+      const hint = el('span', 'slot-hint', slot.hint);
+      hint.id = 'hint_' + slot.id;
+
+      row.append(label, field, hint);
+      host.append(row);
+    });
+  }
+
+  function renderExamples() {
+    const host = byId('examples');
+    host.textContent = '';
+
+    EXAMPLES.forEach((example, index) => {
+      const card = el('button', 'example-card xq-spotlight');
+      card.type = 'button';
+      card.dataset.example = String(index);
+
+      const summary = SLOTS.map((slot) => example.slots[slot.id]).filter(Boolean).join(' · ');
+      card.append(
+        el('h4', null, example.title),
+        el('p', null, summary.length > 74 ? summary.slice(0, 74) + '…' : summary)
+      );
+      card.setAttribute('aria-label', '载入示例：' + example.title);
+      host.append(card);
+    });
+  }
+
+  function renderMappings() {
+    const host = byId('mappingTable');
+    host.textContent = '';
+
+    MAPPINGS.forEach((mapping, index) => {
+      const row = el('div', 'mapping-row');
+
+      const chip = el('button', 'chip map-chip');
+      chip.type = 'button';
+      chip.dataset.mapping = String(index);
+      chip.setAttribute('aria-label', '把「' + mapping.cn + '」的映射词追加到「' + slotTitle(mapping.slot) + '」卡槽');
+      const plus = el('span', 'map-chip__plus', '＋');
+      plus.setAttribute('aria-hidden', 'true');
+      chip.append(el('span', null, mapping.cn), plus);
+
+      const arrow = el('span', 'mapping-arrow', '→');
+      arrow.setAttribute('aria-hidden', 'true');
+
+      row.append(chip, arrow, el('code', 'mapping-to', mapping.en), el('span', 'mapping-slot', '→ ' + slotTitle(mapping.slot)));
+      host.append(row);
+    });
+  }
+
+  function renderEmptyOutput() {
+    const host = byId('expandedOutput');
+    host.textContent = '';
+
+    const empty = el('div', 'out-empty');
+    const icon = el('span', 'out-empty__icon', '✦');
+    icon.setAttribute('aria-hidden', 'true');
+    empty.append(icon, el('span', null, '在上方卡槽填入内容后点击「扩写 Prompt」'));
+    empty.append(el('span', null, '至少填一个卡槽即可开始，填得越全，结构越稳'));
+    host.append(empty);
+  }
+
+  function outputCard(kind, title, text, delay) {
+    const card = el('div', 'out-card' + (kind ? ' out-card--' + kind : ''));
+    card.style.setProperty('--krea-delay', delay + 'ms');
+
+    const head = el('div', 'out-card__head');
+    const label = el('span', 'out-card__title');
+    const dot = el('span', 'out-card__dot');
+    dot.setAttribute('aria-hidden', 'true');
+    label.append(dot, el('span', null, title));
+
+    const meta = el('span', 'out-card__meta', text.length + ' chars');
+
+    const copyBtn = el('button', 'btn btn-ghost btn-sm');
+    copyBtn.type = 'button';
+    copyBtn.dataset.copy = title;
+    copyBtn.textContent = '📋 复制';
+    copyBtn.setAttribute('aria-label', '复制 ' + title + ' 内容');
+
+    head.append(label, meta, copyBtn);
+
+    const pre = el('pre');
+    pre.append(el('code', null, text));
+
+    card.append(head, pre);
+    return card;
+  }
+
+  function renderOutput(result) {
+    const host = byId('expandedOutput');
+    host.textContent = '';
+
+    const stack = el('div', 'out-stack');
+    stack.append(
+      outputCard('pos', 'Positive', result.positive, 0),
+      outputCard('neg', 'Negative', result.negative, 90),
+      outputCard('set', 'Settings', result.settings, 180)
+    );
+    host.append(stack);
+  }
+
+  /* -------------------------------------------------------------- 状态维护 */
+  function readSlots() {
+    const values = {};
+    SLOTS.forEach((slot) => {
+      values[slot.id] = inputOf(slot.id).value.trim().replace(/\s+/g, ' ');
+    });
+    return values;
+  }
+
+  function updateSlotState() {
+    let filled = 0;
+
+    SLOTS.forEach((slot) => {
+      const input = inputOf(slot.id);
+      const has = input.value.trim().length > 0;
+      if (has) filled += 1;
+      input.closest('.slot-row').classList.toggle('is-filled', has);
+    });
+
+    byId('slotProgressBar').style.width = (filled / SLOTS.length * 100) + '%';
+    byId('slotProgressText').textContent = filled + ' / ' + SLOTS.length + ' 卡槽已填写';
+    byId('slotProgressTrack').setAttribute('aria-valuenow', String(filled));
+    return filled;
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(readSlots()));
+    } catch {
+      // 隐私模式下 localStorage 会抛错，草稿丢失不影响主流程
+    }
+  }
+
+  function restore() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    } catch {
+      saved = null;
+    }
+    if (!saved || typeof saved !== 'object') return;
+
+    SLOTS.forEach((slot) => {
+      const value = saved[slot.id];
+      if (typeof value === 'string') inputOf(slot.id).value = value.slice(0, MAX_LEN);
+    });
+  }
+
+  /* -------------------------------------------------------------- 扩写逻辑 */
+  function buildPrompt(values) {
+    const all = SLOTS.map((slot) => values[slot.id]).filter(Boolean).join(', ').toLowerCase();
+    const missing = (pattern) => !pattern.test(all);
+    const items = [];
+
+    if (values.subject) items.push('Portrait of ' + values.subject);
+    if (values.action) items.push(values.action);
+    if (values.clothing) items.push('wearing ' + values.clothing);
+    if (values.expression) items.push(values.expression + ' expression');
+    if (values.environment) items.push('in ' + values.environment);
+
+    // 只在用户没写过同类词时补强，避免"cinematic lighting, cinematic lighting"
+    if (values.lighting) {
+      items.push(missing(/cinematic|lighting/) ? values.lighting + ', cinematic lighting' : values.lighting);
+    }
+    if (values.style) {
+      items.push(missing(/\bfilm\b|photograph/) ? values.style + ', film photography' : values.style);
+    }
+    if (values.mood) items.push(values.mood + ' atmosphere');
+
+    const texture = [];
+    if (missing(/skin/)) texture.push('detailed skin texture');
+    if (missing(/imperfect/)) texture.push('natural imperfections');
+    if (missing(/grain/)) texture.push('subtle film grain');
+
+    return {
+      positive: items.concat(texture).join(', '),
+      negative: NEGATIVE,
+      settings: SETTINGS
+    };
+  }
+
+  function combinedText(result) {
+    return 'Positive:\n' + result.positive
+      + '\n\nNegative:\n' + result.negative
+      + '\n\nKrea 2 Settings:\n' + result.settings;
+  }
+
+  function expandPrompt() {
+    const values = readSlots();
+    const hasContent = SLOTS.some((slot) => values[slot.id]);
+
+    if (!hasContent) {
+      toast('请至少填写一个卡槽');
+      inputOf(SLOTS[0].id).focus();
+      return;
+    }
+
+    const button = byId('btnExpand');
+    button.classList.add('is-loading');
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+
+    // 短暂的"生成中"停顿，让扩写这一步有反馈感；减少动效时直接出结果
+    window.setTimeout(() => {
+      state.output = buildPrompt(values);
+      state.expanded = true;
+      renderOutput(state.output);
+      button.classList.remove('is-loading');
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      toast('Prompt 已扩写');
+    }, still.matches ? 0 : 420);
+  }
+
+  function copyExpanded() {
+    if (!state.expanded || !state.output) {
+      toast('请先扩写 Prompt');
+      return;
+    }
+    window.gsCopy(combinedText(state.output), byId('btnCopyAll'));
+  }
+
+  function clearSlots() {
+    SLOTS.forEach((slot) => { inputOf(slot.id).value = ''; });
+    state.expanded = false;
+    state.output = null;
+    renderEmptyOutput();
+    updateSlotState();
+    try {
+      localStorage.removeItem(STORE_KEY);
+    } catch {
+      // 同上，清不掉草稿也不阻塞界面
+    }
+    toast('八卡槽已清空');
+  }
+
+  function loadExample(index) {
+    const example = EXAMPLES[index];
+    if (!example) return;
+
+    SLOTS.forEach((slot) => { inputOf(slot.id).value = example.slots[slot.id] || ''; });
+    updateSlotState();
+    persist();
+    toast(example.title + ' 已载入');
+  }
+
+  function applyMapping(index) {
+    const mapping = MAPPINGS[index];
+    if (!mapping) return;
+
+    const input = inputOf(mapping.slot);
+    if (!input) return;
+
+    const current = input.value.trim().replace(/[,，]\s*$/, '');
+    if (current.toLowerCase().includes(mapping.en.toLowerCase())) {
+      toast('「' + mapping.cn + '」已在「' + slotTitle(mapping.slot) + '」里了');
+      return;
+    }
+
+    input.value = current ? current + ', ' + mapping.en : mapping.en;
+    updateSlotState();
+    persist();
+
+    input.classList.remove('is-hit');
+    void input.offsetWidth;
+    input.classList.add('is-hit');
+    input.focus({ preventScroll: true });
+    toast('「' + mapping.cn + '」已追加到「' + slotTitle(mapping.slot) + '」');
+  }
+
+  /* ---------------------------------------------------------------- 事件 */
+  function bind() {
+    byId('btnExpand').addEventListener('click', expandPrompt);
+    byId('btnCopyAll').addEventListener('click', copyExpanded);
+    byId('btnClear').addEventListener('click', clearSlots);
+
+    const fields = byId('slotFields');
+    fields.addEventListener('input', () => {
+      updateSlotState();
+      persist();
+    });
+    fields.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.isComposing) return;
+      event.preventDefault();
+      expandPrompt();
+    });
+    fields.addEventListener('animationend', (event) => {
+      event.target.classList.remove('is-hit');
+    });
+
+    byId('examples').addEventListener('click', (event) => {
+      const card = event.target.closest('[data-example]');
+      if (card) loadExample(Number(card.dataset.example));
+    });
+
+    byId('mappingTable').addEventListener('click', (event) => {
+      const chip = event.target.closest('[data-mapping]');
+      if (chip) applyMapping(Number(chip.dataset.mapping));
+    });
+
+    byId('expandedOutput').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-copy]');
+      if (!button || !state.output) return;
+
+      const key = button.dataset.copy;
+      const text = key === 'Negative' ? state.output.negative
+        : key === 'Settings' ? state.output.settings
+          : state.output.positive;
+      window.gsCopy(text, button);
+    });
+  }
+
+  /* ---------------------------------------------------- 局部滚动进场动画 */
+  function mountReveal() {
+    if (still.matches || !('IntersectionObserver' in window)) return;
+
+    const nodes = Array.prototype.slice.call(
+      document.querySelectorAll('.slot-row, .example-card, .mapping-row')
+    );
+    nodes.forEach((node, index) => {
+      node.setAttribute('data-xq-reveal', '');
+      node.style.setProperty('--xq-reveal-delay', Math.min(index % 8, 7) * 42 + 'ms');
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.05 });
+
+    nodes.forEach((node) => observer.observe(node));
+  }
+
+  renderSlots();
+  renderExamples();
+  renderMappings();
+  renderEmptyOutput();
+  restore();
+  updateSlotState();
+  bind();
+  mountReveal();
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

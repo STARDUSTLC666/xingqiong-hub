@@ -3,110 +3,782 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anima3 灵感魔盒 · Prompt Engine</title>
+<title>Anima3 灵感魔盒 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="把零散灵感拆成主体、动作、场景与风格模块，避免提示词互相打架。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/prompt-engine/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="Anima3 灵感魔盒 · 星穹枢庭">
+  <meta property="og:description" content="把零散灵感拆成主体、动作、场景与风格模块，避免提示词互相打架。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/prompt-engine/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-.search-bar { margin-bottom: 1rem; }
-.tag-section { margin-bottom: 1.2rem; }
-.tag-section h3 {
-  font-size: 0.82rem; color: rgba(232,168,96,0.7);
-  margin-bottom: 0.5rem; letter-spacing: 0.04em;
+/* ------------------------------------------------------------------ 检索 */
+.search-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
-.tag-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.search-row__field {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.search-meta {
+  flex: 0 0 auto;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.68rem;
+}
+.search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+.search-results:empty {
+  margin-top: 0;
+}
+.search-hint {
+  margin-top: 0.75rem;
+  color: var(--xq-text-muted);
+  font-size: 0.76rem;
+}
+
+/* ------------------------------------------------------------ 标签按钮 */
 .tag-card {
-  padding: 0.22rem 0.6rem; border-radius: 12px;
-  font-size: 0.7rem; cursor: pointer;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(200,200,224,0.55);
-  transition: all 0.2s; user-select: none;
+  position: relative;
+  padding: 0.26rem 0.68rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), box-shadow var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-ease);
 }
-.tag-card:hover { border-color: rgba(232,168,96,0.3); color: #d0c0a0; }
-.tag-card.selected {
-  background: rgba(232,168,96,0.15);
-  border-color: #e8a860; color: #e8a860;
+.tag-card:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+  transform: translateY(-1px);
 }
-.tag-card.nsfw {
-  border-color: rgba(255,120,160,0.12); color: #cc88a0;
+.tag-card:focus-visible {
+  outline: 2px solid var(--xq-gold);
+  outline-offset: 2px;
 }
-.tag-card.nsfw:hover { border-color: rgba(255,120,160,0.3); }
-.tag-card.nsfw.selected { background: rgba(255,120,160,0.18); border-color: #e880a8; color: #f0a8c8; }
+.tag-card[aria-pressed="true"] {
+  border-color: var(--xq-gold);
+  background: var(--xq-gold-wash);
+  background: color-mix(in srgb, var(--xq-gold) 17%, transparent);
+  box-shadow: var(--xq-glow-gold);
+  color: var(--xq-gold-bright);
+}
+.tag-card__cat {
+  margin-left: 0.38rem;
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+}
+.tag-card[aria-pressed="true"] .tag-card__cat {
+  color: inherit;
+  opacity: 0.72;
+}
 
-.matrix-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-.matrix-row .tag-a { font-size: 0.78rem; color: #e88080; min-width: 100px; }
-.matrix-row .conflict { font-size: 0.7rem; color: rgba(200,200,224,0.4); }
-.matrix-row .why { font-size: 0.68rem; color: rgba(200,200,224,0.3); margin-left: 0.5rem; }
-
-.result-box {
-  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.12);
-  border-radius: 10px; padding: 1rem; min-height: 60px;
-  font-size: 0.8rem; line-height: 1.8; color: #e0c090;
-  word-break: break-all;
+/* 成人向标签换玫瑰色，与金色主线拉开但不刺眼 */
+.tag-card--nsfw:hover {
+  border-color: var(--xq-rose);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-rose) 12%, transparent);
+  color: var(--xq-rose);
+}
+.tag-card--nsfw[aria-pressed="true"] {
+  border-color: var(--xq-rose);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-rose) 18%, transparent);
+  box-shadow: 0 0 0 1px var(--xq-line), 0 8px 26px rgba(0, 0, 0, 0.3);
+  color: var(--xq-rose);
 }
 
-.themes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
+/* 冲突态放在最后，压过选中态的金色 */
+.tag-card.is-conflict[aria-pressed="true"] {
+  border-color: var(--xq-danger);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-danger) 18%, transparent);
+  box-shadow: 0 0 0 1px var(--xq-danger), 0 8px 24px rgba(0, 0, 0, 0.34);
+  color: var(--xq-coral);
+}
+.tag-card.is-pop {
+  animation: pe-pop 340ms var(--xq-spring);
+}
+.tag-card.is-shake {
+  animation: pe-shake 420ms var(--xq-ease);
+}
+
+@keyframes pe-pop {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pe-shake {
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-3px); }
+  46% { transform: translateX(3px); }
+  70% { transform: translateX(-2px); }
+  88% { transform: translateX(2px); }
+}
+
+/* -------------------------------------------------------------- 互斥矩阵 */
+.matrix-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.matrix-head p {
+  flex: 1 1 240px;
+  margin: 0;
+}
+.matrix-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.66rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.68rem;
+  gap: 0.35rem;
+  transition: color var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    background var(--xq-dur) var(--xq-ease);
+}
+.matrix-status.is-hot {
+  border-color: var(--xq-danger);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-danger) 14%, transparent);
+  color: var(--xq-coral);
+}
+.matrix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+.matrix-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  padding: 0.52rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-sm);
+  gap: 0.55rem;
+  transition: background var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease);
+}
+.matrix-row + .matrix-row {
+  box-shadow: inset 0 1px 0 var(--xq-line-soft);
+}
+.matrix-row__side {
+  color: var(--xq-text-soft);
+  font-size: 0.78rem;
+  transition: color var(--xq-dur) var(--xq-ease);
+}
+.matrix-row__x {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.72rem;
+}
+.matrix-row__why {
+  color: var(--xq-text-muted);
+  font-size: 0.7rem;
+}
+.matrix-row.is-hot {
+  border-color: var(--xq-danger);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-danger) 12%, transparent);
+  box-shadow: none;
+}
+.matrix-row.is-hot .matrix-row__side,
+.matrix-row.is-hot .matrix-row__why,
+.matrix-row.is-hot .matrix-row__x {
+  color: var(--xq-coral);
+}
+.matrix-row.is-flare {
+  animation: pe-flare 720ms var(--xq-ease);
+}
+
+@keyframes pe-flare {
+  0% { box-shadow: 0 0 0 0 var(--xq-danger); }
+  100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+/* ---------------------------------------------------------- 标签字典布局 */
+.dict-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+.dict-toolbar__spacer {
+  flex: 1 1 auto;
+}
+.dict {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  align-items: start;
+  gap: 1.1rem;
+}
+.cat-nav {
+  position: sticky;
+  top: calc(var(--xq-topbar-h) + 14px);
+  display: flex;
+  max-height: calc(100vh - var(--xq-topbar-h) - 48px);
+  flex-direction: column;
+  overflow-y: auto;
+  padding-right: 4px;
+  gap: 2px;
+  scrollbar-width: thin;
+}
+.cat-nav__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.32rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-sm);
+  background: none;
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  gap: 0.4rem;
+  text-align: left;
+  text-decoration: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+.cat-nav__link:hover {
+  border-color: var(--xq-line);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-gold-bright);
+  transform: translateX(2px);
+}
+.cat-nav__link:focus-visible {
+  outline: 2px solid var(--xq-gold);
+  outline-offset: 1px;
+}
+.cat-nav__link.is-active {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+}
+.cat-nav__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cat-nav__count {
+  min-width: 20px;
+  padding: 0 0.34rem;
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+  text-align: center;
+  transition: background var(--xq-dur-fast) var(--xq-ease), color var(--xq-dur-fast) var(--xq-ease);
+}
+.cat-nav__link.has-picked .cat-nav__count {
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+}
+
+/* --------------------------------------------------------- 可折叠分类块 */
+.tag-section {
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  scroll-margin-top: calc(var(--xq-topbar-h) + 18px);
+  transition: border-color var(--xq-dur) var(--xq-ease);
+}
+.tag-section:hover {
+  border-color: var(--xq-line);
+}
+.tag-section--nsfw {
+  border-color: var(--xq-line);
+}
+.tag-section__head {
+  display: flex;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  gap: 0.5rem;
+  list-style: none;
+}
+.tag-section__head::-webkit-details-marker {
+  display: none;
+}
+.tag-section__head:focus-visible {
+  outline: 2px solid var(--xq-gold);
+  outline-offset: -2px;
+  border-radius: var(--xq-r-md);
+}
+.tag-section__caret {
+  flex: 0 0 auto;
+  color: var(--xq-text-faint);
+  font-size: 0.62rem;
+  transition: transform var(--xq-dur) var(--xq-spring), color var(--xq-dur-fast) var(--xq-ease);
+}
+.tag-section[open] .tag-section__caret {
+  color: var(--xq-gold);
+  transform: rotate(90deg);
+}
+.tag-section__name {
+  color: var(--xq-gold);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+.tag-section--nsfw .tag-section__name {
+  color: var(--xq-rose);
+}
+.tag-section__total {
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-mono);
+  font-size: 0.66rem;
+}
+.tag-section__picked {
+  padding: 0.08rem 0.5rem;
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+}
+.tag-section__lock {
+  margin-left: auto;
+  padding: 0.08rem 0.5rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  color: var(--xq-rose);
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+.tag-section[open] .tag-section__lock {
+  opacity: 0.55;
+}
+.tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 0.7rem 0.7rem;
+  gap: 0.35rem;
+}
+.tag-section[open] .tag-grid {
+  animation: pe-unfold var(--xq-dur) var(--xq-ease-out);
+}
+
+@keyframes pe-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* ------------------------------------------------------------- 主题预设 */
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  gap: 0.5rem;
+}
 .theme-btn {
-  padding: 0.5rem 0.8rem; border-radius: 10px; font-size: 0.75rem; cursor: pointer;
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(200,200,224,0.5); text-align: center; transition: all 0.2s;
+  position: relative;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease),
+    transform var(--xq-dur) var(--xq-ease);
 }
-.theme-btn:hover { border-color: rgba(232,168,96,0.3); color: #e8a860; }
-.theme-btn.active { background: rgba(232,168,96,0.12); border-color: #e8a860; color: #e8a860; }
+.theme-btn:hover {
+  border-color: var(--xq-line-strong);
+  color: var(--xq-gold-bright);
+  box-shadow: var(--xq-shadow-sm);
+  transform: translateY(-2px);
+}
+.theme-btn:focus-visible {
+  outline: 2px solid var(--xq-gold);
+  outline-offset: 2px;
+}
+.theme-btn[aria-pressed="true"] {
+  border-color: var(--xq-gold);
+  background: var(--xq-gold-wash);
+  box-shadow: var(--xq-glow-gold);
+  color: var(--xq-gold-bright);
+}
+.theme-btn__mark {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--xq-gold);
+  color: var(--xq-ink);
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0;
+  place-items: center;
+  transform: scale(0.3);
+  transition: opacity var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
+}
+.theme-btn[aria-pressed="true"] .theme-btn__mark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --------------------------------------------------------------- 结果框 */
+.result-box {
+  min-height: 62px;
+  padding: 1rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  background: color-mix(in srgb, var(--xq-void) 55%, transparent);
+  color: var(--xq-gold-bright);
+  font-family: var(--xq-font-mono);
+  font-size: 0.78rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.result-box.is-empty {
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-sans);
+}
+
+/* --------------------------------------------------- 底部已选标签悬浮条 */
+.dock {
+  position: sticky;
+  z-index: 40;
+  bottom: clamp(10px, 2vw, 18px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 1.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-lg);
+  animation: none; /* 盖掉 .page > * 的入场动画，否则 fill 态会锁死 transform 过渡 */
+  background: var(--xq-surface-strong);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
+  gap: 0.6rem;
+  transition: opacity var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring),
+    visibility 0s;
+  visibility: visible;
+}
+/* visibility 而不是只有 opacity：否则收起的悬浮条仍能被 Tab 键走进去 */
+.dock.is-idle {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(100% + 24px));
+  transition-delay: 0s, 0s, var(--xq-dur);
+  visibility: hidden;
+}
+.dock__count {
+  display: inline-flex;
+  align-items: baseline;
+  padding: 0.26rem 0.7rem;
+  border: 1px solid var(--xq-line-strong);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+  font-family: var(--xq-font-mono);
+  font-size: 0.68rem;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+.dock__num {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.dock__num.is-bump {
+  display: inline-block;
+  animation: pe-bump 380ms var(--xq-spring);
+}
+
+@keyframes pe-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.34); }
+  100% { transform: scale(1); }
+}
+
+.dock__warn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--xq-danger);
+  border-radius: var(--xq-r-pill);
+  color: var(--xq-coral);
+  font-size: 0.68rem;
+  gap: 0.28rem;
+  white-space: nowrap;
+}
+.dock__strip {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 220px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  gap: 0.32rem;
+  scrollbar-width: thin;
+}
+.dock__chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0.18rem 0.34rem 0.18rem 0.56rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  gap: 0.3rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease);
+}
+.dock__chip:hover {
+  border-color: var(--xq-danger);
+  color: var(--xq-coral);
+}
+.dock__chip:focus-visible {
+  outline: 2px solid var(--xq-gold);
+  outline-offset: 2px;
+}
+.dock__chip--conflict {
+  border-color: var(--xq-danger);
+  color: var(--xq-coral);
+}
+.dock__chip__x {
+  font-family: var(--xq-font-mono);
+  opacity: 0.6;
+}
+.dock__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* 复制成功后的 ✓ 态：两段文案互斥显示，避免改 textContent 抖动 */
+.btn__done {
+  display: none;
+}
+.btn.is-copied .btn__idle {
+  display: none;
+}
+.btn.is-copied .btn__done {
+  display: inline;
+}
+.btn.is-copied {
+  border-color: var(--xq-ok);
+  color: var(--xq-ok);
+}
+
+/* --------------------------------------------------------------- 响应式 */
+@media (max-width: 900px) {
+  .dict {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cat-nav {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-right: 0;
+    padding-bottom: 6px;
+  }
+  .cat-nav__link {
+    flex: 0 0 auto;
+  }
+  .cat-nav__link:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .matrix-row {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .matrix-row__why {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  /* 给固定在右下角的返回顶部键留出通道 */
+  .dock {
+    padding-right: 3.4rem;
+  }
+  .dock__actions {
+    width: 100%;
+  }
+  .dock__actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-card,
+  .theme-btn,
+  .cat-nav__link,
+  .tag-section__caret,
+  .theme-btn__mark,
+  .dock {
+    transition: none;
+  }
+  .tag-card:hover,
+  .theme-btn:hover,
+  .cat-nav__link:hover {
+    transform: none;
+  }
+  .tag-card.is-pop,
+  .tag-card.is-shake,
+  .matrix-row.is-flare,
+  .dock__num.is-bump,
+  .tag-section[open] .tag-grid {
+    animation: none;
+  }
+  .tag-section[open] .tag-section__caret {
+    transform: rotate(90deg);
+  }
+  .theme-btn[aria-pressed="true"] .theme-btn__mark {
+    transform: none;
+  }
+  .dock.is-idle {
+    transform: none;
+  }
+}
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
   <header class="page-header">
     <h1>Anima3 灵感魔盒</h1>
     <p class="subtitle">Prompt Engine · 四大防雷矩阵 + 12 大主题标签字典</p>
   </header>
 
-  <!-- Search -->
+  <!-- 检索 -->
   <div class="panel">
     <div class="panel-title">🔍 标签检索</div>
-    <input type="search" class="search-bar" id="tagSearch" placeholder="搜索标签... 如: blush, maid, wet, nsfw" oninput="filterTags()">
-    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem;" id="searchResults"></div>
+    <div class="search-row">
+      <label class="xq-sr" for="tagSearch">搜索标签</label>
+      <span class="search-row__field">
+        <input type="search" id="tagSearch" placeholder="搜索标签… 如 blush、maid、wet"
+               autocomplete="off" spellcheck="false" aria-describedby="searchMeta">
+      </span>
+      <span class="search-meta" id="searchMeta" aria-live="polite"></span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+    <p class="search-hint" id="searchHint">输入关键词跨分类查找，结果会标出标签所属分类，点一下即可加入组合。</p>
   </div>
 
   <!-- 防雷矩阵 -->
   <div class="panel">
     <div class="panel-title">⚠️ 四大防雷互斥矩阵</div>
-    <p class="text-muted mb-1">以下标签组合会互相矛盾或导致画面崩坏，注意避开</p>
-    <div id="matrixContent"></div>
+    <div class="matrix-head">
+      <p class="text-muted">以下标签组合会互相矛盾或导致画面崩坏。你选中的标签一旦踩中，对应行会实时亮红</p>
+      <span class="matrix-status" id="matrixStatus" aria-live="polite">当前无冲突</span>
+    </div>
+    <div class="matrix-list" id="matrixContent"></div>
   </div>
 
-  <!-- 主体标签区 -->
+  <!-- 标签字典 -->
   <div class="panel">
     <div class="panel-title">📋 标签字典</div>
-    <div id="tagSections"></div>
+    <div class="dict-toolbar">
+      <button type="button" class="btn btn-ghost btn-sm" id="btnExpandAll">展开全部分类</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCollapseAll">收起全部分类</button>
+      <span class="dict-toolbar__spacer"></span>
+      <span class="text-muted">🔞 成人向分类默认折叠，展开状态会记在本机</span>
+    </div>
+    <div class="dict">
+      <nav class="cat-nav" id="catNav" aria-label="标签分类导航"></nav>
+      <div id="tagSections"></div>
+    </div>
   </div>
 
   <!-- 12 大主题 -->
   <div class="panel">
     <div class="panel-title">🌟 12 大特殊主题</div>
+    <p class="text-muted mb-1">主题预设采用「并入」而非覆盖：已选标签会被保留，可用悬浮条上的撤销键回到上一步</p>
     <div class="themes-grid" id="themeGrid"></div>
   </div>
 
   <!-- 组合区 -->
   <div class="panel">
     <div class="panel-title">📦 已选标签组合</div>
-    <div class="result-box" id="selectedTags">点击标签开始构建 prompt...</div>
-    <div class="flex-row mt-1">
-      <button class="btn btn-primary" onclick="copySelected()">📋 复制 Prompt</button>
-      <button class="btn btn-ghost" onclick="clearSelected()">✕ 清空</button>
-      <span class="text-muted" id="tagCount">0 个标签</span>
+    <div class="result-box is-empty" id="selectedTags" aria-live="polite">点击标签开始构建 prompt…</div>
+  </div>
+
+  <!-- 底部悬浮操作条 -->
+  <div class="dock is-idle" id="dock" role="region" aria-label="已选标签操作条">
+    <span class="dock__count" id="dockCount">
+      <span class="dock__num" id="dockNum">0</span>
+      <span>个标签</span>
+    </span>
+    <span class="dock__warn" id="dockWarn" hidden>
+      <span aria-hidden="true">⚠</span>
+      <span id="dockWarnText">0 处冲突</span>
+    </span>
+    <div class="dock__strip" id="dockStrip" role="group" aria-label="已选标签，点击可移除"></div>
+    <div class="dock__actions">
+      <button type="button" class="btn btn-primary" id="btnCopy">
+        <span class="btn__idle">📋 复制 Prompt</span>
+        <span class="btn__done">✓ 已复制</span>
+      </button>
+      <button type="button" class="btn btn-ghost" id="btnUndo" hidden>↺ 撤销</button>
+      <button type="button" class="btn btn-ghost" id="btnClear">✕ 清空</button>
     </div>
   </div>
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
+(function () {
+'use strict';
+
 // === TAG DATABASE ===
-const tagDB = [
+const TAG_DB = [
   // Character
-  { cat:'人物特征', tags:['1girl','1boy','multiple girls','loli','mature','tall','short','petite','curvy','muscular','chubby','slim','busty','flat chest'] },
+  { cat:'人物特征', tags:['1girl','1boy','multiple girls','mature','adult','tall','short','curvy','muscular','chubby','slim','busty','slender'] },
   { cat:'发型', tags:['twin tails','long hair','short hair','ponytail','braid','bangs','ahoge','hair bun','wavy hair','straight hair','drill hair','hime cut'] },
   { cat:'发色', tags:['blonde hair','black hair','brown hair','silver hair','white hair','pink hair','blue hair','purple hair','red hair','green hair','gradient hair','multicolored hair'] },
   { cat:'眼睛', tags:['blue eyes','red eyes','green eyes','purple eyes','brown eyes','yellow eyes','heterochromia','glowing eyes','half-closed eyes','teary eyes'] },
@@ -133,20 +805,28 @@ const tagDB = [
 ];
 
 // === MUTEX MATRIX ===
-const matrix = [
-  ['泳装 swimsuit','冬装 winter clothes','一冷一热温度矛盾'],
-  ['室外 beach','室内 fireplace','场景冲突'],
-  ['白天 daylight','夜晚 night','光照矛盾'],
-  ['幼女 loli','巨乳 huge breasts','年龄特征矛盾'],
-  ['tall','short','比例冲突'],
-  ['smile','angry','表情冲突'],
-  ['cute','horror','氛围冲突'],
-  ['anime coloring','photorealistic','风格崩溃'],
-  ['nude','clothed','衣着矛盾'],
+// label 保留原来的中英写法给人看，tags 才是拿来跟「已选」实时比对的可判定词
+const MATRIX = [
+  { a:{ label:'泳装 swimsuit', tags:['bikini'] },
+    b:{ label:'冬装 winter clothes', tags:['sweater','hoodie'] }, why:'一冷一热温度矛盾' },
+  { a:{ label:'室外 beach', tags:['beach','outdoor','pool','rooftop','cityscape','forest'] },
+    b:{ label:'室内 fireplace', tags:['bedroom','classroom','bathroom','office','gym'] }, why:'场景冲突' },
+  { a:{ label:'白天 daylight', tags:['sunset','god rays','dappled light'] },
+    b:{ label:'夜晚 night', tags:['night','moonlight','candlelight','neon lights'] }, why:'光照矛盾' },
+  { a:{ label:'tall', tags:['tall'] },
+    b:{ label:'short', tags:['short'] }, why:'比例冲突' },
+  { a:{ label:'smile', tags:['smile','seductive smile'] },
+    b:{ label:'angry', tags:['angry','sad'] }, why:'表情冲突' },
+  { a:{ label:'cute', tags:['cute'] },
+    b:{ label:'horror', tags:['horror'] }, why:'氛围冲突' },
+  { a:{ label:'anime coloring', tags:['anime coloring','cel shading'] },
+    b:{ label:'photorealistic', tags:['photorealistic'] }, why:'风格崩溃' },
+  { a:{ label:'nude', tags:['nude','topless','bottomless'] },
+    b:{ label:'clothed', tags:['clothed','school uniform','serafuku','blazer','hoodie','sweater','shirt','lingerie','bikini','bra','panties'] }, why:'衣着矛盾' },
 ];
 
 // === 12 THEMES ===
-const themes = [
+const THEMES = [
   { name:'🏫 校园日常', add:['1girl','school uniform','serafuku','classroom','smile','soft lighting','hand-drawn','anime coloring'] },
   { name:'🛁 浴室湿身', add:['1girl','bathroom','wet','wet clothes','see-through wet','steam','sweating','blush'] },
   { name:'🌙 深夜闺房', add:['1girl','bedroom','night','dim lighting','moonlight','lying','intimate','sensual'] },
@@ -157,94 +837,599 @@ const themes = [
   { name:'🐱 猫娘女仆', add:['1girl','maid','cat ears','cat tail','collar','apron','thighhighs','blush'] },
   { name:'👿 魅魔降世', add:['1girl','succubus','horns','wings','demon tail','nude','breasts','seductive smile'] },
   { name:'💕 双人亲密', add:['2girls','hug','kiss','embrace','cuddling','blush','intimate','romantic'] },
-  { name:'🎀 萝莉纯爱', add:['1girl','loli','petite','flat chest','cute','blush','smile','ribbon'] },
+  { name:'🎀 甜系少女', add:['1girl','adult','cute','frilled dress','blush','smile','ribbon','soft lighting'] },
   { name:'🔞 极限涩涩', add:['1girl','nude','spread legs','masturbation','ahegao','cum','nsfw','erotic'] },
 ];
 
-let selected = [];
+/* ------------------------------------------------------------------ 常量 */
+const STORE_KEY = 'xq.promptEngine.sections.v1';
+const SEARCH_LIMIT = 40;
+const SEARCH_DELAY = 180;
+const EMPTY_TEXT = '点击标签开始构建 prompt…';
+const DEFAULT_HINT = '输入关键词跨分类查找，结果会标出标签所属分类，点一下即可加入组合。';
+const TOTAL_TAGS = TAG_DB.reduce((sum, cat) => sum + cat.tags.length, 0);
 
-// === RENDER ===
-function renderAll(){
-  renderMatrix();
-  renderTags();
-  renderThemes();
+const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+const byId = (id) => document.getElementById(id);
+
+function toast(message, kind) {
+  if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, kind);
+  else if (typeof window.gsToast === 'function') window.gsToast(message);
 }
 
-function renderMatrix(){
-  const el = document.getElementById('matrixContent');
-  el.innerHTML = matrix.map(m=>`
-    <div class="matrix-row">
-      <span class="tag-a">${m[0]}</span>
-      <span style="font-size:0.7rem;color:#a88;">✕</span>
-      <span class="tag-a">${m[1]}</span>
-      <span class="why">— ${m[2]}</span>
-    </div>
-  `).join('');
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
 }
 
-function renderTags(){
-  const sections = document.getElementById('tagSections');
-  sections.innerHTML = tagDB.map(cat=>`
-    <div class="tag-section" data-cat="${cat.cat}">
-      <h3>${cat.cat} (${cat.tags.length})</h3>
-      <div class="tag-grid">${cat.tags.map(t=>{
-        const isNSFW = cat.cat.startsWith('NSFW');
-        const sel = selected.includes(t);
-        return `<span class="tag-card${isNSFW?' nsfw':''}${sel?' selected':''}" onclick="toggleTag('${t.replace(/'/g,"&#39;")}')" data-tag="${t.replace(/'/g,"&#39;")}">${t}</span>`;
-      }).join('')}</div>
-    </div>
-  `).join('');
+function ghost(tag, className, text) {
+  const node = el(tag, className, text);
+  node.setAttribute('aria-hidden', 'true');
+  return node;
 }
 
-function renderThemes(){
-  document.getElementById('themeGrid').innerHTML = themes.map((th,i)=>
-    `<div class="theme-btn" onclick="applyTheme(${i})">${th.name}</div>`
-  ).join('');
+/* ------------------------------------------------------------------ 状态 */
+const picked = [];            // 顺序即 prompt 顺序
+const pickedSet = new Set();
+const nodesByTag = new Map(); // 同一个词会落在多个分类里，所有镜像节点都要同步
+const catRefs = [];
+const matrixRefs = [];
+const themeRefs = [];
+
+let searchNodes = [];
+let conflictTags = new Set();
+let undoSnapshot = null;
+let lastCount = 0;
+let searchTimer = 0;
+let persistTimer = 0;
+let copyTimer = 0;
+
+/* -------------------------------------------------------------- 小工具 */
+function register(tag, node) {
+  const list = nodesByTag.get(tag);
+  if (list) list.push(node);
+  else nodesByTag.set(tag, [node]);
 }
 
-function toggleTag(tag){
-  const idx = selected.indexOf(tag);
-  if(idx>=0) selected.splice(idx,1);
-  else selected.push(tag);
-  updateDisplay();
+// 字典节点常驻，搜索节点每次重建，取状态时两边都要照顾到
+function nodesOf(tag) {
+  const list = (nodesByTag.get(tag) || []).slice();
+  for (const node of searchNodes) if (node.dataset.tag === tag) list.push(node);
+  return list;
 }
 
-function applyTheme(idx){
-  selected = [...themes[idx].add];
-  updateDisplay();
-  gsToast(themes[idx].name+' 已应用');
+function pulse(node, className) {
+  if (still.matches) return;
+  node.classList.remove(className);
+  void node.offsetWidth;
+  node.classList.add(className);
 }
 
-function clearSelected(){
-  selected = [];
-  updateDisplay();
+function tagButton(tag, catName, isNSFW, showCat) {
+  const button = el('button', 'tag-card' + (isNSFW ? ' tag-card--nsfw' : ''));
+  button.type = 'button';
+  button.dataset.tag = tag;
+  button.setAttribute('aria-pressed', pickedSet.has(tag) ? 'true' : 'false');
+  if (conflictTags.has(tag)) button.classList.add('is-conflict');
+  button.append(el('span', null, tag));
+  if (showCat) button.append(el('span', 'tag-card__cat', catName));
+  else button.title = catName + ' · ' + tag;
+  return button;
 }
 
-function copySelected(){
-  if(!selected.length){gsToast('请先选择标签');return;}
-  gsCopy(selected.join(', '));
+/* ---------------------------------------------------------- 折叠状态记忆 */
+function readOpenMap() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    return saved && typeof saved === 'object' ? saved : {};
+  } catch {
+    return {};
+  }
 }
 
-function filterTags(){
-  const q = document.getElementById('tagSearch').value.toLowerCase();
-  const results = document.getElementById('searchResults');
-  if(!q){results.innerHTML='';return;}
+function persistSections() {
+  window.clearTimeout(persistTimer);
+  persistTimer = window.setTimeout(() => {
+    const map = {};
+    catRefs.forEach((ref) => { map[ref.name] = ref.section.open; });
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(map));
+    } catch {
+      // 隐私模式下写不进去，只是下次进来记不住展开状态
+    }
+  }, 120);
+}
+
+/* ------------------------------------------------------------------ 渲染 */
+function renderMatrix() {
+  const host = byId('matrixContent');
+
+  MATRIX.forEach((row) => {
+    const node = el('div', 'matrix-row');
+    node.append(
+      el('span', 'matrix-row__side', row.a.label),
+      ghost('span', 'matrix-row__x', '✕'),
+      el('span', 'matrix-row__side', row.b.label),
+      el('span', 'matrix-row__why', '— ' + row.why)
+    );
+    host.append(node);
+    matrixRefs.push({ row, node });
+  });
+}
+
+function renderDictionary() {
+  const nav = byId('catNav');
+  const host = byId('tagSections');
+  const saved = readOpenMap();
+
+  TAG_DB.forEach((cat, index) => {
+    const isNSFW = cat.cat.indexOf('NSFW') === 0;
+    const id = 'pe-cat-' + index;
+
+    const link = el('a', 'cat-nav__link');
+    link.href = '#' + id;
+    link.dataset.jump = id;
+    const count = el('span', 'cat-nav__count', '0');
+    link.append(el('span', 'cat-nav__name', cat.cat), count);
+    nav.append(link);
+
+    const section = el('details', 'tag-section' + (isNSFW ? ' tag-section--nsfw' : ''));
+    section.id = id;
+    // 成人向分类默认折叠，既是轻量内容门，也让首屏不至于被大段标签淹没
+    section.open = typeof saved[cat.cat] === 'boolean' ? saved[cat.cat] : !isNSFW;
+
+    const head = el('summary', 'tag-section__head');
+    const badge = el('span', 'tag-section__picked');
+    badge.hidden = true;
+    head.append(
+      ghost('span', 'tag-section__caret', '▶'),
+      el('span', 'tag-section__name', cat.cat),
+      el('span', 'tag-section__total', cat.tags.length + ' 词'),
+      badge
+    );
+    if (isNSFW) head.append(el('span', 'tag-section__lock', '🔞 成人向'));
+
+    const grid = el('div', 'tag-grid');
+    cat.tags.forEach((tag) => {
+      const button = tagButton(tag, cat.cat, isNSFW, false);
+      register(tag, button);
+      grid.append(button);
+    });
+
+    section.append(head, grid);
+    host.append(section);
+    catRefs.push({ id, name: cat.cat, tags: cat.tags, link, count, badge, section });
+  });
+}
+
+function renderThemes() {
+  const host = byId('themeGrid');
+
+  THEMES.forEach((theme, index) => {
+    const button = el('button', 'theme-btn xq-spotlight');
+    button.type = 'button';
+    button.dataset.theme = String(index);
+    button.setAttribute('aria-pressed', 'false');
+    button.append(el('span', null, theme.name), ghost('span', 'theme-btn__mark', '✓'));
+    button.title = theme.name + '：' + theme.add.join(', ');
+    host.append(button);
+    themeRefs.push({ theme, node: button });
+  });
+}
+
+/* ------------------------------------------------------------ 状态同步 */
+function syncTag(tag) {
+  const state = pickedSet.has(tag) ? 'true' : 'false';
+  nodesOf(tag).forEach((node) => node.setAttribute('aria-pressed', state));
+}
+
+function syncAllTags() {
+  nodesByTag.forEach((list, tag) => {
+    const state = pickedSet.has(tag) ? 'true' : 'false';
+    list.forEach((node) => node.setAttribute('aria-pressed', state));
+  });
+  searchNodes.forEach((node) => {
+    node.setAttribute('aria-pressed', pickedSet.has(node.dataset.tag) ? 'true' : 'false');
+  });
+}
+
+function syncCategories() {
+  catRefs.forEach((ref) => {
+    let hits = 0;
+    for (const tag of ref.tags) if (pickedSet.has(tag)) hits += 1;
+
+    ref.count.textContent = String(hits);
+    ref.link.classList.toggle('has-picked', hits > 0);
+    ref.link.title = ref.name + '：共 ' + ref.tags.length + ' 词，已选 ' + hits;
+    ref.badge.hidden = hits === 0;
+    ref.badge.textContent = '已选 ' + hits;
+  });
+}
+
+// 只对新增/消失的冲突标签动手，避免每次点选都重刷三百个按钮
+function syncMatrix() {
+  const next = new Set();
+  let hot = 0;
+
+  matrixRefs.forEach((ref) => {
+    const left = ref.row.a.tags.filter((tag) => pickedSet.has(tag));
+    const right = ref.row.b.tags.filter((tag) => pickedSet.has(tag));
+    const clash = left.length > 0 && right.length > 0;
+
+    if (clash) {
+      hot += 1;
+      left.concat(right).forEach((tag) => next.add(tag));
+      if (!ref.node.classList.contains('is-hot')) {
+        ref.node.classList.add('is-hot');
+        pulse(ref.node, 'is-flare');
+      }
+    } else {
+      ref.node.classList.remove('is-hot');
+    }
+  });
+
+  conflictTags.forEach((tag) => {
+    if (next.has(tag)) return;
+    nodesOf(tag).forEach((node) => node.classList.remove('is-conflict'));
+  });
+  next.forEach((tag) => {
+    if (conflictTags.has(tag)) return;
+    nodesOf(tag).forEach((node) => {
+      node.classList.add('is-conflict');
+      pulse(node, 'is-shake');
+    });
+  });
+
+  conflictTags = next;
+  return hot;
+}
+
+function syncThemes() {
+  themeRefs.forEach((ref) => {
+    const full = ref.theme.add.every((tag) => pickedSet.has(tag));
+    ref.node.setAttribute('aria-pressed', full ? 'true' : 'false');
+  });
+}
+
+// 增量维护悬浮条上的标签条，重建会打断正在操作的焦点
+function syncStrip() {
+  const strip = byId('dockStrip');
+  const existing = new Map();
+  Array.prototype.forEach.call(strip.children, (node) => existing.set(node.dataset.tag, node));
+
+  existing.forEach((node, tag) => {
+    if (!pickedSet.has(tag)) node.remove();
+  });
+
+  picked.forEach((tag, index) => {
+    let node = existing.get(tag);
+    if (!node || !node.isConnected) {
+      node = el('button', 'dock__chip');
+      node.type = 'button';
+      node.dataset.tag = tag;
+      node.setAttribute('aria-label', '移除标签 ' + tag);
+      node.append(el('span', null, tag), ghost('span', 'dock__chip__x', '×'));
+    }
+    node.classList.toggle('dock__chip--conflict', conflictTags.has(tag));
+    if (strip.children[index] !== node) strip.insertBefore(node, strip.children[index] || null);
+  });
+}
+
+function syncResult() {
+  const box = byId('selectedTags');
+  box.textContent = picked.length ? picked.join(', ') : EMPTY_TEXT;
+  box.classList.toggle('is-empty', picked.length === 0);
+}
+
+function syncDock(hot) {
+  const dock = byId('dock');
+  const num = byId('dockNum');
+  const warn = byId('dockWarn');
+
+  // 清空之后也要留着悬浮条，否则撤销键会跟着一起消失
+  dock.classList.toggle('is-idle', picked.length === 0 && !undoSnapshot);
+  num.textContent = String(picked.length);
+  if (picked.length !== lastCount) {
+    pulse(num, 'is-bump');
+    lastCount = picked.length;
+  }
+
+  warn.hidden = hot === 0;
+  byId('dockWarnText').textContent = hot + ' 处冲突';
+  byId('btnUndo').hidden = !undoSnapshot;
+  byId('btnCopy').disabled = picked.length === 0;
+  byId('btnClear').disabled = picked.length === 0;
+}
+
+function syncStatus(hot) {
+  const status = byId('matrixStatus');
+  status.textContent = hot > 0 ? '⚠ ' + hot + ' 处冲突' : '当前无冲突';
+  status.classList.toggle('is-hot', hot > 0);
+}
+
+function refresh() {
+  const hot = syncMatrix();
+  syncCategories();
+  syncThemes();
+  syncStrip();
+  syncResult();
+  syncStatus(hot);
+  syncDock(hot);
+}
+
+/* ------------------------------------------------------------------ 操作 */
+function toggleTag(tag) {
+  const at = picked.indexOf(tag);
+  const turningOn = at < 0;
+
+  if (turningOn) {
+    picked.push(tag);
+    pickedSet.add(tag);
+  } else {
+    picked.splice(at, 1);
+    pickedSet.delete(tag);
+  }
+
+  syncTag(tag);
+  if (turningOn) nodesOf(tag).forEach((node) => pulse(node, 'is-pop'));
+  refresh();
+}
+
+function replaceAll(list) {
+  picked.length = 0;
+  pickedSet.clear();
+  list.forEach((tag) => {
+    if (pickedSet.has(tag)) return;
+    picked.push(tag);
+    pickedSet.add(tag);
+  });
+  syncAllTags();
+  refresh();
+}
+
+// 并入而不是覆盖：用户手挑的标签不该被预设无声抹掉
+function applyTheme(index) {
+  const theme = THEMES[index];
+  if (!theme) return;
+
+  const before = picked.slice();
+  const added = theme.add.filter((tag) => !pickedSet.has(tag));
+
+  if (!added.length) {
+    toast(theme.name + ' 的标签都已在组合里');
+    return;
+  }
+
+  added.forEach((tag) => {
+    picked.push(tag);
+    pickedSet.add(tag);
+  });
+  undoSnapshot = { list: before };
+  syncAllTags();
+  refresh();
+  toast(theme.name + ' 已并入 ' + added.length + ' 个新标签，原有 ' + before.length + ' 个保留');
+}
+
+function clearAll() {
+  if (!picked.length) {
+    toast('组合本来就是空的');
+    return;
+  }
+  const removed = picked.length;
+  undoSnapshot = { list: picked.slice() };
+  picked.length = 0;
+  pickedSet.clear();
+  syncAllTags();
+  refresh();
+  toast('已清空 ' + removed + ' 个标签，可点撤销找回');
+}
+
+function undo() {
+  if (!undoSnapshot) return;
+  const list = undoSnapshot.list;
+  undoSnapshot = null;
+  replaceAll(list);
+  toast('已回到上一步，当前 ' + list.length + ' 个标签');
+}
+
+function copyPrompt() {
+  if (!picked.length) {
+    toast('请先选择标签');
+    return;
+  }
+
+  const button = byId('btnCopy');
+  const done = () => {
+    button.classList.add('is-copied');
+    window.clearTimeout(copyTimer);
+    copyTimer = window.setTimeout(() => button.classList.remove('is-copied'), 1800);
+  };
+
+  if (typeof window.gsCopy !== 'function') return;
+  Promise.resolve(window.gsCopy(picked.join(', '), button)).then((ok) => {
+    if (ok !== false) done();
+  });
+}
+
+/* ------------------------------------------------------------------ 检索 */
+function runSearch() {
+  const query = byId('tagSearch').value.trim().toLowerCase();
+  const host = byId('searchResults');
+  const meta = byId('searchMeta');
+  const hint = byId('searchHint');
+
+  host.textContent = '';
+  searchNodes = [];
+
+  if (!query) {
+    meta.textContent = TOTAL_TAGS + ' 个标签待检索';
+    hint.textContent = DEFAULT_HINT;
+    hint.hidden = false;
+    return;
+  }
+
   const found = [];
-  tagDB.forEach(cat=>cat.tags.forEach(t=>{if(t.toLowerCase().includes(q))found.push({cat:cat.cat,tag:t});}));
-  results.innerHTML = found.slice(0,30).map(f=>
-    `<span class="tag-card${selected.includes(f.tag)?' selected':''}" onclick="toggleTag('${f.tag.replace(/'/g,"&#39;")}')">${f.tag}</span>`
-  ).join('');
+  TAG_DB.forEach((cat) => cat.tags.forEach((tag) => {
+    if (tag.toLowerCase().indexOf(query) >= 0) found.push({ cat: cat.cat, tag });
+  }));
+
+  if (!found.length) {
+    meta.textContent = '0 个匹配';
+    hint.textContent = '没有匹配的标签，换个更短的词试试。';
+    hint.hidden = false;
+    return;
+  }
+
+  found.slice(0, SEARCH_LIMIT).forEach((hit) => {
+    const button = tagButton(hit.tag, hit.cat, hit.cat.indexOf('NSFW') === 0, true);
+    searchNodes.push(button);
+    host.append(button);
+  });
+
+  meta.textContent = found.length + ' 个匹配'
+    + (found.length > SEARCH_LIMIT ? '，显示前 ' + SEARCH_LIMIT + ' 个' : '');
+  hint.hidden = true;
 }
 
-function updateDisplay(){
-  document.getElementById('selectedTags').textContent = selected.length ? selected.join(', ') : '点击标签开始构建 prompt...';
-  document.getElementById('tagCount').textContent = selected.length+' 个标签';
-  renderTags();
-  filterTags();
+/* ------------------------------------------------------------------ 事件 */
+function bind() {
+  const search = byId('tagSearch');
+  search.addEventListener('input', () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(runSearch, SEARCH_DELAY);
+  });
+  // 清除按钮与回车都应当立刻生效，不必等防抖
+  search.addEventListener('search', runSearch);
+  search.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    event.preventDefault();
+    window.clearTimeout(searchTimer);
+    runSearch();
+  });
+
+  const pickFrom = (host) => host.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-tag]');
+    if (button) toggleTag(button.dataset.tag);
+  });
+  pickFrom(byId('searchResults'));
+  pickFrom(byId('tagSections'));
+  pickFrom(byId('dockStrip'));
+
+  // toggle 事件不冒泡，只能在捕获阶段收
+  byId('tagSections').addEventListener('toggle', persistSections, true);
+
+  byId('catNav').addEventListener('click', (event) => {
+    const link = event.target.closest('[data-jump]');
+    if (!link) return;
+    const section = byId(link.dataset.jump);
+    if (section && !section.open) {
+      section.open = true;
+      persistSections();
+    }
+  });
+
+  byId('themeGrid').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-theme]');
+    if (button) applyTheme(Number(button.dataset.theme));
+  });
+
+  byId('btnCopy').addEventListener('click', copyPrompt);
+  byId('btnClear').addEventListener('click', clearAll);
+  byId('btnUndo').addEventListener('click', undo);
+
+  byId('btnExpandAll').addEventListener('click', () => {
+    catRefs.forEach((ref) => { ref.section.open = true; });
+    persistSections();
+    toast('已展开全部 ' + catRefs.length + ' 个分类');
+  });
+  byId('btnCollapseAll').addEventListener('click', () => {
+    catRefs.forEach((ref) => { ref.section.open = false; });
+    persistSections();
+    toast('已收起全部分类');
+  });
+
+  document.addEventListener('animationend', (event) => {
+    const node = event.target;
+    if (!node.classList) return;
+    node.classList.remove('is-pop', 'is-shake', 'is-flare', 'is-bump');
+  });
 }
 
-renderAll();
+/* ----------------------------------------------------- 滚动进场与导航高亮 */
+// 自带 observer，而不是等共享运行时来接管：这些节点是脚本现造的，
+// 一旦漏观察就会永远停在 opacity:0 上
+let revealObserver = null;
+let revealFired = false;
+const revealed = [];
+
+function markReveal(nodes, step) {
+  if (still.matches || !('IntersectionObserver' in window)) return;
+
+  if (!revealObserver) {
+    revealObserver = new IntersectionObserver((entries) => {
+      revealFired = true;
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        revealObserver.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.04 });
+
+    // 保险丝：observer 若一声不吭（某些嵌入式/后台渲染环境），
+    // 宁可不要进场动画，也不能把内容永远留在 opacity:0
+    window.setTimeout(() => {
+      if (revealFired) return;
+      revealObserver.disconnect();
+      revealed.forEach((node) => node.removeAttribute('data-xq-reveal'));
+    }, 1200);
+  }
+
+  nodes.forEach((node, index) => {
+    node.setAttribute('data-xq-reveal', '');
+    node.style.setProperty('--xq-reveal-delay', Math.min(index, 7) * step + 'ms');
+    revealed.push(node);
+    revealObserver.observe(node);
+  });
+}
+
+function mountNavSpy() {
+  if (!('IntersectionObserver' in window)) return;
+
+  const visible = new Set();
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) visible.add(entry.target.id);
+      else visible.delete(entry.target.id);
+    });
+
+    let active = '';
+    for (const ref of catRefs) {
+      if (visible.has(ref.id)) { active = ref.id; break; }
+    }
+    catRefs.forEach((ref) => ref.link.classList.toggle('is-active', ref.id === active));
+  }, { rootMargin: '-12% 0px -68% 0px', threshold: 0 });
+
+  catRefs.forEach((ref) => observer.observe(ref.section));
+}
+
+/* ------------------------------------------------------------------ 启动 */
+renderMatrix();
+renderDictionary();
+renderThemes();
+bind();
+runSearch();
+refresh();
+
+markReveal(matrixRefs.map((ref) => ref.node), 36);
+markReveal(catRefs.map((ref) => ref.section), 34);
+markReveal(themeRefs.map((ref) => ref.node), 30);
+mountNavSpy();
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

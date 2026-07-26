@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# 成人向页面通过各自的 <meta name="robots" content="noindex"> 退出索引。
+# 这里不写 Disallow —— 被 robots.txt 拦住的页面反而读不到 noindex 声明。
+
+Sitemap: https://stardustlc666.github.io/xingqiong-hub/sitemap.xml

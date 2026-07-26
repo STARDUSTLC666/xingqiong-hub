@@ -1,0 +1,998 @@
+/* ===========================================================================
+   星穹枢庭 · Sanctuary Design System
+   ---------------------------------------------------------------------------
+   全站共享的设计令牌、环境层与站点外壳。所有选择器都带 `xq-` 前缀，
+   或只声明自定义属性，因此可以安全地叠加在任何既有页面样式之上。
+   引入方式：<link rel="stylesheet" href="../assets/sanctuary.css">
+   =========================================================================== */
+
+/* ---------------------------------------------------------------- 设计令牌 */
+:root {
+  color-scheme: dark;
+
+  /* 背景与承载面 */
+  --xq-void: #05060f;
+  --xq-ink: #0a0c1a;
+  --xq-ink-soft: #111631;
+  --xq-ink-raised: #182042;
+  --xq-surface: rgba(21, 27, 56, 0.56);
+  --xq-surface-strong: rgba(24, 31, 64, 0.84);
+  --xq-surface-quiet: rgba(255, 255, 255, 0.035);
+
+  /* 主色：暖金 —— 星穹枢庭的身份色 */
+  --xq-gold: #e8a860;
+  --xq-gold-bright: #f7d9a0;
+  --xq-gold-deep: #c07f38;
+  --xq-gold-wash: rgba(232, 168, 96, 0.1);
+
+  /* 辅助色 */
+  --xq-cyan: #74c4d4;
+  --xq-mint: #7ec8a8;
+  --xq-violet: #ab9cdb;
+  --xq-coral: #e07d70;
+  --xq-rose: #ffb2cd;
+
+  /* 语义色 */
+  --xq-accent: var(--xq-gold);
+  --xq-accent-soft: var(--xq-gold-wash);
+  --xq-ok: var(--xq-mint);
+  --xq-warn: #e2b256;
+  --xq-danger: var(--xq-coral);
+
+  /* 文字 */
+  --xq-text: #eceaf6;
+  --xq-text-soft: rgba(228, 228, 246, 0.74);
+  --xq-text-muted: rgba(208, 210, 234, 0.53);
+  --xq-text-faint: rgba(200, 202, 228, 0.33);
+
+  /* 描边与分隔 */
+  --xq-line: rgba(255, 226, 178, 0.1);
+  --xq-line-soft: rgba(255, 255, 255, 0.06);
+  --xq-line-strong: rgba(255, 226, 178, 0.28);
+
+  /* 圆角 */
+  --xq-r-sm: 8px;
+  --xq-r-md: 12px;
+  --xq-r-lg: 18px;
+  --xq-r-xl: 26px;
+  --xq-r-pill: 999px;
+
+  /* 阴影与光 */
+  --xq-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.24);
+  --xq-shadow-md: 0 14px 40px rgba(0, 0, 0, 0.32);
+  --xq-shadow-lg: 0 28px 90px rgba(0, 0, 0, 0.44);
+  --xq-glow-gold: 0 0 0 1px rgba(232, 168, 96, 0.24), 0 10px 40px rgba(232, 168, 96, 0.18);
+  --xq-glow-cyan: 0 0 0 1px rgba(116, 196, 212, 0.24), 0 10px 40px rgba(116, 196, 212, 0.16);
+  --xq-inner-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* 排版 */
+  --xq-font-sans: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --xq-font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  --xq-font-mono: "JetBrains Mono", "Cascadia Code", "Sarasa Mono SC", "Consolas", ui-monospace, monospace;
+
+  /* 节奏与动效 */
+  --xq-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --xq-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --xq-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --xq-dur-fast: 160ms;
+  --xq-dur: 280ms;
+  --xq-dur-slow: 520ms;
+
+  /* 布局 */
+  --xq-topbar-h: 54px;
+  --xq-page: 1180px;
+}
+
+/* 成人向页面切换到珊瑚色强调，与首页 body[data-mode="adult"] 保持一致 */
+:root[data-xq-accent="coral"],
+body[data-mode="adult"] {
+  --xq-accent: var(--xq-coral);
+  --xq-accent-soft: rgba(224, 125, 112, 0.12);
+}
+
+:root[data-xq-accent="cyan"] {
+  --xq-accent: var(--xq-cyan);
+  --xq-accent-soft: rgba(116, 196, 212, 0.12);
+}
+
+/* --------------------------------------------------------------- 基础增强 */
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: rgba(232, 168, 96, 0.34) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  scroll-padding-top: calc(var(--xq-topbar-h) + 16px);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  color: #1a1207;
+  background: var(--xq-gold-bright);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: var(--xq-r-pill);
+  background: rgba(232, 168, 96, 0.26);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 168, 96, 0.5);
+  background-clip: content-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--xq-gold-bright);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.xq-sr {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- 环境背景 */
+/* 由 sanctuary.js 注入到 <body> 最前面。
+   用 z-index:-1 把它压在根层叠上下文的负层：这样正文无论定不定位都画在它之上，
+   共享层不必去动任何既有元素的 position（早先那样做会覆盖页面自己的 fixed 侧栏）。
+   代价是 body 背景必须透明，改由 html 承担底色。 */
+.xq-ambient {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  contain: layout paint style;
+  pointer-events: none;
+}
+
+html.xq-has-ambient {
+  background-color: var(--xq-void);
+}
+
+body.xq-has-ambient {
+  background-color: transparent;
+  background-image: none;
+}
+
+.xq-ambient__base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 88% at 50% -12%, rgba(38, 46, 96, 0.6), transparent 62%),
+    linear-gradient(180deg, var(--xq-ink) 0%, var(--xq-void) 100%);
+}
+
+/* 极光：三团缓慢漂移的柔光，用 blur 换取廉价的体积感 */
+.xq-aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.xq-aurora--gold {
+  top: -22vh;
+  left: -8vw;
+  width: 62vw;
+  height: 62vw;
+  animation: xq-drift-a 34s var(--xq-ease) infinite alternate;
+  background: radial-gradient(circle, rgba(232, 168, 96, 0.34), transparent 68%);
+}
+
+.xq-aurora--cyan {
+  top: 12vh;
+  right: -14vw;
+  width: 54vw;
+  height: 54vw;
+  animation: xq-drift-b 42s var(--xq-ease) infinite alternate;
+  background: radial-gradient(circle, rgba(97, 170, 210, 0.28), transparent 68%);
+}
+
+.xq-aurora--rose {
+  bottom: -26vh;
+  left: 22vw;
+  width: 58vw;
+  height: 58vw;
+  animation: xq-drift-c 50s var(--xq-ease) infinite alternate;
+  background: radial-gradient(circle, rgba(180, 120, 190, 0.2), transparent 68%);
+}
+
+@keyframes xq-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vw, 7vh, 0) scale(1.14);
+  }
+}
+
+@keyframes xq-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-11vw, 9vh, 0) scale(0.92);
+  }
+}
+
+@keyframes xq-drift-c {
+  from {
+    transform: translate3d(0, 0, 0) scale(0.94);
+  }
+  to {
+    transform: translate3d(8vw, -8vh, 0) scale(1.16);
+  }
+}
+
+/* 细密网格，给纯色背景一点“制图台”质感 */
+.xq-ambient__grid {
+  position: absolute;
+  inset: -1px;
+  background-image:
+    linear-gradient(rgba(255, 226, 178, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 226, 178, 0.045) 1px, transparent 1px);
+  background-size: 96px 96px;
+  mask-image: radial-gradient(120% 84% at 50% 0%, #000 12%, transparent 76%);
+  opacity: 0.7;
+}
+
+/* 星尘画布由 JS 绘制 */
+.xq-ambient__stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.xq-ambient__stars.is-ready {
+  opacity: 1;
+}
+
+.xq-ambient__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(115% 82% at 50% 34%, transparent 42%, rgba(3, 4, 10, 0.72) 100%);
+}
+
+/* 环境层是 z-index:0 的定位元素，会盖住未定位的普通内容，
+   所以页面既有内容要一起变成定位元素，靠文档顺序绘制在它之上。
+   这里必须逐个排除站点外壳：它们自带 sticky / fixed，
+   而本选择器的权重高于 .xq-topbar 之类的单类选择器，不排除就会被改成 relative。 */
+
+/* 老页面自带的 #starfield 会与新环境层重复，直接隐藏 */
+.xq-has-ambient #starfield {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------- 顶栏 */
+.xq-topbar {
+  position: sticky;
+  z-index: 80;
+  top: 0;
+  display: flex;
+  height: var(--xq-topbar-h);
+  align-items: center;
+  gap: 14px;
+  padding: 0 clamp(14px, 3vw, 28px);
+  border-bottom: 1px solid var(--xq-line-soft);
+  background: rgba(8, 10, 22, 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  font-family: var(--xq-font-sans);
+  transition: background var(--xq-dur) var(--xq-ease), border-color var(--xq-dur) var(--xq-ease);
+}
+
+.xq-topbar.is-scrolled {
+  border-bottom-color: var(--xq-line);
+  background: rgba(7, 9, 20, 0.9);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34);
+}
+
+.xq-topbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--xq-text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.xq-topbar__mark {
+  position: relative;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 226, 178, 0.28);
+  border-radius: 9px;
+  background: linear-gradient(140deg, rgba(232, 168, 96, 0.28), rgba(116, 196, 212, 0.16));
+  box-shadow: var(--xq-inner-top);
+  font-size: 14px;
+  place-items: center;
+}
+
+.xq-topbar__mark::after {
+  position: absolute;
+  border-radius: inherit;
+  animation: xq-pulse 3.6s var(--xq-ease) infinite;
+  box-shadow: 0 0 18px rgba(232, 168, 96, 0.4);
+  content: "";
+  inset: 0;
+}
+
+@keyframes xq-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.xq-topbar__name {
+  font-family: var(--xq-font-serif);
+  font-size: 15px;
+}
+
+.xq-topbar__sep {
+  color: var(--xq-text-faint);
+  font-size: 13px;
+}
+
+.xq-topbar__here {
+  overflow: hidden;
+  max-width: 40vw;
+  color: var(--xq-text-muted);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xq-topbar__spacer {
+  flex: 1 1 auto;
+}
+
+.xq-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xq-tbtn {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  gap: 6px;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+
+.xq-tbtn:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-gold-bright);
+  transform: translateY(-1px);
+}
+
+.xq-tbtn kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 10.5px;
+}
+
+/* 顶部阅读进度条 */
+.xq-progress {
+  position: fixed;
+  z-index: 90;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.xq-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--xq-gold-deep), var(--xq-gold-bright) 46%, var(--xq-cyan));
+  box-shadow: 0 0 12px rgba(232, 168, 96, 0.6);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+
+/* ------------------------------------------------------------- 返回顶部键 */
+.xq-fab {
+  position: fixed;
+  z-index: 70;
+  right: clamp(14px, 3vw, 28px);
+  bottom: clamp(14px, 3vw, 28px);
+  display: grid;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--xq-line);
+  border-radius: 50%;
+  background: rgba(12, 15, 30, 0.82);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--xq-shadow-md);
+  color: var(--xq-gold);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0;
+  place-items: center;
+  pointer-events: none;
+  transform: translateY(14px) scale(0.86);
+  transition: opacity var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring),
+    border-color var(--xq-dur-fast) var(--xq-ease);
+}
+
+.xq-fab.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.xq-fab:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-glow-gold);
+}
+
+/* --------------------------------------------------------------- 命令面板 */
+.xq-cmdk {
+  position: fixed;
+  z-index: 200;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(52px, 12vh, 130px) 16px 16px;
+  background: rgba(4, 5, 12, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+
+.xq-cmdk.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.xq-cmdk__panel {
+  display: flex;
+  overflow: hidden;
+  width: min(620px, 100%);
+  max-height: min(520px, 74vh);
+  flex-direction: column;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-lg);
+  background: linear-gradient(180deg, rgba(19, 24, 50, 0.97), rgba(11, 14, 32, 0.97));
+  box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
+  font-family: var(--xq-font-sans);
+  transform: translateY(-12px) scale(0.98);
+  transition: transform var(--xq-dur) var(--xq-ease-out);
+}
+
+.xq-cmdk.is-open .xq-cmdk__panel {
+  transform: translateY(0) scale(1);
+}
+
+.xq-cmdk__field {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--xq-line-soft);
+  gap: 10px;
+}
+
+.xq-cmdk__field span {
+  color: var(--xq-gold);
+  font-size: 15px;
+}
+
+.xq-cmdk__field input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--xq-text);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.xq-cmdk__field input::placeholder {
+  color: var(--xq-text-faint);
+}
+
+.xq-cmdk__list {
+  overflow-y: auto;
+  padding: 8px;
+  margin: 0;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.xq-cmdk__group {
+  padding: 10px 10px 4px;
+  color: var(--xq-text-faint);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.xq-cmdk__item {
+  display: flex;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--xq-r-md);
+  color: var(--xq-text-soft);
+  cursor: pointer;
+  gap: 11px;
+  text-decoration: none;
+}
+
+.xq-cmdk__item[aria-selected="true"] {
+  border-color: var(--xq-line);
+  background: var(--xq-accent-soft);
+  color: var(--xq-text);
+}
+
+.xq-cmdk__icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+  place-items: center;
+}
+
+.xq-cmdk__copy {
+  overflow: hidden;
+  flex: 1 1 auto;
+}
+
+.xq-cmdk__copy strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.xq-cmdk__copy small {
+  display: block;
+  overflow: hidden;
+  color: var(--xq-text-faint);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xq-cmdk__badge {
+  padding: 2px 8px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  color: var(--xq-text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.xq-cmdk__empty {
+  padding: 34px 16px;
+  color: var(--xq-text-faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+.xq-cmdk__hint {
+  display: flex;
+  padding: 9px 14px;
+  border-top: 1px solid var(--xq-line-soft);
+  color: var(--xq-text-faint);
+  font-size: 11px;
+  gap: 14px;
+}
+
+.xq-cmdk__hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  font-family: var(--xq-font-mono);
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------- 提示 */
+.xq-toasts {
+  position: fixed;
+  z-index: 210;
+  bottom: 24px;
+  left: 50%;
+  display: flex;
+  width: min(420px, calc(100vw - 32px));
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.xq-toast {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  padding: 10px 16px;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-pill);
+  background: rgba(16, 20, 40, 0.94);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--xq-shadow-md), var(--xq-inner-top);
+  color: var(--xq-text);
+  font-family: var(--xq-font-sans);
+  font-size: 13px;
+  gap: 9px;
+  animation: xq-toast-in 320ms var(--xq-ease-out) both;
+}
+
+.xq-toast.is-leaving {
+  animation: xq-toast-out 260ms var(--xq-ease) forwards;
+}
+
+.xq-toast__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--xq-accent);
+  box-shadow: 0 0 10px currentcolor;
+  color: var(--xq-accent);
+}
+
+.xq-toast--ok .xq-toast__dot {
+  background: var(--xq-ok);
+  color: var(--xq-ok);
+}
+
+.xq-toast--error .xq-toast__dot {
+  background: var(--xq-danger);
+  color: var(--xq-danger);
+}
+
+@keyframes xq-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+@keyframes xq-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+/* --------------------------------------------------------- 滚动进入动画 */
+[data-xq-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--xq-dur-slow) var(--xq-ease-out), transform var(--xq-dur-slow) var(--xq-ease-out);
+  transition-delay: var(--xq-reveal-delay, 0ms);
+}
+
+[data-xq-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* ----------------------------------------------------------------- 效果类 */
+/* 玻璃承载面 */
+.xq-glass {
+  position: relative;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-lg);
+  background: var(--xq-surface);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--xq-shadow-md), var(--xq-inner-top);
+}
+
+/* 顶部一道细金线，给卡片一个“被点亮”的边 */
+.xq-edge-lit::before {
+  position: absolute;
+  right: 18px;
+  left: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--xq-line-strong), transparent);
+  content: "";
+  pointer-events: none;
+  top: 0;
+}
+
+/* 悬停时跟随指针的高光，由 JS 写入 --xq-mx / --xq-my */
+.xq-spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.xq-spotlight::after {
+  position: absolute;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(220px circle at var(--xq-mx, 50%) var(--xq-my, 50%), var(--xq-accent-soft), transparent 68%);
+  content: "";
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+
+.xq-spotlight:hover::after {
+  opacity: 1;
+}
+
+/* 悬停抬升 */
+.xq-lift {
+  transition: transform var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease),
+    border-color var(--xq-dur) var(--xq-ease);
+}
+
+.xq-lift:hover {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-lg);
+  transform: translateY(-3px);
+}
+
+/* 渐变文字 + 缓慢流光 */
+.xq-shine {
+  background: linear-gradient(100deg, var(--xq-gold-bright), var(--xq-gold) 34%, var(--xq-rose) 58%, var(--xq-gold-bright));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 240% 100%;
+  animation: xq-shine 9s linear infinite;
+}
+
+@keyframes xq-shine {
+  to {
+    background-position: 240% 0;
+  }
+}
+
+/* 按钮点击涟漪，由 JS 插入 span.xq-ripple */
+.xq-ripple {
+  position: absolute;
+  border-radius: 50%;
+  animation: xq-ripple 620ms var(--xq-ease-out) forwards;
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes xq-ripple {
+  from {
+    width: 0;
+    height: 0;
+    opacity: 0.5;
+  }
+  to {
+    width: 320px;
+    height: 320px;
+    opacity: 0;
+  }
+}
+
+/* 复制成功时给按钮一圈短暂的金环 */
+.xq-flash {
+  animation: xq-flash 620ms var(--xq-ease) both;
+}
+
+@keyframes xq-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 168, 96, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(232, 168, 96, 0);
+  }
+}
+
+/* ----------------------------------------------------- 共享面包屑与页脚 */
+.xq-crumb {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--xq-text-muted);
+  font-family: var(--xq-font-sans);
+  font-size: 12.5px;
+  gap: 7px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    gap var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease);
+}
+
+.xq-crumb:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  color: var(--xq-gold-bright);
+  gap: 11px;
+}
+
+.xq-crumb__arrow {
+  transition: transform var(--xq-dur-fast) var(--xq-ease);
+}
+
+.xq-crumb:hover .xq-crumb__arrow {
+  transform: translateX(-3px);
+}
+
+.xq-sitefoot {
+  padding: 30px clamp(14px, 4vw, 32px) 34px;
+  border-top: 1px solid var(--xq-line-soft);
+  margin-top: 56px;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-sans);
+  font-size: 12px;
+  text-align: center;
+}
+
+.xq-sitefoot a {
+  color: var(--xq-text-muted);
+  text-decoration: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease);
+}
+
+.xq-sitefoot a:hover {
+  color: var(--xq-gold);
+}
+
+.xq-sitefoot__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin-bottom: 10px;
+}
+
+/* --------------------------------------------------------- 首屏载入序列 */
+.xq-enter {
+  animation: xq-enter var(--xq-dur-slow) var(--xq-ease-out) both;
+  animation-delay: var(--xq-enter-delay, 0ms);
+}
+
+@keyframes xq-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* --------------------------------------------------------------- 响应式 */
+@media (max-width: 720px) {
+  :root {
+    --xq-topbar-h: 50px;
+  }
+
+  .xq-topbar {
+    gap: 10px;
+  }
+
+  .xq-topbar__here,
+  .xq-topbar__sep {
+    display: none;
+  }
+
+  .xq-tbtn kbd {
+    display: none;
+  }
+
+  .xq-aurora {
+    filter: blur(64px);
+    opacity: 0.42;
+  }
+
+  .xq-ambient__grid {
+    background-size: 64px 64px;
+  }
+}
+
+@media (max-width: 420px) {
+  .xq-tbtn span:not(.xq-tbtn__icon) {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------- 尊重系统的减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .xq-aurora {
+    animation: none;
+  }
+
+  [data-xq-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------- 打印 */
+@media print {
+  .xq-ambient,
+  .xq-topbar,
+  .xq-progress,
+  .xq-fab,
+  .xq-cmdk,
+  .xq-toasts {
+    display: none !important;
+  }
+
+  body {
+    color: #000;
+    background: #fff;
+  }
+}

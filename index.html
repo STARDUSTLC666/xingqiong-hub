@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="no-js">
+<html lang="zh-CN" class="no-js" data-xq-shell="off">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,9 +19,11 @@
   <title>星穹枢庭 · Personal Creative Archive</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <script>document.documentElement.classList.replace("no-js", "js");</script>
+  <link rel="stylesheet" href="assets/sanctuary.css">
   <link rel="stylesheet" href="assets/home.css">
   <script src="assets/vendor/lucide.min.js" defer></script>
   <script src="assets/home.js" defer></script>
+  <script src="assets/sanctuary.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -44,6 +46,11 @@
       </nav>
 
       <div class="header-actions">
+        <button class="header-link header-link--palette" type="button" data-xq-open-cmdk aria-haspopup="dialog" aria-label="打开星门检索，快捷键 Ctrl K">
+          <i data-lucide="search"></i>
+          <span>星门检索</span>
+          <kbd>Ctrl K</kbd>
+        </button>
         <a class="header-link" href="https://github.com/STARDUSTLC666/xingqiong-hub" target="_blank" rel="noreferrer" aria-label="在 GitHub 查看星穹枢庭仓库">
           <i data-lucide="code-2"></i>
           <span>GitHub</span>

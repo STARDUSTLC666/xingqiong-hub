@@ -3,231 +3,1182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>魔典检索 · Lust Codex</title>
+<title>魔典检索 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="像字典一样查 Danbooru 标签的含义、同类词与可替换词。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/lust-codex/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="魔典检索 · 星穹枢庭">
+  <meta property="og:description" content="像字典一样查 Danbooru 标签的含义、同类词与可替换词。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/lust-codex/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-.search-row { display: flex; gap: 0.5rem; }
-.search-row input { flex: 1; }
-.cat-filter { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.8rem 0; }
-.cat-btn {
-  padding: 0.25rem 0.7rem; border-radius: 14px; font-size: 0.7rem; cursor: pointer;
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(200,200,224,0.45); transition: all 0.2s;
+/* ------------------------------------------------------------- 局部令牌 */
+/* 成人向条目统一走珊瑚色、普通条目走金色，只在这里定义一次，下面全部引用 */
+.page {
+  --lx-gold-soft: rgba(232, 168, 96, 0.13);
+  --lx-gold-ring: rgba(232, 168, 96, 0.22);
+  --lx-nsfw: var(--xq-coral);
+  --lx-nsfw-soft: rgba(224, 125, 112, 0.14);
+  --lx-nsfw-ring: rgba(224, 125, 112, 0.24);
+  --lx-mark: rgba(247, 217, 160, 0.28);
 }
-.cat-btn:hover { border-color: rgba(232,168,96,0.3); color: #c8a870; }
-.cat-btn.active { background: rgba(232,168,96,0.12); border-color: #e8a860; color: #e8a860; }
 
-.scroll-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.4rem; max-height: 500px; overflow-y: auto;
-  padding-right: 0.5rem;
+/* ----------------------------------------------------------- 检索控制台 */
+/* 字典很长，控制台吸顶后滚到任何位置都能立刻改检索条件 */
+.lx-console {
+  position: sticky;
+  z-index: 6;
+  top: calc(var(--xq-topbar-h) + 12px);
+  background: var(--xq-surface-strong);
+  transition: border-color var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
 }
-.scroll-grid::-webkit-scrollbar { width: 4px; }
-.scroll-grid::-webkit-scrollbar-thumb { background: rgba(232,168,96,0.15); border-radius: 2px; }
-.tag-item {
-  padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.72rem; cursor: pointer;
-  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-  color: rgba(200,200,224,0.5); transition: all 0.2s;
-  display: flex; justify-content: space-between; align-items: center;
-  user-select: none;
+.lx-console.is-stuck {
+  border-color: var(--xq-line-strong);
+  box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
 }
-.tag-item:hover { border-color: rgba(232,168,96,0.3); color: #d0c0a0; }
-.tag-item.picked { background: rgba(232,168,96,0.15); border-color: #e8a860; color: #e8a860; }
-.tag-item .count { font-size: 0.6rem; color: rgba(200,200,224,0.25); }
-.tag-item.nsfw-tag { border-color: rgba(255,100,160,0.1); }
-.tag-item.nsfw-tag:hover { border-color: rgba(255,100,160,0.3); color: #d8a0b8; }
-.tag-item.nsfw-tag.picked { background: rgba(255,120,160,0.18); border-color: #e880a8; color: #f0a8c8; }
+.lx-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
 
-.pick-bar {
-  background: rgba(10,10,24,0.5); border: 1px solid rgba(232,168,96,0.1);
-  border-radius: 10px; padding: 0.8rem; min-height: 40px;
-  display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;
+.lx-search {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
 }
-.pick-chip {
-  padding: 0.2rem 0.55rem; border-radius: 10px; font-size: 0.72rem;
-  background: rgba(232,168,96,0.12); border: 1px solid rgba(232,168,96,0.2);
-  color: #e8a860; display: flex; align-items: center; gap: 0.3rem;
+.lx-field {
+  position: relative;
+  display: flex;
+  flex: 1 1 240px;
+  align-items: center;
 }
-.pick-chip .del { cursor: pointer; font-size: 0.65rem; opacity: 0.5; transition: opacity 0.2s; }
-.pick-chip .del:hover { opacity: 1; color: #e86060; }
+.lx-field input {
+  padding-right: 2.3rem;
+  padding-left: 2.2rem;
+}
+.lx-field__icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--xq-text-faint);
+  font-size: 0.78rem;
+  pointer-events: none;
+  transition: color var(--xq-dur-fast) var(--xq-ease);
+}
+.lx-field:focus-within .lx-field__icon { color: var(--xq-gold); }
+.lx-field__clear {
+  position: absolute;
+  right: 0.4rem;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.66rem;
+  place-items: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    transform var(--xq-dur-fast) var(--xq-spring);
+}
+.lx-field__clear:hover {
+  background: var(--lx-gold-soft);
+  color: var(--xq-gold-bright);
+  transform: rotate(90deg);
+}
+.lx-field__clear[hidden] { display: none; }
+
+.lx-kbd {
+  flex: 0 0 auto;
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------- 分类栏 */
+.lx-cats {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.85rem 0 0.55rem;
+  gap: 0.35rem;
+}
+.lx-cat {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.72rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.71rem;
+  gap: 0.4rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.lx-cat:hover {
+  border-color: var(--xq-line-strong);
+  color: var(--xq-gold-bright);
+  transform: translateY(-2px);
+}
+.lx-cat[aria-pressed="true"] {
+  border-color: var(--xq-gold);
+  background: var(--lx-gold-soft);
+  box-shadow: 0 0 0 1px var(--lx-gold-ring), 0 6px 18px var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+}
+.lx-cat--nsfw[aria-pressed="true"] {
+  border-color: var(--lx-nsfw);
+  background: var(--lx-nsfw-soft);
+  box-shadow: 0 0 0 1px var(--lx-nsfw-ring), 0 6px 18px var(--lx-nsfw-soft);
+  color: var(--xq-rose);
+}
+.lx-cat__n {
+  color: var(--xq-text-faint);
+  font-family: var(--xq-font-mono);
+  font-size: 0.62rem;
+}
+.lx-cat[aria-pressed="true"] .lx-cat__n { color: inherit; }
+.lx-cat.is-empty { opacity: 0.34; }
+
+.lx-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  margin: 0;
+}
+.lx-status b {
+  color: var(--xq-gold);
+  font-family: var(--xq-font-mono);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------- 标签墙 */
+.lx-grid {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+}
+.lx-tag {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-sm);
+  background: var(--xq-surface-quiet);
+  animation: lxTagIn 380ms var(--xq-ease-out) both;
+  animation-delay: calc(var(--lx-i, 0) * 12ms);
+  color: var(--xq-text-muted);
+  cursor: pointer;
+  font: inherit;
+  gap: 0.45rem;
+  text-align: left;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+@keyframes lxTagIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.lx-tag__text {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 1px;
+}
+.lx-tag__name {
+  overflow: hidden;
+  font-size: 0.73rem;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lx-tag__sub {
+  overflow: hidden;
+  color: var(--xq-text-faint);
+  font-size: 0.61rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lx-tag__flag {
+  flex: 0 0 auto;
+  font-size: 0.6rem;
+  opacity: 0.55;
+}
+.lx-tag:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--lx-gold-soft);
+  box-shadow: var(--xq-shadow-sm);
+  color: var(--xq-text);
+  transform: translateY(-2px);
+}
+.lx-tag:hover .lx-tag__flag { opacity: 1; }
+.lx-tag[aria-pressed="true"] {
+  border-color: var(--xq-gold);
+  background: var(--lx-gold-soft);
+  box-shadow: 0 0 0 1px var(--lx-gold-ring), 0 8px 22px var(--xq-gold-wash);
+  color: var(--xq-gold-bright);
+}
+.lx-tag[aria-pressed="true"] .lx-tag__sub { color: var(--xq-gold); }
+/* 选中打勾用伪元素，避免为纯装饰再插一层节点 */
+.lx-tag[aria-pressed="true"]::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 16px solid var(--xq-gold);
+  border-left: 16px solid transparent;
+  content: "";
+}
+.lx-tag--nsfw { border-color: var(--lx-nsfw-soft); }
+.lx-tag--nsfw:hover {
+  border-color: var(--lx-nsfw-ring);
+  background: var(--lx-nsfw-soft);
+  color: var(--xq-rose);
+}
+.lx-tag--nsfw[aria-pressed="true"] {
+  border-color: var(--lx-nsfw);
+  background: var(--lx-nsfw-soft);
+  box-shadow: 0 0 0 1px var(--lx-nsfw-ring), 0 8px 22px var(--lx-nsfw-soft);
+  color: var(--xq-rose);
+}
+.lx-tag--nsfw[aria-pressed="true"] .lx-tag__sub { color: var(--lx-nsfw); }
+.lx-tag--nsfw[aria-pressed="true"]::after { border-top-color: var(--lx-nsfw); }
+/* 选中瞬间的一次弹跳，让"加进组合了"看得见 */
+.lx-tag.is-pop { animation: lxPop 460ms var(--xq-spring); }
+@keyframes lxPop {
+  0% { transform: scale(1); }
+  38% { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+.lx-tag mark,
+.lx-chip mark {
+  border-radius: 3px;
+  background: var(--lx-mark);
+  color: var(--xq-gold-bright);
+}
+
+.lx-empty {
+  display: grid;
+  padding: 2.2rem 1rem;
+  border: 1px dashed var(--xq-line);
+  border-radius: var(--xq-r-md);
+  color: var(--xq-text-faint);
+  font-size: 0.8rem;
+  gap: 0.7rem;
+  justify-items: center;
+  text-align: center;
+}
+.lx-empty[hidden] { display: none; }
+.lx-empty__icon {
+  animation: lxBreathe 3.6s var(--xq-ease) infinite;
+  font-size: 1.5rem;
+}
+@keyframes lxBreathe {
+  0%, 100% { opacity: 0.45; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
+}
+
+/* ------------------------------------------------------------ 组合底栏 */
+.lx-dock {
+  position: sticky;
+  z-index: 8;
+  bottom: 12px;
+  display: grid;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--xq-line-strong);
+  border-radius: var(--xq-r-lg);
+  margin-bottom: 18px;
+  animation: lxDockIn 420ms var(--xq-spring) both;
+  background: var(--xq-surface-strong);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
+  gap: 0.55rem;
+}
+.lx-dock[hidden] { display: none; }
+@keyframes lxDockIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+.lx-dock__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.lx-dock__count {
+  display: inline-flex;
+  align-items: center;
+  color: var(--xq-text-muted);
+  font-size: 0.74rem;
+  gap: 0.35rem;
+}
+.lx-dock__count b {
+  min-width: 1.6em;
+  color: var(--xq-gold-bright);
+  font-family: var(--xq-font-mono);
+  font-size: 0.95rem;
+  text-align: center;
+}
+.lx-dock__acts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+  gap: 0.4rem;
+}
+/* 底栏里的跳转链接要和 .btn-sm 对齐，否则一排按钮高度参差 */
+.lx-dock__acts .lx-link {
+  padding: 6px 13px;
+  border-radius: var(--xq-r-sm);
+  font-size: 0.74rem;
+  font-weight: 600;
+  gap: 0.35rem;
+}
+.lx-dock__chips {
+  display: flex;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex-wrap: wrap;
+  max-height: 5.6rem;
+  padding-bottom: 2px;
+  gap: 0.3rem;
+  overscroll-behavior-y: contain;
+}
+.lx-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.3rem 0.18rem 0.55rem;
+  border: 1px solid var(--lx-gold-ring);
+  border-radius: var(--xq-r-pill);
+  background: var(--lx-gold-soft);
+  animation: lxChipIn 320ms var(--xq-spring) both;
+  color: var(--xq-gold-bright);
+  font-size: 0.7rem;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+@keyframes lxChipIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+.lx-chip--nsfw {
+  border-color: var(--lx-nsfw-ring);
+  background: var(--lx-nsfw-soft);
+  color: var(--xq-rose);
+}
+.lx-chip__del {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.6rem;
+  opacity: 0.5;
+  place-items: center;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    opacity var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.lx-chip__del:hover {
+  background: var(--lx-nsfw-soft);
+  color: var(--xq-coral);
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+/* ---------------------------------------------------------------- 说明 */
+.lx-note {
+  display: grid;
+  gap: 0.5rem;
+  line-height: 1.85;
+}
+.lx-note__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+.lx-note__row span:first-child {
+  flex: 0 0 auto;
+  opacity: 0.8;
+}
+.lx-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--xq-line);
+  border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet);
+  color: var(--xq-gold);
+  font-size: 0.8rem;
+  gap: 0.5rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur) var(--xq-ease),
+    box-shadow var(--xq-dur) var(--xq-ease);
+}
+.lx-link:hover {
+  border-color: var(--xq-line-strong);
+  background: var(--xq-accent-soft);
+  box-shadow: var(--xq-shadow-md);
+  color: var(--xq-gold-bright);
+  transform: translateY(-3px);
+}
+
+/* -------------------------------------------------------------- 响应式 */
+@media (max-width: 1259px) {
+  /* 视口右下角是共享的返回顶部按钮，操作区往左让出它的位置 */
+  .lx-dock__acts { padding-right: 3.2rem; }
+}
+
+@media (max-width: 768px) {
+  .lx-grid { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }
+  .lx-console { top: calc(var(--xq-topbar-h) + 6px); }
+}
+
+@media (max-width: 520px) {
+  .lx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lx-kbd { display: none; }
+  /* 窄屏把分类栏改成横向滑动，避免十五个分类挤满半屏 */
+  .lx-cats {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    margin-right: -0.4rem;
+    margin-left: -0.4rem;
+    padding-inline: 0.4rem;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+  .lx-cat { scroll-snap-align: start; }
+  .lx-cat:hover { transform: none; }
+  .lx-dock__acts {
+    width: 100%;
+    margin-left: 0;
+    padding-right: 0;
+  }
+  .lx-dock__acts .btn,
+  .lx-dock__acts .lx-link {
+    flex: 1 1 40%;
+    justify-content: center;
+  }
+  /* 窄屏时按钮换行到上面，压在返回顶部按钮下方的是标签行，让位挪到这里 */
+  .lx-dock__chips {
+    max-height: 4.4rem;
+    padding-right: 3.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lx-tag,
+  .lx-chip,
+  .lx-dock,
+  .lx-empty__icon,
+  .lx-tag.is-pop { animation: none; }
+
+  .lx-tag:hover,
+  .lx-cat:hover,
+  .lx-link:hover,
+  .lx-field__clear:hover,
+  .lx-chip__del:hover { transform: none; }
+}
 </style>
 </head>
 <body>
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
   <header class="page-header">
     <h1>魔典检索</h1>
     <p class="subtitle">Lust Codex · 交互式 Danbooru 标记魔典 — 搜索 / 过滤 / 组合复刻</p>
   </header>
 
-  <!-- Search + Filter -->
-  <div class="panel">
-    <div class="search-row">
-      <input type="search" id="codexSearch" placeholder="搜索标签... 支持中英文和拼音" oninput="renderCodex()">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('codexSearch').value='';renderCodex()">清除</button>
-    </div>
-    <div class="cat-filter" id="catFilter"></div>
-    <p class="text-muted" id="tagCountDisplay"></p>
-  </div>
+  <div class="lx-sentinel" id="consoleSentinel" aria-hidden="true"></div>
 
-  <!-- Tag Grid -->
-  <div class="panel" style="padding:0.8rem;">
-    <div class="scroll-grid" id="codexGrid"></div>
-  </div>
-
-  <!-- Picked Zone -->
-  <div class="panel">
-    <div class="panel-title flex-between">
-      <span>📦 组合区</span>
-      <span class="text-muted" id="pickCount">0</span>
+  <!-- 检索控制台 -->
+  <section class="panel lx-console" id="codexConsole" aria-label="标签检索">
+    <div class="lx-search">
+      <label class="xq-sr" for="codexSearch">搜索标签</label>
+      <div class="lx-field">
+        <span class="lx-field__icon" aria-hidden="true">🔍</span>
+        <input type="search" id="codexSearch" placeholder="搜索标签…英文标签或中文释义"
+               autocomplete="off" spellcheck="false" aria-describedby="codexStatus">
+        <button type="button" class="lx-field__clear" id="searchClear" hidden aria-label="清除搜索关键词">✕</button>
+      </div>
+      <span class="lx-kbd" aria-hidden="true">按 / 聚焦 · Esc 清空</span>
     </div>
-    <div class="pick-bar" id="pickBar"><span class="text-muted">点击标签加入组合...</span></div>
+
+    <div class="lx-cats" id="catFilter" role="group" aria-label="标签分类"></div>
+
+    <p class="lx-status text-muted" id="codexStatus" role="status"></p>
+  </section>
+
+  <!-- 标签墙 -->
+  <section class="panel" aria-label="标签列表">
+    <div class="lx-grid" id="codexGrid"></div>
+    <div class="lx-empty" id="codexEmpty" hidden>
+      <span class="lx-empty__icon" aria-hidden="true">✦</span>
+      <span>这一页魔典里没有匹配的标记</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnResetFilter">↺ 清除搜索与分类</button>
+    </div>
+  </section>
+
+  <!-- 已选组合（吸底） -->
+  <section class="lx-dock xq-spotlight xq-edge-lit" id="pickDock" hidden aria-label="已选标签组合">
+    <div class="lx-dock__head">
+      <span class="lx-dock__count"><b id="pickCount">0</b> 个标记已入组合</span>
+      <div class="lx-dock__acts">
+        <button type="button" class="btn btn-primary btn-sm" id="btnCopy">📋 复制组合</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnWeight">📤 导出带权重</button>
+        <a class="lx-link" id="linkSummon" href="../cyber-summon/index.html"
+           aria-label="复制组合并前往赛博魔典">🔮 送去赛博魔典</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnClear">✕ 清空</button>
+      </div>
+    </div>
+    <div class="lx-dock__chips" id="pickChips"></div>
+  </section>
+
+  <!-- 说明与互链 -->
+  <section class="panel">
+    <div class="panel-title">🧭 使用说明</div>
+    <div class="lx-note text-muted">
+      <p class="lx-note__row"><span aria-hidden="true">①</span><span>搜索框同时匹配英文标签与中文释义，输入多个词表示「全部命中」，命中部分会高亮。</span></p>
+      <p class="lx-note__row"><span aria-hidden="true">②</span><span>点击标记加入组合，再点一次移出；组合会随浏览器本地存档，刷新后仍在。</span></p>
+      <p class="lx-note__row"><span aria-hidden="true">③</span><span>「导出带权重」输出 <code>(tag:1.2)</code> 形式，直接可粘进 WebUI / ComfyUI 的正向提示词。</span></p>
+      <p class="lx-note__row"><span aria-hidden="true">④</span><span>本魔典默认限定成年角色，请配合 <code>1girl</code>、<code>adult</code>、<code>mature</code> 一类主体标记使用。</span></p>
+    </div>
     <div class="flex-row mt-1">
-      <button class="btn btn-primary btn-sm" onclick="copyPicked()">📋 复制组合</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportPicked()">📤 导出带权重</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearPicked()">✕ 清空</button>
+      <a class="lx-link" href="../cyber-summon/index.html">🔮 把选好的标签送去赛博魔典组合</a>
+      <a class="lx-link" href="../nsfw-tags/index.html">🔞 NSFW 标签大全</a>
     </div>
-  </div>
+  </section>
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
-// === TAG DATABASE ===
-const categories = [
-  { id:'all', name:'全部', nsfw:null },
-  { id:'char', name:'角色', nsfw:false },
-  { id:'hair', name:'发型发色', nsfw:false },
-  { id:'face', name:'表情', nsfw:false },
-  { id:'body', name:'身体', nsfw:true },
-  { id:'clothes', name:'服装', nsfw:false },
-  { id:'underwear', name:'内衣', nsfw:true },
-  { id:'pose', name:'姿势', nsfw:false },
-  { id:'nsfw_act', name:'🔞 动作', nsfw:true },
-  { id:'nsfw_body', name:'🔞 部位', nsfw:true },
-  { id:'nsfw_fluid', name:'🔞 液体', nsfw:true },
-  { id:'nsfw_bdsm', name:'🔞 BDSM', nsfw:true },
-  { id:'env', name:'场景', nsfw:false },
-  { id:'light', name:'光影', nsfw:false },
-  { id:'quality', name:'画质', nsfw:false },
-];
+(function () {
+  'use strict';
 
-const allTags = [
-  // char
-  { t:'1girl', c:'char', n:false },{ t:'1boy', c:'char', n:false },{ t:'2girls', c:'char', n:false },{ t:'multiple girls', c:'char', n:false },
-  { t:'loli', c:'char', n:false },{ t:'mature', c:'char', n:false },{ t:'petite', c:'char', n:false },{ t:'tall', c:'char', n:false },
-  { t:'curvy', c:'char', n:false },{ t:'muscular', c:'char', n:false },{ t:'chubby', c:'char', n:false },{ t:'slim', c:'char', n:false },
-  { t:'maid', c:'char', n:false },{ t:'nurse', c:'char', n:false },{ t:'teacher', c:'char', n:false },{ t:'office lady', c:'char', n:false },
-  { t:'cat girl', c:'char', n:false },{ t:'bunny girl', c:'char', n:false },{ t:'succubus', c:'char', n:false },{ t:'angel', c:'char', n:false },
-  { t:'demon girl', c:'char', n:false },{ t:'elf', c:'char', n:false },{ t:'miko', c:'char', n:false },{ t:'idol', c:'char', n:false },
-  // hair
-  { t:'twin tails', c:'hair', n:false },{ t:'long hair', c:'hair', n:false },{ t:'short hair', c:'hair', n:false },{ t:'ponytail', c:'hair', n:false },
-  { t:'braid', c:'hair', n:false },{ t:'bangs', c:'hair', n:false },{ t:'hime cut', c:'hair', n:false },{ t:'drill hair', c:'hair', n:false },
-  { t:'blonde hair', c:'hair', n:false },{ t:'black hair', c:'hair', n:false },{ t:'silver hair', c:'hair', n:false },{ t:'pink hair', c:'hair', n:false },
-  { t:'blue hair', c:'hair', n:false },{ t:'purple hair', c:'hair', n:false },{ t:'red hair', c:'hair', n:false },{ t:'white hair', c:'hair', n:false },
-  // face
-  { t:'smile', c:'face', n:false },{ t:'blush', c:'face', n:false },{ t:'open mouth', c:'face', n:false },{ t:'tongue out', c:'face', n:false },
-  { t:'ahegao', c:'face', n:true },{ t:'embarrassed', c:'face', n:false },{ t:'seductive smile', c:'face', n:false },{ t:'tears', c:'face', n:false },
-  { t:'drooling', c:'face', n:true },{ t:':3', c:'face', n:false },{ t:'wincing', c:'face', n:false },{ t:'looking at viewer', c:'face', n:false },
-  // body
-  { t:'busty', c:'body', n:true },{ t:'flat chest', c:'body', n:false },{ t:'wide hips', c:'body', n:true },{ t:'thick thighs', c:'body', n:true },
-  { t:'slim waist', c:'body', n:false },{ t:'tan lines', c:'body', n:true },{ t:'muscular female', c:'body', n:false },
-  // clothes
-  { t:'school uniform', c:'clothes', n:false },{ t:'serafuku', c:'clothes', n:false },{ t:'sailor collar', c:'clothes', n:false },
-  { t:'kimono', c:'clothes', n:false },{ t:'yukata', c:'clothes', n:false },{ t:'hoodie', c:'clothes', n:false },{ t:'sweater', c:'clothes', n:false },
-  { t:'skirt', c:'clothes', n:false },{ t:'pleated skirt', c:'clothes', n:false },{ t:'miniskirt', c:'clothes', n:false },
-  { t:'shorts', c:'clothes', n:false },{ t:'jeans', c:'clothes', n:false },{ t:'leggings', c:'clothes', n:false },
-  { t:'swimsuit', c:'clothes', n:false },{ t:'bikini', c:'clothes', n:false },{ t:'apron', c:'clothes', n:false },
-  // underwear
-  { t:'bra', c:'underwear', n:true },{ t:'panties', c:'underwear', n:true },{ t:'lingerie', c:'underwear', n:true },{ t:'lace underwear', c:'underwear', n:true },
-  { t:'see-through', c:'underwear', n:true },{ t:'corset', c:'underwear', n:true },{ t:'g-string', c:'underwear', n:true },
-  { t:'thighhighs', c:'underwear', n:true },{ t:'pantyhose', c:'underwear', n:true },{ t:'garter belt', c:'underwear', n:true },{ t:'garter straps', c:'underwear', n:true },
-  // pose
-  { t:'sitting', c:'pose', n:false },{ t:'standing', c:'pose', n:false },{ t:'lying', c:'pose', n:false },{ t:'kneeling', c:'pose', n:false },
-  { t:'spread legs', c:'pose', n:true },{ t:'on back', c:'pose', n:false },{ t:'arms up', c:'pose', n:false },{ t:'legs up', c:'pose', n:true },
-  { t:'from behind', c:'pose', n:false },{ t:'pinned', c:'pose', n:true },{ t:'grabbing', c:'pose', n:false },{ t:'crossed legs', c:'pose', n:false },
-  // nsfw_act
-  { t:'masturbation', c:'nsfw_act', n:true },{ t:'fingering', c:'nsfw_act', n:true },{ t:'toy', c:'nsfw_act', n:true },{ t:'dildo', c:'nsfw_act', n:true },
-  { t:'vibrator', c:'nsfw_act', n:true },{ t:'handjob', c:'nsfw_act', n:true },{ t:'fellatio', c:'nsfw_act', n:true },{ t:'cunnilingus', c:'nsfw_act', n:true },
-  { t:'paizuri', c:'nsfw_act', n:true },{ t:'sex', c:'nsfw_act', n:true },{ t:'creampie', c:'nsfw_act', n:true },{ t:'doggy style', c:'nsfw_act', n:true },
-  { t:'cowgirl position', c:'nsfw_act', n:true },{ t:'missionary', c:'nsfw_act', n:true },{ t:'standing sex', c:'nsfw_act', n:true },
-  // nsfw_body
-  { t:'nude', c:'nsfw_body', n:true },{ t:'nsfw', c:'nsfw_body', n:true },{ t:'nipples', c:'nsfw_body', n:true },{ t:'topless', c:'nsfw_body', n:true },
-  { t:'bottomless', c:'nsfw_body', n:true },{ t:'cleavage', c:'nsfw_body', n:true },{ t:'underboob', c:'nsfw_body', n:true },{ t:'sideboob', c:'nsfw_body', n:true },
-  { t:'navel', c:'nsfw_body', n:true },{ t:'cameltoe', c:'nsfw_body', n:true },{ t:'pussy', c:'nsfw_body', n:true },{ t:'ass visible', c:'nsfw_body', n:true },
-  { t:'feet', c:'nsfw_body', n:true },{ t:'toes', c:'nsfw_body', n:true },{ t:'barefoot', c:'nsfw_body', n:true },
-  // nsfw_fluid
-  { t:'wet', c:'nsfw_fluid', n:true },{ t:'sweating', c:'nsfw_fluid', n:true },{ t:'cum', c:'nsfw_fluid', n:true },{ t:'cum on body', c:'nsfw_fluid', n:true },
-  { t:'cum on face', c:'nsfw_fluid', n:true },{ t:'cum in pussy', c:'nsfw_fluid', n:true },{ t:'precum', c:'nsfw_fluid', n:true },{ t:'body fluids', c:'nsfw_fluid', n:true },
-  // nsfw_bdsm
-  { t:'bound', c:'nsfw_bdsm', n:true },{ t:'rope', c:'nsfw_bdsm', n:true },{ t:'shibari', c:'nsfw_bdsm', n:true },{ t:'handcuffs', c:'nsfw_bdsm', n:true },
-  { t:'blindfold', c:'nsfw_bdsm', n:true },{ t:'gag', c:'nsfw_bdsm', n:true },{ t:'collar', c:'nsfw_bdsm', n:true },{ t:'leash', c:'nsfw_bdsm', n:true },
-  { t:'dominated', c:'nsfw_bdsm', n:true },{ t:'submissive', c:'nsfw_bdsm', n:true },{ t:'master', c:'nsfw_bdsm', n:true },{ t:'slave', c:'nsfw_bdsm', n:true },
-  // env
-  { t:'bedroom', c:'env', n:false },{ t:'bathroom', c:'env', n:false },{ t:'classroom', c:'env', n:false },{ t:'outdoor', c:'env', n:false },
-  { t:'beach', c:'env', n:false },{ t:'pool', c:'env', n:false },{ t:'garden', c:'env', n:false },{ t:'cityscape', c:'env', n:false },
-  { t:'forest', c:'env', n:false },{ t:'onsen', c:'env', n:false },{ t:'office', c:'env', n:false },{ t:'rooftop', c:'env', n:false },
-  // light
-  { t:'soft lighting', c:'light', n:false },{ t:'backlighting', c:'light', n:false },{ t:'dim lighting', c:'light', n:false },{ t:'sunset', c:'light', n:false },
-  { t:'night', c:'light', n:false },{ t:'moonlight', c:'light', n:false },{ t:'candlelight', c:'light', n:false },{ t:'neon lights', c:'light', n:false },
-  { t:'god rays', c:'light', n:false },{ t:'dappled light', c:'light', n:false },{ t:'rim light', c:'light', n:false },
-  // quality
-  { t:'masterpiece', c:'quality', n:false },{ t:'best quality', c:'quality', n:false },{ t:'high quality', c:'quality', n:false },
-  { t:'absurdres', c:'quality', n:false },{ t:'hand-drawn', c:'quality', n:false },{ t:'anime coloring', c:'quality', n:false },
-  { t:'cel shading', c:'quality', n:false },{ t:'detailed', c:'quality', n:false },{ t:'natural proportions', c:'quality', n:false },
-];
+  /* ------------------------------------------------------------------ 数据 */
+  const CATEGORIES = [
+    { id: 'char', name: '角色', short: '角色', nsfw: false },
+    { id: 'hair', name: '发型发色', short: '发型', nsfw: false },
+    { id: 'face', name: '表情', short: '表情', nsfw: false },
+    { id: 'body', name: '身体', short: '身体', nsfw: true },
+    { id: 'clothes', name: '服装', short: '服装', nsfw: false },
+    { id: 'underwear', name: '内衣', short: '内衣', nsfw: true },
+    { id: 'pose', name: '姿势', short: '姿势', nsfw: false },
+    { id: 'nsfw_act', name: '🔞 动作', short: '动作', nsfw: true },
+    { id: 'nsfw_body', name: '🔞 部位', short: '部位', nsfw: true },
+    { id: 'nsfw_fluid', name: '🔞 液体', short: '液体', nsfw: true },
+    { id: 'nsfw_bdsm', name: '🔞 BDSM', short: 'BDSM', nsfw: true },
+    { id: 'env', name: '场景', short: '场景', nsfw: false },
+    { id: 'light', name: '光影', short: '光影', nsfw: false },
+    { id: 'quality', name: '画质', short: '画质', nsfw: false }
+  ];
 
-let picked = [];
-let activeCat = 'all';
+  // k = 中文释义与检索别名；留空的条目回落到分类名，保证每张卡片都有中文行
+  const TAGS = [
+    { t: '1girl', c: 'char', n: false, k: '一名少女 单人 女性' },
+    { t: '1boy', c: 'char', n: false, k: '一名少年 单人 男性' },
+    { t: '2girls', c: 'char', n: false, k: '两名少女 双人' },
+    { t: 'multiple girls', c: 'char', n: false, k: '多名少女 群像' },
+    { t: 'mature', c: 'char', n: false, k: '成熟 成年女性' },
+    { t: 'adult', c: 'char', n: false, k: '成年人 成人' },
+    { t: 'tall', c: 'char', n: false, k: '高挑 个子高' },
+    { t: 'curvy', c: 'char', n: false, k: '曲线丰腴' },
+    { t: 'muscular', c: 'char', n: false, k: '肌肉 健美' },
+    { t: 'chubby', c: 'char', n: false, k: '微胖 圆润' },
+    { t: 'slim', c: 'char', n: false, k: '纤细 苗条' },
+    { t: 'maid', c: 'char', n: false, k: '女仆' },
+    { t: 'nurse', c: 'char', n: false, k: '护士' },
+    { t: 'teacher', c: 'char', n: false, k: '教师 老师' },
+    { t: 'office lady', c: 'char', n: false, k: '职场白领 OL' },
+    { t: 'cat girl', c: 'char', n: false, k: '猫娘 兽耳' },
+    { t: 'bunny girl', c: 'char', n: false, k: '兔女郎' },
+    { t: 'succubus', c: 'char', n: false, k: '魅魔' },
+    { t: 'angel', c: 'char', n: false, k: '天使' },
+    { t: 'demon girl', c: 'char', n: false, k: '魔族少女' },
+    { t: 'elf', c: 'char', n: false, k: '精灵 尖耳' },
+    { t: 'miko', c: 'char', n: false, k: '巫女' },
+    { t: 'idol', c: 'char', n: false, k: '偶像' },
 
-function renderCatFilter(){
-  document.getElementById('catFilter').innerHTML=categories.map(c=>
-    `<span class="cat-btn${activeCat===c.id?' active':''}" onclick="activeCat='${c.id}';renderCodex();renderCatFilter()">${c.name}</span>`
-  ).join('');
-}
+    { t: 'twin tails', c: 'hair', n: false, k: '双马尾' },
+    { t: 'long hair', c: 'hair', n: false, k: '长发' },
+    { t: 'short hair', c: 'hair', n: false, k: '短发' },
+    { t: 'ponytail', c: 'hair', n: false, k: '马尾' },
+    { t: 'braid', c: 'hair', n: false, k: '辫子 麻花辫' },
+    { t: 'bangs', c: 'hair', n: false, k: '刘海' },
+    { t: 'hime cut', c: 'hair', n: false, k: '公主切' },
+    { t: 'drill hair', c: 'hair', n: false, k: '钻头卷 卷发' },
+    { t: 'blonde hair', c: 'hair', n: false, k: '金发' },
+    { t: 'black hair', c: 'hair', n: false, k: '黑发' },
+    { t: 'silver hair', c: 'hair', n: false, k: '银发' },
+    { t: 'pink hair', c: 'hair', n: false, k: '粉发' },
+    { t: 'blue hair', c: 'hair', n: false, k: '蓝发' },
+    { t: 'purple hair', c: 'hair', n: false, k: '紫发' },
+    { t: 'red hair', c: 'hair', n: false, k: '红发' },
+    { t: 'white hair', c: 'hair', n: false, k: '白发' },
 
-function renderCodex(){
-  const q=document.getElementById('codexSearch').value.toLowerCase();
-  let filtered=allTags;
-  if(activeCat!=='all') filtered=filtered.filter(t=>t.c===activeCat);
-  if(q) filtered=filtered.filter(t=>t.t.toLowerCase().includes(q));
-  const pickedSet=new Set(picked);
-  document.getElementById('codexGrid').innerHTML=filtered.map(t=>{
-    const isPicked=pickedSet.has(t.t);
-    return `<span class="tag-item${t.n?' nsfw-tag':''}${isPicked?' picked':''}" onclick="togglePick('${t.t.replace(/'/g,"&#39;")}')">
-      <span>${t.t}</span>
-      <span class="count">${t.n?'🔞':''}</span>
-    </span>`;
-  }).join('');
-  document.getElementById('tagCountDisplay').textContent=`${filtered.length} 个标签`;
-  renderPickBar();
-}
+    { t: 'smile', c: 'face', n: false, k: '微笑 笑容' },
+    { t: 'blush', c: 'face', n: false, k: '脸红 红晕' },
+    { t: 'open mouth', c: 'face', n: false, k: '张嘴' },
+    { t: 'tongue out', c: 'face', n: false, k: '吐舌' },
+    { t: 'ahegao', c: 'face', n: true, k: '' },
+    { t: 'embarrassed', c: 'face', n: false, k: '害羞 窘迫' },
+    { t: 'seductive smile', c: 'face', n: false, k: '魅惑微笑' },
+    { t: 'tears', c: 'face', n: false, k: '眼泪 泪水' },
+    { t: 'drooling', c: 'face', n: true, k: '' },
+    { t: ':3', c: 'face', n: false, k: '猫嘴 颜文字' },
+    { t: 'wincing', c: 'face', n: false, k: '皱眉 忍耐' },
+    { t: 'looking at viewer', c: 'face', n: false, k: '看向镜头 对视' },
 
-function togglePick(tag){
-  const idx=picked.indexOf(tag);
-  if(idx>=0) picked.splice(idx,1); else picked.push(tag);
-  renderCodex();
-}
+    { t: 'busty', c: 'body', n: true, k: '' },
+    { t: 'flat chest', c: 'body', n: false, k: '平胸' },
+    { t: 'wide hips', c: 'body', n: true, k: '' },
+    { t: 'thick thighs', c: 'body', n: true, k: '' },
+    { t: 'slim waist', c: 'body', n: false, k: '细腰' },
+    { t: 'tan lines', c: 'body', n: true, k: '晒痕' },
+    { t: 'muscular female', c: 'body', n: false, k: '健美女性' },
 
-function renderPickBar(){
-  const bar=document.getElementById('pickBar');
-  document.getElementById('pickCount').textContent=picked.length;
-  if(!picked.length){bar.innerHTML='<span class="text-muted">点击标签加入组合...</span>';return;}
-  bar.innerHTML=picked.map(t=>`<span class="pick-chip">${t}<span class="del" onclick="event.stopPropagation();togglePick('${t.replace(/'/g,"&#39;")}')">✕</span></span>`).join('');
-}
+    { t: 'school uniform', c: 'clothes', n: false, k: '校服 学生制服' },
+    { t: 'serafuku', c: 'clothes', n: false, k: '水手服' },
+    { t: 'sailor collar', c: 'clothes', n: false, k: '水手领' },
+    { t: 'kimono', c: 'clothes', n: false, k: '和服' },
+    { t: 'yukata', c: 'clothes', n: false, k: '浴衣' },
+    { t: 'hoodie', c: 'clothes', n: false, k: '连帽衫 卫衣' },
+    { t: 'sweater', c: 'clothes', n: false, k: '毛衣' },
+    { t: 'skirt', c: 'clothes', n: false, k: '裙子' },
+    { t: 'pleated skirt', c: 'clothes', n: false, k: '百褶裙' },
+    { t: 'miniskirt', c: 'clothes', n: false, k: '迷你裙 短裙' },
+    { t: 'shorts', c: 'clothes', n: false, k: '短裤' },
+    { t: 'jeans', c: 'clothes', n: false, k: '牛仔裤' },
+    { t: 'leggings', c: 'clothes', n: false, k: '打底裤' },
+    { t: 'swimsuit', c: 'clothes', n: false, k: '泳装' },
+    { t: 'bikini', c: 'clothes', n: false, k: '比基尼' },
+    { t: 'apron', c: 'clothes', n: false, k: '围裙' },
 
-function copyPicked(){ if(!picked.length){gsToast('请先选择标签');return;} gsCopy(picked.join(', ')); }
-function exportPicked(){
-  if(!picked.length){gsToast('请先选择标签');return;}
-  const exp=picked.map(t=>`(${t}:1.2)`).join(', ');
-  gsCopy(exp);
-}
-function clearPicked(){ picked=[]; renderCodex(); renderPickBar(); }
+    { t: 'bra', c: 'underwear', n: true, k: '胸罩' },
+    { t: 'panties', c: 'underwear', n: true, k: '内裤' },
+    { t: 'lingerie', c: 'underwear', n: true, k: '女式内衣' },
+    { t: 'lace underwear', c: 'underwear', n: true, k: '蕾丝内衣' },
+    { t: 'see-through', c: 'underwear', n: true, k: '透视材质' },
+    { t: 'corset', c: 'underwear', n: true, k: '束腰' },
+    { t: 'g-string', c: 'underwear', n: true, k: '丁字裤' },
+    { t: 'thighhighs', c: 'underwear', n: true, k: '过膝袜 长筒袜' },
+    { t: 'pantyhose', c: 'underwear', n: true, k: '连裤袜' },
+    { t: 'garter belt', c: 'underwear', n: true, k: '吊袜带' },
+    { t: 'garter straps', c: 'underwear', n: true, k: '吊袜带绑带' },
 
-// init
-renderCatFilter();
-renderCodex();
+    { t: 'sitting', c: 'pose', n: false, k: '坐姿' },
+    { t: 'standing', c: 'pose', n: false, k: '站姿' },
+    { t: 'lying', c: 'pose', n: false, k: '躺卧' },
+    { t: 'kneeling', c: 'pose', n: false, k: '跪姿' },
+    { t: 'spread legs', c: 'pose', n: true, k: '' },
+    { t: 'on back', c: 'pose', n: false, k: '仰躺' },
+    { t: 'arms up', c: 'pose', n: false, k: '抬臂 举手' },
+    { t: 'legs up', c: 'pose', n: true, k: '' },
+    { t: 'from behind', c: 'pose', n: false, k: '背后视角' },
+    { t: 'pinned', c: 'pose', n: true, k: '' },
+    { t: 'grabbing', c: 'pose', n: false, k: '抓握' },
+    { t: 'crossed legs', c: 'pose', n: false, k: '翘腿 交叠' },
+
+    { t: 'masturbation', c: 'nsfw_act', n: true, k: '' },
+    { t: 'fingering', c: 'nsfw_act', n: true, k: '' },
+    { t: 'toy', c: 'nsfw_act', n: true, k: '' },
+    { t: 'dildo', c: 'nsfw_act', n: true, k: '' },
+    { t: 'vibrator', c: 'nsfw_act', n: true, k: '' },
+    { t: 'handjob', c: 'nsfw_act', n: true, k: '' },
+    { t: 'fellatio', c: 'nsfw_act', n: true, k: '' },
+    { t: 'cunnilingus', c: 'nsfw_act', n: true, k: '' },
+    { t: 'paizuri', c: 'nsfw_act', n: true, k: '' },
+    { t: 'sex', c: 'nsfw_act', n: true, k: '' },
+    { t: 'creampie', c: 'nsfw_act', n: true, k: '' },
+    { t: 'doggy style', c: 'nsfw_act', n: true, k: '' },
+    { t: 'cowgirl position', c: 'nsfw_act', n: true, k: '' },
+    { t: 'missionary', c: 'nsfw_act', n: true, k: '' },
+    { t: 'standing sex', c: 'nsfw_act', n: true, k: '' },
+
+    { t: 'nude', c: 'nsfw_body', n: true, k: '' },
+    { t: 'nsfw', c: 'nsfw_body', n: true, k: '成人向 总开关' },
+    { t: 'nipples', c: 'nsfw_body', n: true, k: '' },
+    { t: 'topless', c: 'nsfw_body', n: true, k: '' },
+    { t: 'bottomless', c: 'nsfw_body', n: true, k: '' },
+    { t: 'cleavage', c: 'nsfw_body', n: true, k: '' },
+    { t: 'underboob', c: 'nsfw_body', n: true, k: '' },
+    { t: 'sideboob', c: 'nsfw_body', n: true, k: '' },
+    { t: 'navel', c: 'nsfw_body', n: true, k: '肚脐' },
+    { t: 'cameltoe', c: 'nsfw_body', n: true, k: '' },
+    { t: 'pussy', c: 'nsfw_body', n: true, k: '' },
+    { t: 'ass visible', c: 'nsfw_body', n: true, k: '' },
+    { t: 'feet', c: 'nsfw_body', n: true, k: '脚部' },
+    { t: 'toes', c: 'nsfw_body', n: true, k: '脚趾' },
+    { t: 'barefoot', c: 'nsfw_body', n: true, k: '赤足' },
+
+    { t: 'wet', c: 'nsfw_fluid', n: true, k: '湿润' },
+    { t: 'sweating', c: 'nsfw_fluid', n: true, k: '出汗' },
+    { t: 'cum', c: 'nsfw_fluid', n: true, k: '' },
+    { t: 'cum on body', c: 'nsfw_fluid', n: true, k: '' },
+    { t: 'cum on face', c: 'nsfw_fluid', n: true, k: '' },
+    { t: 'cum in pussy', c: 'nsfw_fluid', n: true, k: '' },
+    { t: 'precum', c: 'nsfw_fluid', n: true, k: '' },
+    { t: 'body fluids', c: 'nsfw_fluid', n: true, k: '' },
+
+    { t: 'bound', c: 'nsfw_bdsm', n: true, k: '' },
+    { t: 'rope', c: 'nsfw_bdsm', n: true, k: '绳索' },
+    { t: 'shibari', c: 'nsfw_bdsm', n: true, k: '绳缚' },
+    { t: 'handcuffs', c: 'nsfw_bdsm', n: true, k: '手铐' },
+    { t: 'blindfold', c: 'nsfw_bdsm', n: true, k: '眼罩' },
+    { t: 'gag', c: 'nsfw_bdsm', n: true, k: '口塞' },
+    { t: 'collar', c: 'nsfw_bdsm', n: true, k: '项圈' },
+    { t: 'leash', c: 'nsfw_bdsm', n: true, k: '牵绳' },
+    { t: 'dominated', c: 'nsfw_bdsm', n: true, k: '' },
+    { t: 'submissive', c: 'nsfw_bdsm', n: true, k: '' },
+    { t: 'master', c: 'nsfw_bdsm', n: true, k: '' },
+    { t: 'slave', c: 'nsfw_bdsm', n: true, k: '' },
+
+    { t: 'bedroom', c: 'env', n: false, k: '卧室' },
+    { t: 'bathroom', c: 'env', n: false, k: '浴室' },
+    { t: 'classroom', c: 'env', n: false, k: '教室' },
+    { t: 'outdoor', c: 'env', n: false, k: '户外' },
+    { t: 'beach', c: 'env', n: false, k: '海滩' },
+    { t: 'pool', c: 'env', n: false, k: '泳池' },
+    { t: 'garden', c: 'env', n: false, k: '花园' },
+    { t: 'cityscape', c: 'env', n: false, k: '城市街景' },
+    { t: 'forest', c: 'env', n: false, k: '森林' },
+    { t: 'onsen', c: 'env', n: false, k: '温泉' },
+    { t: 'office', c: 'env', n: false, k: '办公室' },
+    { t: 'rooftop', c: 'env', n: false, k: '天台 屋顶' },
+
+    { t: 'soft lighting', c: 'light', n: false, k: '柔光' },
+    { t: 'backlighting', c: 'light', n: false, k: '逆光' },
+    { t: 'dim lighting', c: 'light', n: false, k: '昏暗光' },
+    { t: 'sunset', c: 'light', n: false, k: '夕阳 日落' },
+    { t: 'night', c: 'light', n: false, k: '夜晚' },
+    { t: 'moonlight', c: 'light', n: false, k: '月光' },
+    { t: 'candlelight', c: 'light', n: false, k: '烛光' },
+    { t: 'neon lights', c: 'light', n: false, k: '霓虹灯' },
+    { t: 'god rays', c: 'light', n: false, k: '丁达尔光束' },
+    { t: 'dappled light', c: 'light', n: false, k: '斑驳光影' },
+    { t: 'rim light', c: 'light', n: false, k: '轮廓光 边缘光' },
+
+    { t: 'masterpiece', c: 'quality', n: false, k: '杰作 质量锚' },
+    { t: 'best quality', c: 'quality', n: false, k: '最佳画质' },
+    { t: 'high quality', c: 'quality', n: false, k: '高画质' },
+    { t: 'absurdres', c: 'quality', n: false, k: '超高分辨率' },
+    { t: 'hand-drawn', c: 'quality', n: false, k: '手绘感' },
+    { t: 'anime coloring', c: 'quality', n: false, k: '动画上色' },
+    { t: 'cel shading', c: 'quality', n: false, k: '赛璐璐上色' },
+    { t: 'detailed', c: 'quality', n: false, k: '细节丰富' },
+    { t: 'natural proportions', c: 'quality', n: false, k: '自然比例' }
+  ];
+
+  const STORE_KEY = 'xq.lust-codex.picks.v1';
+  const SUMMON_HREF = '../cyber-summon/index.html';
+  const DEBOUNCE_MS = 150;
+  const MAX_ANIM_INDEX = 30;
+
+  const catById = new Map(CATEGORIES.map((cat) => [cat.id, cat]));
+  const tagByName = new Map(TAGS.map((tag) => [tag.t, tag]));
+
+  // 检索时逐字符扫描字符串比每次重新拼装便宜，索引在启动时算一次
+  TAGS.forEach((tag) => {
+    const cat = catById.get(tag.c) || { name: '', short: '' };
+    tag.hay = `${tag.t} ${tag.k} ${cat.name} ${cat.short} ${tag.c}`.toLowerCase();
+    tag.sub = tag.k ? tag.k.split(' ')[0] : cat.short;
+  });
+
+  const state = { cat: 'all', query: '', tokens: [], picked: [] };
+
+  const byId = (id) => document.getElementById(id);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const grid = byId('codexGrid');
+  const emptyBox = byId('codexEmpty');
+  const catBox = byId('catFilter');
+  const statusBox = byId('codexStatus');
+  const searchInput = byId('codexSearch');
+  const searchClear = byId('searchClear');
+  const dock = byId('pickDock');
+  const dockChips = byId('pickChips');
+  const pickCount = byId('pickCount');
+
+  function toast(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else if (typeof window.gsToast === 'function') window.gsToast(message);
+  }
+
+  function copyText(text, source) {
+    if (window.XQ && typeof window.XQ.copy === 'function') return window.XQ.copy(text, source);
+    if (typeof window.gsCopy === 'function') return window.gsCopy(text, source);
+    return false;
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  /* ------------------------------------------------------------ 本地存档 */
+  function loadPicks() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    } catch {
+      saved = null;
+    }
+    if (!Array.isArray(saved)) return;
+    // 只认当前魔典里还存在的标记，删掉的条目不会借存档复活
+    state.picked = saved.filter((name) => tagByName.has(name));
+  }
+
+  function savePicks() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state.picked));
+    } catch {
+      // 隐私模式下写入会抛错，组合退化成仅本次会话有效即可
+    }
+  }
+
+  /* -------------------------------------------------------------- 检索 */
+  function matches(tag) {
+    if (state.cat !== 'all' && tag.c !== state.cat) return false;
+    return state.tokens.every((token) => tag.hay.includes(token));
+  }
+
+  /** 命中区间先合并再渲染，避免多关键词重叠时切出空的 mark。 */
+  function hitRanges(text) {
+    if (!state.tokens.length) return [];
+    const lower = text.toLowerCase();
+    const found = [];
+
+    state.tokens.forEach((token) => {
+      let at = lower.indexOf(token);
+      while (at !== -1) {
+        found.push([at, at + token.length]);
+        at = lower.indexOf(token, at + token.length);
+      }
+    });
+
+    found.sort((a, b) => a[0] - b[0]);
+
+    const merged = [];
+    found.forEach((range) => {
+      const last = merged[merged.length - 1];
+      if (last && range[0] <= last[1]) last[1] = Math.max(last[1], range[1]);
+      else merged.push(range.slice());
+    });
+    return merged;
+  }
+
+  /** 全程 textContent + createElement，动态数据不会有注入面。 */
+  function paintText(host, text) {
+    host.textContent = '';
+    const ranges = hitRanges(text);
+    if (!ranges.length) {
+      host.textContent = text;
+      return;
+    }
+
+    let cursor = 0;
+    ranges.forEach((range) => {
+      if (range[0] > cursor) host.append(text.slice(cursor, range[0]));
+      host.append(el('mark', null, text.slice(range[0], range[1])));
+      cursor = range[1];
+    });
+    if (cursor < text.length) host.append(text.slice(cursor));
+  }
+
+  /* ------------------------------------------------------------ 分类栏 */
+  function renderCats(counts, total) {
+    catBox.textContent = '';
+
+    const items = [{ id: 'all', name: '全部', nsfw: false }].concat(CATEGORIES);
+    items.forEach((cat) => {
+      const amount = cat.id === 'all' ? total : (counts.get(cat.id) || 0);
+      const button = el('button', 'lx-cat' + (cat.nsfw ? ' lx-cat--nsfw' : '') + (amount ? '' : ' is-empty'));
+      button.type = 'button';
+      button.dataset.cat = cat.id;
+      button.setAttribute('aria-pressed', String(state.cat === cat.id));
+      button.append(el('span', null, cat.name), el('span', 'lx-cat__n', String(amount)));
+      catBox.append(button);
+    });
+  }
+
+  /* ------------------------------------------------------------ 标签墙 */
+  function buildTag(tag, index) {
+    const button = el('button', 'lx-tag' + (tag.n ? ' lx-tag--nsfw' : ''));
+    button.type = 'button';
+    button.dataset.tag = tag.t;
+    button.style.setProperty('--lx-i', String(Math.min(index, MAX_ANIM_INDEX)));
+    button.setAttribute('aria-pressed', String(state.picked.indexOf(tag.t) >= 0));
+
+    const text = el('span', 'lx-tag__text');
+    const name = el('span', 'lx-tag__name');
+    paintText(name, tag.t);
+    const sub = el('span', 'lx-tag__sub');
+    paintText(sub, tag.sub);
+    text.append(name, sub);
+    button.append(text);
+
+    if (tag.n) {
+      const flag = el('span', 'lx-tag__flag', '🔞');
+      flag.setAttribute('aria-hidden', 'true');
+      button.append(flag, el('span', 'xq-sr', '（成人向）'));
+    }
+    return button;
+  }
+
+  function renderGrid() {
+    const counts = new Map();
+    const visible = [];
+
+    TAGS.forEach((tag) => {
+      const passesQuery = state.tokens.every((token) => tag.hay.includes(token));
+      if (passesQuery) counts.set(tag.c, (counts.get(tag.c) || 0) + 1);
+      if (matches(tag)) visible.push(tag);
+    });
+
+    let queryTotal = 0;
+    counts.forEach((value) => { queryTotal += value; });
+
+    grid.textContent = '';
+    const frame = document.createDocumentFragment();
+    visible.forEach((tag, index) => frame.append(buildTag(tag, index)));
+    grid.append(frame);
+
+    emptyBox.hidden = visible.length > 0;
+    renderCats(counts, queryTotal);
+
+    statusBox.textContent = '';
+    const total = el('span');
+    total.append('共 ', el('b', null, String(visible.length)), ' 个标记');
+    statusBox.append(total);
+    if (state.query) statusBox.append(el('span', null, `· 关键词「${state.query}」`));
+    if (state.cat !== 'all') statusBox.append(el('span', null, `· 分类「${(catById.get(state.cat) || {}).name}」`));
+    statusBox.append(el('span', null, `· 魔典总量 ${TAGS.length}`));
+  }
+
+  /* ------------------------------------------------------------ 组合底栏 */
+  function renderDock() {
+    pickCount.textContent = String(state.picked.length);
+    dock.hidden = state.picked.length === 0;
+
+    dockChips.textContent = '';
+    const frame = document.createDocumentFragment();
+
+    state.picked.forEach((name) => {
+      const tag = tagByName.get(name);
+      const chip = el('span', 'lx-chip' + (tag && tag.n ? ' lx-chip--nsfw' : ''));
+      const label = el('span');
+      paintText(label, name);
+
+      const del = el('button', 'lx-chip__del', '✕');
+      del.type = 'button';
+      del.dataset.del = name;
+      del.setAttribute('aria-label', `从组合中移除 ${name}`);
+
+      chip.append(label, del);
+      frame.append(chip);
+    });
+
+    dockChips.append(frame);
+  }
+
+  function syncPickedState() {
+    const set = new Set(state.picked);
+    grid.querySelectorAll('.lx-tag').forEach((node) => {
+      node.setAttribute('aria-pressed', String(set.has(node.dataset.tag)));
+    });
+  }
+
+  /* -------------------------------------------------------------- 交互 */
+  function togglePick(name, sourceNode) {
+    const index = state.picked.indexOf(name);
+    if (index >= 0) state.picked.splice(index, 1);
+    else state.picked.push(name);
+
+    savePicks();
+    syncPickedState();
+    renderDock();
+
+    if (sourceNode && index < 0 && !still.matches) {
+      sourceNode.classList.remove('is-pop');
+      void sourceNode.offsetWidth;
+      sourceNode.classList.add('is-pop');
+    }
+  }
+
+  function applyQuery(raw) {
+    state.query = raw.trim().replace(/\s+/g, ' ');
+    state.tokens = state.query ? state.query.toLowerCase().split(' ') : [];
+    searchClear.hidden = !searchInput.value;
+    renderGrid();
+  }
+
+  function setCat(id) {
+    state.cat = id;
+    renderGrid();
+  }
+
+  function plainCombo() {
+    return state.picked.join(', ');
+  }
+
+  function weightedCombo() {
+    return state.picked.map((name) => `(${name}:1.2)`).join(', ');
+  }
+
+  /* ---------------------------------------------------------------- 绑定 */
+  function bind() {
+    let timer = 0;
+    searchInput.addEventListener('input', () => {
+      searchClear.hidden = !searchInput.value;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => applyQuery(searchInput.value), DEBOUNCE_MS);
+    });
+
+    searchInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !searchInput.value) return;
+      event.preventDefault();
+      searchInput.value = '';
+      applyQuery('');
+    });
+
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      applyQuery('');
+      searchInput.focus();
+    });
+
+    // 斜杠聚焦是长列表页的通用手势，但不要抢走正在输入的焦点
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+      const active = document.activeElement;
+      if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+      event.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    });
+
+    catBox.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-cat]');
+      if (button) setCat(button.dataset.cat);
+    });
+
+    grid.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-tag]');
+      if (button) togglePick(button.dataset.tag, button);
+    });
+
+    dockChips.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-del]');
+      if (button) togglePick(button.dataset.del, null);
+    });
+
+    byId('btnResetFilter').addEventListener('click', () => {
+      searchInput.value = '';
+      state.cat = 'all';
+      applyQuery('');
+      searchInput.focus();
+    });
+
+    byId('btnCopy').addEventListener('click', (event) => {
+      if (!state.picked.length) return;
+      copyText(plainCombo(), event.currentTarget);
+    });
+
+    byId('btnWeight').addEventListener('click', (event) => {
+      if (!state.picked.length) return;
+      copyText(weightedCombo(), event.currentTarget);
+    });
+
+    byId('btnClear').addEventListener('click', () => {
+      if (!state.picked.length) return;
+      state.picked = [];
+      savePicks();
+      syncPickedState();
+      renderDock();
+      toast('组合已清空');
+    });
+
+    byId('linkSummon').addEventListener('click', (event) => {
+      // 留给新标签页/中键的原生行为，只接管普通左键点击
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+      event.preventDefault();
+      if (!state.picked.length) {
+        toast('请先选择标签');
+        return;
+      }
+      Promise.resolve(copyText(plainCombo(), event.currentTarget)).then(() => {
+        window.location.href = SUMMON_HREF;
+      });
+    });
+  }
+
+  /* -------------------------------------------------- 控制台吸顶时的状态 */
+  function watchStuck() {
+    const sentinel = byId('consoleSentinel');
+    const console_ = byId('codexConsole');
+    if (!sentinel || !('IntersectionObserver' in window)) return;
+
+    const raw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--xq-topbar-h'), 10);
+    const offset = (Number.isFinite(raw) ? raw : 54) + 20;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        console_.classList.toggle('is-stuck', !entry.isIntersecting);
+      });
+    }, { rootMargin: `-${offset}px 0px 0px 0px` });
+
+    observer.observe(sentinel);
+  }
+
+  loadPicks();
+  bind();
+  // 浏览器可能回填上次的搜索词，用输入框现值起步而不是硬清空
+  applyQuery(searchInput.value);
+  renderDock();
+  watchStuck();
+})();
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

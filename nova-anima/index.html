@@ -3,98 +3,351 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nova Anima · 黄金起词手册</title>
+<title>Nova Anima 起词手册 · 星穹枢庭</title>
+<!-- xq:shared-head:start -->
+  <meta name="description" content="二次元模型的黄金起手词：按九个卡槽搭好角色、构图与画风的第一版提示词。">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c1a">
+  <link rel="canonical" href="https://stardustlc666.github.io/xingqiong-hub/nova-anima/">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="星穹枢庭">
+  <meta property="og:title" content="Nova Anima 起词手册 · 星穹枢庭">
+  <meta property="og:description" content="二次元模型的黄金起手词：按九个卡槽搭好角色、构图与画风的第一版提示词。">
+  <meta property="og:url" content="https://stardustlc666.github.io/xingqiong-hub/nova-anima/">
+  <meta property="og:image" content="https://stardustlc666.github.io/xingqiong-hub/assets/og-cover.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="../assets/sanctuary.css">
+<!-- xq:shared-head:end -->
 <link rel="stylesheet" href="../assets/gemini.css">
 <style>
-/* === PAGE-SPECIFIC === */
-.slot-chain { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+/* === 通用 === */
+[hidden] { display: none !important; }
+button.chip { font-family: inherit; }
+
+/* === 版本适用说明 ===
+   本页沿用 Anima / Nova Anima 2.0 的经典写法，与姊妹页的 Anima3 协议存在硬冲突，
+   必须在页面最上方显式标注，避免读者把两套规则混用。 */
+.ver-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); }
+.ver-card {
+  padding: 0.85rem 1rem; border: 1px solid var(--xq-line-soft);
+  border-left: 2px solid var(--xq-gold); border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet); color: var(--xq-text-muted);
+  font-size: 0.78rem; line-height: 1.85;
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    transform var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
+}
+.ver-card:hover {
+  border-color: var(--xq-line-strong); background: var(--xq-surface);
+  box-shadow: var(--xq-shadow-sm); transform: translateY(-2px);
+}
+.ver-card h4 { margin-bottom: 0.35rem; color: var(--xq-gold); font-family: var(--xq-font-serif); font-size: 0.85rem; }
+.ver-card--warn { border-left-color: var(--xq-warn); }
+.ver-card--warn h4 { color: var(--xq-warn); }
+.ver-card a,
+.sd-caution a,
+.sd-link {
+  color: var(--xq-gold-bright); text-decoration: underline;
+  text-decoration-color: rgba(247, 217, 160, 0.42); text-underline-offset: 3px;
+  transition: color var(--xq-dur-fast) var(--xq-ease), text-decoration-color var(--xq-dur-fast) var(--xq-ease);
+}
+.ver-card a:hover,
+.sd-caution a:hover,
+.sd-link:hover { color: #fff1d8; text-decoration-color: currentColor; }
+
+/* === 九槽轨道链 === */
+.slot-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-bottom: 1.2rem; }
 .slot-node {
-  background: rgba(232,168,96,0.06); border: 1px solid rgba(232,168,96,0.15);
-  border-radius: 10px; padding: 0.5rem 0.8rem; font-size: 0.78rem;
-  color: #d0b880; text-align: center; cursor: pointer; transition: all 0.2s;
-  min-width: 70px;
+  position: relative; display: flex; overflow: hidden; min-width: 82px;
+  flex-direction: column; align-items: center; gap: 1px;
+  padding: 0.48rem 0.75rem; border: 1px solid var(--xq-line); border-radius: var(--xq-r-md);
+  background: var(--xq-surface-quiet); color: #d0b880;
+  cursor: pointer; font-family: inherit; font-size: 0.76rem; letter-spacing: 0.02em;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
 }
-.slot-node:hover { border-color: rgba(232,168,96,0.4); background: rgba(232,168,96,0.12); }
-.slot-node .slot-label { font-size: 0.6rem; color: rgba(200,200,224,0.3); display: block; }
-.slot-arrow { color: rgba(232,168,96,0.3); font-size: 1rem; }
+.slot-node::before {
+  position: absolute; background: radial-gradient(120px circle at var(--xq-mx, 50%) var(--xq-my, 50%), var(--xq-accent-soft), transparent 70%);
+  content: ""; inset: 0; opacity: 0; pointer-events: none;
+  transition: opacity var(--xq-dur) var(--xq-ease);
+}
+.slot-node:hover {
+  border-color: var(--xq-line-strong); background: var(--xq-surface);
+  color: var(--xq-gold-bright); box-shadow: var(--xq-shadow-sm); transform: translateY(-2px);
+}
+.slot-node:hover::before { opacity: 1; }
+.slot-node .slot-label { color: var(--xq-text-faint); font-size: 0.6rem; }
+.slot-node[aria-pressed="true"] {
+  border-color: var(--xq-gold); background: rgba(232, 168, 96, 0.14);
+  color: var(--xq-gold-bright); animation: nodePulse 2.8s var(--xq-ease) infinite;
+}
+.slot-node[aria-pressed="true"] .slot-label { color: var(--xq-gold); }
+.slot-node .slot-count {
+  position: absolute; top: 3px; right: 4px; min-width: 1rem; padding: 0 0.25rem;
+  border-radius: var(--xq-r-pill); background: var(--xq-gold); color: #201404;
+  font-family: var(--xq-font-mono); font-size: 0.58rem; line-height: 1.5; text-align: center;
+  transform: scale(0.4); opacity: 0;
+  transition: opacity var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.slot-node .slot-count.on { opacity: 1; transform: none; }
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(232, 168, 96, 0.26), 0 8px 26px rgba(232, 168, 96, 0.12); }
+  50% { box-shadow: 0 0 0 1px rgba(232, 168, 96, 0.5), 0 12px 38px rgba(232, 168, 96, 0.3); }
+}
+
+/* 节点之间的连接光线：一颗光点沿轨道流向下一个卡槽 */
+.slot-link {
+  position: relative; width: 22px; height: 1px; flex: 0 0 auto; overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(232, 168, 96, 0.34), transparent);
+}
+.slot-link::after {
+  position: absolute; top: -1px; left: 0; width: 30%; height: 3px;
+  border-radius: var(--xq-r-pill); background: var(--xq-gold-bright);
+  animation: linkFlow 3.4s linear infinite; animation-delay: var(--flow-delay, 0s);
+  box-shadow: 0 0 8px rgba(232, 168, 96, 0.8); content: "";
+}
+@keyframes linkFlow {
+  0% { opacity: 0; transform: translateX(-40%); }
+  20%, 70% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateX(340%); }
+}
+
+/* === 卡槽详情 === */
 .slot-detail { display: none; }
-.slot-detail.show { display: block; }
+.slot-detail.show {
+  display: block; padding: 1rem; border: 1px solid var(--xq-line-soft);
+  border-radius: var(--xq-r-md); background: rgba(10, 12, 26, 0.42);
+  animation: detailIn 400ms var(--xq-ease-out) both;
+}
+@keyframes detailIn { from { opacity: 0; transform: translateY(-10px) scale(0.99); } }
+.slot-detail h4 { margin-bottom: 0.3rem; color: var(--xq-gold); font-family: var(--xq-font-serif); font-size: 0.92rem; }
+.sd-desc { margin-bottom: 0.6rem; color: var(--xq-text-muted); font-size: 0.76rem; line-height: 1.8; }
+.sd-caution {
+  padding: 0.5rem 0.75rem; border: 1px solid rgba(226, 178, 86, 0.32); border-radius: var(--xq-r-sm);
+  margin-bottom: 0.6rem; background: rgba(226, 178, 86, 0.09);
+  color: #f0d199; font-size: 0.73rem; line-height: 1.75;
+}
+.sd-link { display: inline-block; margin-bottom: 0.6rem; font-size: 0.75rem; }
 
-/* === SECTION HEADER === */
-.section-h { font-family: 'Noto Serif SC', serif; font-size: 0.95rem; color: #e8a860; margin: 1.5rem 0 0.8rem; letter-spacing: 0.03em; }
+/* === 小节标题 === */
+.section-h { margin: 1.4rem 0 0.7rem; color: var(--xq-gold); font-family: var(--xq-font-serif); font-size: 0.95rem; letter-spacing: 0.03em; }
 
-/* === SLOT PANEL === */
+/* === 标签容器 === */
 .slot-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0; }
-.slot-tags .chip { cursor: default; }
-.slot-tags .chip.workbench { cursor: pointer; }
 
-/* === EXPRESSION GRID === */
-.expr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+/* === 表情语法网格 === */
+.expr-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 
-/* === DUAL TEMPLATE === */
-.dual-card { background: rgba(232,168,96,0.04); border: 1px solid rgba(232,168,96,0.1); border-radius: 10px; padding: 1rem; }
-.dual-card h4 { font-size: 0.85rem; color: #e8a860; margin-bottom: 0.5rem; }
-.dual-card pre { font-size: 0.75rem; background: rgba(0,0,0,0.3); }
-
-/* === WORKBENCH === */
-.workbench-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-@media (max-width: 768px) { .workbench-row { grid-template-columns: 1fr; } }
-#promptOutput {
-  min-height: 100px; font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 0.82rem; line-height: 1.7; word-break: break-all;
+/* === 双人模版卡 === */
+.dual-card {
+  padding: 1rem; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(232, 168, 96, 0.045);
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease),
+    transform var(--xq-dur) var(--xq-ease), box-shadow var(--xq-dur) var(--xq-ease);
 }
+.dual-card:hover {
+  border-color: var(--xq-line-strong); background: rgba(232, 168, 96, 0.08);
+  box-shadow: var(--xq-shadow-md); transform: translateY(-4px);
+}
+.dual-card h4 { margin-bottom: 0.5rem; color: var(--xq-gold); font-family: var(--xq-font-serif); font-size: 0.86rem; }
+.dual-card pre { background: rgba(6, 8, 18, 0.62); font-size: 0.75rem; }
 
-/* === COLLAPSIBLE === */
+/* === 折叠区：用 grid-template-rows 过渡，避免 max-height 猜数值 === */
 .collapsible-header {
-  cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-  user-select: none;
+  width: 100%; border: 0; background: none; cursor: pointer;
+  font-family: var(--xq-font-serif); text-align: left;
+  transition: color var(--xq-dur-fast) var(--xq-ease);
 }
-.collapsible-header::after { content: '▾'; font-size: 0.7rem; color: rgba(232,168,96,0.5); transition: transform 0.3s; }
-.collapsible-header.collapsed::after { transform: rotate(-90deg); }
-.collapsible-body { overflow: hidden; transition: max-height 0.3s; }
-.collapsible-body.hidden { max-height: 0 !important; }
+.collapsible-header:hover { color: var(--xq-gold-bright); }
+.collapsible-header::after {
+  margin-left: auto; color: var(--xq-accent); content: "▾"; font-size: 0.72rem;
+  transition: transform var(--xq-dur) var(--xq-spring);
+}
+.collapsible-header[aria-expanded="false"]::after { transform: rotate(-90deg); }
+.collapsible-body {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows var(--xq-dur) var(--xq-ease);
+}
+.collapsible-body.is-open { grid-template-rows: 1fr; }
+.collapsible-inner { min-height: 0; overflow: hidden; }
 
-/* === BADGE === */
-.badge-slot {
-  display: inline-block; font-size: 0.6rem; padding: 0.1rem 0.4rem;
-  border-radius: 6px; background: rgba(232,168,96,0.15); color: #e8a860;
-  margin-right: 0.3rem; letter-spacing: 0.04em;
+/* === 工作台 === */
+.workbench-row { display: grid; gap: 1.1rem; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.wb-out { position: sticky; top: calc(var(--xq-topbar-h) + 14px); }
+
+.wb-group {
+  overflow: hidden; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-md);
+  margin-bottom: 0.45rem; background: rgba(255, 255, 255, 0.02);
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease);
+}
+.wb-group.is-open { border-color: var(--xq-line); background: rgba(255, 255, 255, 0.035); }
+.wb-head {
+  display: flex; width: 100%; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.7rem; border: 0; background: none; color: var(--xq-text-muted);
+  cursor: pointer; font-family: inherit; font-size: 0.74rem; letter-spacing: 0.02em; text-align: left;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease);
+}
+.wb-head:hover { background: var(--xq-accent-soft); color: var(--xq-gold-bright); }
+.wb-head .wb-arrow {
+  margin-left: auto; color: var(--xq-text-faint); font-size: 0.66rem;
+  transition: transform var(--xq-dur) var(--xq-spring);
+}
+.wb-group.is-open .wb-head .wb-arrow { transform: rotate(90deg); }
+.wb-badge {
+  min-width: 1.4rem; padding: 0 0.35rem; border-radius: var(--xq-r-pill);
+  background: rgba(232, 168, 96, 0.2); color: var(--xq-gold-bright);
+  font-family: var(--xq-font-mono); font-size: 0.64rem; text-align: center;
+  opacity: 0; transform: scale(0.5);
+  transition: opacity var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-spring);
+}
+.wb-badge.on { opacity: 1; transform: none; }
+.wb-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--xq-dur) var(--xq-ease); }
+.wb-group.is-open .wb-body { grid-template-rows: 1fr; }
+.wb-body-inner { min-height: 0; overflow: hidden; }
+.wb-body-inner .slot-tags { padding: 0 0.7rem 0.7rem; margin: 0; }
+
+/* === 已选标签 pill 列表 === */
+.mode-switch { display: inline-flex; gap: 0.3rem; }
+.mode-btn {
+  padding: 0.3rem 0.75rem; border: 1px solid var(--xq-line-soft); border-radius: var(--xq-r-pill);
+  background: var(--xq-surface-quiet); color: var(--xq-text-muted);
+  cursor: pointer; font-family: inherit; font-size: 0.72rem;
+  transition: color var(--xq-dur-fast) var(--xq-ease), border-color var(--xq-dur-fast) var(--xq-ease),
+    background var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease),
+    box-shadow var(--xq-dur-fast) var(--xq-ease);
+}
+.mode-btn:hover { border-color: var(--xq-line-strong); color: var(--xq-gold-bright); transform: translateY(-1px); }
+.mode-btn[aria-pressed="true"] {
+  border-color: var(--xq-gold); background: var(--xq-accent-soft); color: var(--xq-gold);
+  box-shadow: 0 0 0 1px rgba(232, 168, 96, 0.16), 0 6px 20px rgba(232, 168, 96, 0.14);
+}
+
+.pick-list {
+  display: flex; min-height: 2.9rem; flex-wrap: wrap; align-content: flex-start; gap: 0.35rem;
+  padding: 0.55rem; border: 1px dashed var(--xq-line-soft); border-radius: var(--xq-r-md);
+  background: rgba(6, 8, 18, 0.34);
+  transition: border-color var(--xq-dur) var(--xq-ease), background var(--xq-dur) var(--xq-ease);
+}
+.pick-list.is-dragover { border-color: var(--xq-gold); background: var(--xq-accent-soft); }
+.pick-empty { color: var(--xq-text-faint); font-size: 0.74rem; }
+.pick {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem; border: 1px solid rgba(232, 168, 96, 0.24);
+  border-radius: var(--xq-r-pill); background: rgba(232, 168, 96, 0.13);
+  color: var(--xq-gold); font-size: 0.73rem;
+  animation: pickIn 300ms var(--xq-spring) both;
+  transition: border-color var(--xq-dur-fast) var(--xq-ease), transform var(--xq-dur-fast) var(--xq-ease);
+}
+.pick:hover { border-color: var(--xq-gold); transform: translateY(-1px); }
+.pick[draggable="true"] { cursor: grab; }
+.pick.is-dragging { cursor: grabbing; opacity: 0.4; }
+.pick .pick-slot { color: var(--xq-text-faint); font-family: var(--xq-font-mono); font-size: 0.62rem; }
+.pick-act {
+  display: grid; width: 1.15rem; height: 1.15rem; place-items: center;
+  border: 0; border-radius: 50%; background: transparent; color: inherit;
+  cursor: pointer; font-family: inherit; font-size: 0.64rem; opacity: 0.55;
+  transition: color var(--xq-dur-fast) var(--xq-ease), background var(--xq-dur-fast) var(--xq-ease),
+    opacity var(--xq-dur-fast) var(--xq-ease);
+}
+.pick-act:hover:not(:disabled) { background: var(--xq-accent-soft); opacity: 1; }
+.pick-act.pick-x:hover:not(:disabled) { background: rgba(224, 125, 112, 0.24); color: var(--xq-danger); }
+.pick-act:disabled { cursor: not-allowed; opacity: 0.18; }
+@keyframes pickIn { from { opacity: 0; transform: translateY(-6px) scale(0.9); } }
+
+#promptOutput {
+  min-height: 108px; font-family: var(--xq-font-mono); font-size: 0.82rem;
+  line-height: 1.75; word-break: break-word;
+}
+#promptOutput.is-copied { animation: copiedGlow 640ms var(--xq-ease) both; }
+@keyframes copiedGlow {
+  0% { border-color: var(--xq-gold); box-shadow: 0 0 0 0 rgba(232, 168, 96, 0.5); }
+  100% { border-color: var(--xq-line-soft); box-shadow: 0 0 0 16px rgba(232, 168, 96, 0); }
+}
+
+/* === 铁律清单 === */
+.law-list { color: var(--xq-text-muted); font-size: 0.8rem; line-height: 1.95; }
+
+/* === 响应式 === */
+@media (max-width: 900px) {
+  .workbench-row { grid-template-columns: 1fr; }
+  .wb-out { position: static; }
+}
+@media (max-width: 520px) {
+  .slot-chain { gap: 0.28rem; }
+  .slot-node { min-width: 0; flex: 1 1 27%; padding: 0.45rem 0.3rem; font-size: 0.7rem; }
+  .slot-link { display: none; }
+  .section-h { font-size: 0.88rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-node[aria-pressed="true"] { animation: none; box-shadow: var(--xq-glow-gold); }
+  .slot-link::after { animation: none; opacity: 0.7; }
+  .slot-detail.show,
+  .pick { animation: none; }
+  .dual-card:hover,
+  .ver-card:hover,
+  .pick:hover,
+  .mode-btn:hover,
+  .slot-node:hover { transform: none; }
+  .collapsible-body,
+  .wb-body { transition: none; }
+  #promptOutput.is-copied { animation: none; border-color: var(--xq-gold); }
 }
 </style>
 </head>
 <body>
 
-<canvas id="starfield"></canvas>
 <main class="page">
-  <a href="../index.html" class="back-link">← 返回双子星秘境</a>
+  <a href="../index.html" class="back-link">← 返回星穹枢庭</a>
 
   <header class="page-header fade-in">
     <h1>🌸 Nova Anima · 黄金起词手册</h1>
     <p class="subtitle">ANIMA & NOVA ANIMA 2.0 · ULTIMATE PROMPT ENGINEERING GUIDE</p>
   </header>
 
+  <!-- === 版本适用说明 === -->
+  <section class="panel fade-in d1">
+    <div class="panel-title">🧭 版本适用说明 · 先读这一段</div>
+    <div class="ver-grid">
+      <div class="ver-card" data-xq-reveal>
+        <h4>✅ 本页适用：Anima / Nova Anima 2.0</h4>
+        本页所有卡槽、示例与工作台，都是为 <strong class="text-gold">Anima 初代与 Nova Anima 2.0</strong> 这一代模型写的：
+        手写光影词、手写质量词，靠提示词自身的顺序完成隐式加权。
+      </div>
+      <div class="ver-card ver-card--warn" data-xq-reveal style="--xq-reveal-delay:70ms;">
+        <h4>⚠️ 不适用：Anima3 协议</h4>
+        姊妹页<a href="../anima-guide/index.html#role-protocol">《Anima 起手协议》§1 三大绝对禁令</a>与
+        <a href="../anima-guide/index.html#self-check">§3 最终自检</a>明确规定：Anima3 的 Lora 已内置光影系统，
+        Prompt 里<strong class="text-gold">禁止出现 backlighting / rim light 等光影词，也禁止 masterpiece 等质量词</strong>。
+        因此本页 ⑥Lighting 与 ⑧Quality 两槽<strong class="text-gold">不要照搬到 Anima3</strong>，其余七槽仍可通用。
+      </div>
+    </div>
+  </section>
+
   <!-- === GOLDEN 9-SLOT CHAIN === -->
   <section class="panel fade-in d1">
     <div class="panel-title">✦ 黄金九段式卡槽公式</div>
-    <p class="text-muted mb-1">点选下方卡槽查看详细说明与示例标签。Anima / Nova Anima 2.0 最优出图结构。</p>
-    <div class="slot-chain" id="slotChain">
-      <div class="slot-node" data-slot="subject"><span class="slot-label">①</span>Subject</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="action"><span class="slot-label">②</span>Action</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="clothing"><span class="slot-label">③</span>Clothing</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="expression"><span class="slot-label">④</span>Expression</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="pose"><span class="slot-label">⑤</span>Pose</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="lighting"><span class="slot-label">⑥</span>Lighting</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="background"><span class="slot-label">⑦</span>Background</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="quality"><span class="slot-label">⑧</span>Quality</div>
-      <span class="slot-arrow">→</span>
-      <div class="slot-node" data-slot="style"><span class="slot-label">⑨</span>Style</div>
+    <p class="text-muted mb-1">点选下方卡槽查看详细说明与示例标签，再次点击可收起。Anima / Nova Anima 2.0 最优出图结构。</p>
+    <div class="slot-chain" id="slotChain" role="group" aria-label="九段式卡槽导航">
+      <button type="button" class="slot-node" data-slot="subject" aria-pressed="false" aria-controls="sd-subject"><span class="slot-label">①</span>Subject</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:0s;"></span>
+      <button type="button" class="slot-node" data-slot="action" aria-pressed="false" aria-controls="sd-action"><span class="slot-label">②</span>Action</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:0.35s;"></span>
+      <button type="button" class="slot-node" data-slot="clothing" aria-pressed="false" aria-controls="sd-clothing"><span class="slot-label">③</span>Clothing</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:0.7s;"></span>
+      <button type="button" class="slot-node" data-slot="expression" aria-pressed="false" aria-controls="sd-expression"><span class="slot-label">④</span>Expression</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:1.05s;"></span>
+      <button type="button" class="slot-node" data-slot="pose" aria-pressed="false" aria-controls="sd-pose"><span class="slot-label">⑤</span>Pose</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:1.4s;"></span>
+      <button type="button" class="slot-node" data-slot="lighting" aria-pressed="false" aria-controls="sd-lighting"><span class="slot-label">⑥</span>Lighting</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:1.75s;"></span>
+      <button type="button" class="slot-node" data-slot="background" aria-pressed="false" aria-controls="sd-background"><span class="slot-label">⑦</span>Background</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:2.1s;"></span>
+      <button type="button" class="slot-node" data-slot="quality" aria-pressed="false" aria-controls="sd-quality"><span class="slot-label">⑧</span>Quality</button>
+      <span class="slot-link" aria-hidden="true" style="--flow-delay:2.45s;"></span>
+      <button type="button" class="slot-node" data-slot="style" aria-pressed="false" aria-controls="sd-style"><span class="slot-label">⑨</span>Style</button>
     </div>
 
     <div id="slotDetails" style="margin-top:1rem;"></div>
@@ -102,149 +355,156 @@
 
   <!-- === EXPRESSION GRAMMAR === -->
   <section class="panel fade-in d2">
-    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+    <button type="button" class="panel-title collapsible-header" aria-expanded="false" aria-controls="sec-expr">
       ✦ 表情结构语法 · Expression Grammar
-    </div>
-    <div class="collapsible-body">
-      <div class="expr-grid" style="margin-top:1rem;">
+    </button>
+    <div class="collapsible-body" id="sec-expr" data-slot-scope="expression">
+      <div class="collapsible-inner">
+      <p class="text-muted" style="margin-top:1rem;">下列标签点击即可送入工作台 ④Expression 槽，与卡槽详情面板中的选择实时同步。</p>
+      <div class="expr-grid" style="margin-top:0.6rem;">
         <div>
           <h4 class="section-h">👁️ 眼部表情</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="sparkling eyes">sparkling eyes · 星眸闪烁</span>
-            <span class="chip workbench" data-tag="half-closed eyes">half-closed eyes · 半闭眼</span>
-            <span class="chip workbench" data-tag="upturned eyes">upturned eyes · 上挑眼</span>
-            <span class="chip workbench" data-tag="downturned eyes">downturned eyes · 下垂眼</span>
-            <span class="chip workbench" data-tag="teary eyes">teary eyes · 含泪眼</span>
-            <span class="chip workbench" data-tag="glowing eyes">glowing eyes · 发光眼</span>
-            <span class="chip workbench" data-tag="empty eyes">empty eyes · 空洞眼</span>
-            <span class="chip workbench" data-tag="narrowed eyes">narrowed eyes · 眯眼</span>
-            <span class="chip workbench" data-tag="wide-eyed">wide-eyed · 睁大眼</span>
-            <span class="chip workbench" data-tag="sharingan">sharingan · 写轮眼</span>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="sparkling eyes" aria-pressed="false">sparkling eyes · 星眸闪烁</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="half-closed eyes" aria-pressed="false">half-closed eyes · 半闭眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="upturned eyes" aria-pressed="false">upturned eyes · 上挑眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="downturned eyes" aria-pressed="false">downturned eyes · 下垂眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="teary eyes" aria-pressed="false">teary eyes · 含泪眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="glowing eyes" aria-pressed="false">glowing eyes · 发光眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="empty eyes" aria-pressed="false">empty eyes · 空洞眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="narrowed eyes" aria-pressed="false">narrowed eyes · 眯眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="wide-eyed" aria-pressed="false">wide-eyed · 睁大眼</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="sharingan" aria-pressed="false">sharingan · 写轮眼</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">👄 嘴部表情</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="smile">smile · 微笑</span>
-            <span class="chip workbench" data-tag="open mouth">open mouth · 张口</span>
-            <span class="chip workbench" data-tag="grin">grin · 咧嘴笑</span>
-            <span class="chip workbench" data-tag="pout">pout · 嘟嘴</span>
-            <span class="chip workbench" data-tag="tongue out">tongue out · 吐舌</span>
-            <span class="chip workbench" data-tag="biting lip">biting lip · 咬唇</span>
-            <span class="chip workbench" data-tag=":3">:3 · 猫嘴</span>
-            <span class="chip workbench" data-tag="frown">frown · 皱眉嘴</span>
-            <span class="chip workbench" data-tag="fang">fang · 虎牙</span>
-            <span class="chip workbench" data-tag="saliva">saliva · 口水</span>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="smile" aria-pressed="false">smile · 微笑</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="open mouth" aria-pressed="false">open mouth · 张口</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="grin" aria-pressed="false">grin · 咧嘴笑</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="pout" aria-pressed="false">pout · 嘟嘴</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="tongue out" aria-pressed="false">tongue out · 吐舌</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="biting lip" aria-pressed="false">biting lip · 咬唇</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag=":3" aria-pressed="false">:3 · 猫嘴</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="frown" aria-pressed="false">frown · 皱眉嘴</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="fang" aria-pressed="false">fang · 虎牙</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="saliva" aria-pressed="false">saliva · 口水</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">😊 组合表情</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="embarrassed">embarrassed · 害羞</span>
-            <span class="chip workbench" data-tag="blush">blush · 脸红</span>
-            <span class="chip workbench" data-tag="angry">angry · 生气</span>
-            <span class="chip workbench" data-tag="sad">sad · 悲伤</span>
-            <span class="chip workbench" data-tag="surprised">surprised · 惊讶</span>
-            <span class="chip workbench" data-tag="sleepy">sleepy · 困倦</span>
-            <span class="chip workbench" data-tag="seductive smile">seductive smile · 魅惑笑</span>
-            <span class="chip workbench" data-tag="naughty face">naughty face · 调皮脸</span>
-            <span class="chip workbench" data-tag="ahegao">ahegao · 阿嘿颜</span>
-            <span class="chip workbench" data-tag="shy">shy · 腼腆</span>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="embarrassed" aria-pressed="false">embarrassed · 害羞</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="blush" aria-pressed="false">blush · 脸红</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="angry" aria-pressed="false">angry · 生气</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="sad" aria-pressed="false">sad · 悲伤</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="surprised" aria-pressed="false">surprised · 惊讶</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="sleepy" aria-pressed="false">sleepy · 困倦</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="seductive smile" aria-pressed="false">seductive smile · 魅惑笑</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="naughty face" aria-pressed="false">naughty face · 调皮脸</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="ahegao" aria-pressed="false">ahegao · 阿嘿颜</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="shy" aria-pressed="false">shy · 腼腆</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">💧 表情细节增强</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="sweat">sweat · 汗珠</span>
-            <span class="chip workbench" data-tag="tears">tears · 眼泪</span>
-            <span class="chip workbench" data-tag="blush stickers">blush stickers · 腮红贴纸</span>
-            <span class="chip workbench" data-tag="nosebleed">nosebleed · 鼻血</span>
-            <span class="chip workbench" data-tag="vein">vein · 青筋</span>
-            <span class="chip workbench" data-tag="steam from ears">steam from ears · 耳冒蒸汽</span>
-            <span class="chip workbench" data-tag="facepalm">facepalm · 捂脸</span>
-            <span class="chip workbench" data-tag="eye twitch">eye twitch · 眼角抽搐</span>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="sweat" aria-pressed="false">sweat · 汗珠</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="tears" aria-pressed="false">tears · 眼泪</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="blush stickers" aria-pressed="false">blush stickers · 腮红贴纸</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="nosebleed" aria-pressed="false">nosebleed · 鼻血</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="vein" aria-pressed="false">vein · 青筋</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="steam from ears" aria-pressed="false">steam from ears · 耳冒蒸汽</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="facepalm" aria-pressed="false">facepalm · 捂脸</button>
+            <button type="button" class="chip workbench" data-slot="expression" data-tag="eye twitch" aria-pressed="false">eye twitch · 眼角抽搐</button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </section>
 
   <!-- === CLOTHING GRAMMAR === -->
   <section class="panel fade-in d3">
-    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+    <button type="button" class="panel-title collapsible-header" aria-expanded="false" aria-controls="sec-cloth">
       ✦ 精奢衣服结构语法 · Luxury Clothing Grammar
-    </div>
-    <div class="collapsible-body">
-      <div class="gs-grid gs-grid-2" style="margin-top:1rem;">
+    </button>
+    <div class="collapsible-body" id="sec-cloth" data-slot-scope="clothing">
+      <div class="collapsible-inner">
+      <p class="text-muted" style="margin-top:1rem;">下列标签点击即可送入工作台 ③Clothing 槽，与卡槽详情面板中的选择实时同步。</p>
+      <div class="gs-grid gs-grid-2" style="margin-top:0.6rem;">
         <div>
           <h4 class="section-h">👗 基础服装类型</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="school uniform">school uniform · 校服</span>
-            <span class="chip workbench" data-tag="sailor uniform">sailor uniform · 水手服</span>
-            <span class="chip workbench" data-tag="kimono">kimono · 和服</span>
-            <span class="chip workbench" data-tag="yukata">yukata · 浴衣</span>
-            <span class="chip workbench" data-tag="cheongsam">cheongsam · 旗袍</span>
-            <span class="chip workbench" data-tag="hanfu">hanfu · 汉服</span>
-            <span class="chip workbench" data-tag="maid uniform">maid uniform · 女仆装</span>
-            <span class="chip workbench" data-tag="suit">suit · 西装</span>
-            <span class="chip workbench" data-tag="dress">dress · 连衣裙</span>
-            <span class="chip workbench" data-tag="armor">armor · 铠甲</span>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="school uniform" aria-pressed="false">school uniform · 校服</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="sailor uniform" aria-pressed="false">sailor uniform · 水手服</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="kimono" aria-pressed="false">kimono · 和服</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="yukata" aria-pressed="false">yukata · 浴衣</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="cheongsam" aria-pressed="false">cheongsam · 旗袍</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="hanfu" aria-pressed="false">hanfu · 汉服</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="maid uniform" aria-pressed="false">maid uniform · 女仆装</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="suit" aria-pressed="false">suit · 西装</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="dress" aria-pressed="false">dress · 连衣裙</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="armor" aria-pressed="false">armor · 铠甲</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">🎀 材质与质感</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="silk">silk · 丝绸</span>
-            <span class="chip workbench" data-tag="velvet">velvet · 天鹅绒</span>
-            <span class="chip workbench" data-tag="lace">lace · 蕾丝</span>
-            <span class="chip workbench" data-tag="latex">latex · 乳胶</span>
-            <span class="chip workbench" data-tag="leather">leather · 皮革</span>
-            <span class="chip workbench" data-tag="sheer fabric">sheer fabric · 薄纱</span>
-            <span class="chip workbench" data-tag="gold embroidery">gold embroidery · 金线刺绣</span>
-            <span class="chip workbench" data-tag="jewelry details">jewelry details · 珠宝细节</span>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="silk" aria-pressed="false">silk · 丝绸</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="velvet" aria-pressed="false">velvet · 天鹅绒</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="lace" aria-pressed="false">lace · 蕾丝</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="latex" aria-pressed="false">latex · 乳胶</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="leather" aria-pressed="false">leather · 皮革</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="sheer fabric" aria-pressed="false">sheer fabric · 薄纱</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="gold embroidery" aria-pressed="false">gold embroidery · 金线刺绣</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="jewelry details" aria-pressed="false">jewelry details · 珠宝细节</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">✨ 精奢配饰</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="choker">choker · 项圈</span>
-            <span class="chip workbench" data-tag="ribbon">ribbon · 蝴蝶结</span>
-            <span class="chip workbench" data-tag="hair ornament">hair ornament · 发饰</span>
-            <span class="chip workbench" data-tag="earrings">earrings · 耳环</span>
-            <span class="chip workbench" data-tag="bracelet">bracelet · 手镯</span>
-            <span class="chip workbench" data-tag="anklet">anklet · 脚链</span>
-            <span class="chip workbench" data-tag="collar">collar · 项圈</span>
-            <span class="chip workbench" data-tag="brooch">brooch · 胸针</span>
-            <span class="chip workbench" data-tag="garter">garter · 袜圈</span>
-            <span class="chip workbench" data-tag="hair ribbon">hair ribbon · 发带</span>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="choker" aria-pressed="false">choker · 项圈</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="ribbon" aria-pressed="false">ribbon · 蝴蝶结</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="hair ornament" aria-pressed="false">hair ornament · 发饰</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="earrings" aria-pressed="false">earrings · 耳环</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="bracelet" aria-pressed="false">bracelet · 手镯</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="anklet" aria-pressed="false">anklet · 脚链</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="collar" aria-pressed="false">collar · 项圈</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="brooch" aria-pressed="false">brooch · 胸针</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="garter" aria-pressed="false">garter · 袜圈</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="hair ribbon" aria-pressed="false">hair ribbon · 发带</button>
           </div>
         </div>
         <div>
           <h4 class="section-h">👠 鞋袜精配</h4>
           <div class="slot-tags">
-            <span class="chip workbench" data-tag="thighhighs">thighhighs · 过膝袜</span>
-            <span class="chip workbench" data-tag="pantyhose">pantyhose · 连裤袜</span>
-            <span class="chip workbench" data-tag="knee boots">knee boots · 膝上靴</span>
-            <span class="chip workbench" data-tag="high heels">high heels · 高跟鞋</span>
-            <span class="chip workbench" data-tag="mary janes">mary janes · 玛丽珍鞋</span>
-            <span class="chip workbench" data-tag="loafers">loafers · 乐福鞋</span>
-            <span class="chip workbench" data-tag="geta">geta · 木屐</span>
-            <span class="chip workbench" data-tag="barefoot">barefoot · 赤脚</span>
-            <span class="chip workbench" data-tag="socks">socks · 短袜</span>
-            <span class="chip workbench" data-tag="legwear">legwear · 腿饰</span>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="thighhighs" aria-pressed="false">thighhighs · 过膝袜</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="pantyhose" aria-pressed="false">pantyhose · 连裤袜</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="knee boots" aria-pressed="false">knee boots · 膝上靴</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="high heels" aria-pressed="false">high heels · 高跟鞋</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="mary janes" aria-pressed="false">mary janes · 玛丽珍鞋</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="loafers" aria-pressed="false">loafers · 乐福鞋</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="geta" aria-pressed="false">geta · 木屐</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="barefoot" aria-pressed="false">barefoot · 赤脚</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="socks" aria-pressed="false">socks · 短袜</button>
+            <button type="button" class="chip workbench" data-slot="clothing" data-tag="legwear" aria-pressed="false">legwear · 腿饰</button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </section>
 
   <!-- === DUAL PERSON CONTROL === -->
   <section class="panel fade-in d4">
-    <div class="panel-title collapsible-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')">
+    <button type="button" class="panel-title collapsible-header" aria-expanded="false" aria-controls="sec-dual">
       ✦ 双人控符神级模版 · Dual Character Templates
-    </div>
-    <div class="collapsible-body" style="margin-top:1rem;">
-      <p class="text-muted mb-1">使用 <code>1girl</code> + <code>1boy</code> / <code>2girls</code> 等组合标签精确控制双人场景。注意姿势与互动的互补性。</p>
+    </button>
+    <div class="collapsible-body" id="sec-dual">
+      <div class="collapsible-inner">
+      <p class="text-muted mb-1" style="margin-top:1rem;">使用 <code>1girl</code> + <code>1boy</code> / <code>2girls</code> 等组合标签精确控制双人场景。注意姿势与互动的互补性。</p>
       <div class="gs-grid gs-grid-2">
         <div class="dual-card">
           <h4>模版 A · 情侣互动</h4>
@@ -254,7 +514,7 @@
 romantic atmosphere, soft lighting,
 looking at each other, blush,
 detailed clothing, masterpiece</pre>
-          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+          <button type="button" class="btn btn-sm btn-ghost mt-1" data-copy-template aria-label="复制这段双人模版提示词">📋 复制模版</button>
         </div>
         <div class="dual-card">
           <h4>模版 B · 双女主角</h4>
@@ -264,7 +524,7 @@ detailed clothing, masterpiece</pre>
 interacting, linking arms,
 detailed background, natural lighting,
 anime coloring, masterpiece</pre>
-          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+          <button type="button" class="btn btn-sm btn-ghost mt-1" data-copy-template aria-label="复制这段双人模版提示词">📋 复制模版</button>
         </div>
         <div class="dual-card">
           <h4>模版 C · 对抗/对手</h4>
@@ -274,7 +534,7 @@ dynamic pose, action scene,
 (opponent: dark armor, smirk),
 dramatic lighting, sparks,
 epic composition, masterpiece</pre>
-          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+          <button type="button" class="btn btn-sm btn-ghost mt-1" data-copy-template aria-label="复制这段双人模版提示词">📋 复制模版</button>
         </div>
         <div class="dual-card">
           <h4>模版 D · 姐妹情深</h4>
@@ -284,8 +544,9 @@ epic composition, masterpiece</pre>
 hugging, cheek to cheek,
 warm lighting, sakura petals,
 heartwarming, masterpiece</pre>
-          <button class="btn btn-sm btn-ghost mt-1" onclick="gsCopy(this.previousElementSibling.textContent.trim())">📋 复制模版</button>
+          <button type="button" class="btn btn-sm btn-ghost mt-1" data-copy-template aria-label="复制这段双人模版提示词">📋 复制模版</button>
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -293,20 +554,32 @@ heartwarming, masterpiece</pre>
   <!-- === QUICK WORKBENCH === -->
   <section class="panel fade-in d5">
     <div class="panel-title">⚡ 一键极速起词工作台</div>
-    <p class="text-muted mb-1">在下方选择标签自动构建提示词。所有标签按九段式结构分层排列，点选即添加。</p>
+    <p class="text-muted mb-1">展开任意卡槽点选标签即可自动构建提示词。选择结果会保存在本机，下次打开仍在。</p>
 
     <div class="workbench-row">
-      <div>
-        <div id="wbSlots"></div>
-      </div>
-      <div>
+      <div id="wbSlots"></div>
+
+      <div class="wb-out">
+        <div class="flex-between mb-1">
+          <span class="text-muted" style="font-size:0.72rem;">已选标签排序</span>
+          <span class="mode-switch" role="group" aria-label="已选标签排序方式">
+            <button type="button" class="mode-btn" data-mode="slot" aria-pressed="true">⛓ 卡槽序</button>
+            <button type="button" class="mode-btn" data-mode="free" aria-pressed="false">✋ 自由序</button>
+          </span>
+        </div>
+
+        <div class="pick-list" id="pickList" role="list">
+          <span class="pick-empty" id="pickEmpty">还没有选中标签…点开左侧任意卡槽开始搭词 ✨</span>
+        </div>
+        <p class="text-muted" id="pickHint" style="margin:0.4rem 0 0.8rem;font-size:0.7rem;"></p>
+
+        <label class="xq-sr" for="promptOutput">生成的提示词</label>
         <textarea id="promptOutput" placeholder="选择标签后自动生成提示词…" readonly></textarea>
         <div class="flex-row mt-1">
-          <button class="btn btn-primary btn-sm" onclick="copyWorkbench()">📋 复制提示词</button>
-          <button class="btn btn-ghost btn-sm" onclick="clearWorkbench()">✕ 清空全部</button>
-          <button class="btn btn-ghost btn-sm" onclick="reorderWorkbench()">🔄 按卡槽重排</button>
+          <button type="button" class="btn btn-primary btn-sm" id="wbCopy">📋 复制提示词</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="wbClear">✕ 清空全部</button>
         </div>
-        <p class="text-muted mt-1" id="wbCount" style="font-size:0.7rem;">已选标签：0 个</p>
+        <p class="text-muted mt-1" id="wbCount" role="status" aria-live="polite" style="font-size:0.7rem;">已选标签：0 个</p>
       </div>
     </div>
   </section>
@@ -316,7 +589,7 @@ heartwarming, masterpiece</pre>
     <div class="panel-title">💡 Nova Anima 2.0 出图铁律</div>
     <div class="gs-grid gs-grid-2">
       <div>
-        <p class="text-muted" style="line-height:1.8;">
+        <p class="law-list">
           ✅ <code>CFG = 5</code> — 高于7会导致塑料皮肤<br>
           ✅ <code>dpmpp_2m + karras</code> — 最优采样组合<br>
           ✅ <code>Steps ≥ 30</code> — 低于25噪点明显<br>
@@ -325,7 +598,7 @@ heartwarming, masterpiece</pre>
         </p>
       </div>
       <div>
-        <p class="text-muted" style="line-height:1.8;">
+        <p class="law-list">
           ❌ 不用 Euler Ancestral — 脸千篇一律<br>
           ❌ 不混 <code>photorealistic</code> + <code>anime</code><br>
           ❌ 不堆超过 3 个风格标签 — 冲突<br>
@@ -334,179 +607,635 @@ heartwarming, masterpiece</pre>
         </p>
       </div>
     </div>
+    <p class="text-muted mt-1" style="font-size:0.74rem;">
+      ⚠️ 以上铁律同样只适用于 Anima / Nova Anima 2.0。若你在跑 Anima3，请改以
+      <a class="sd-link" href="../anima-guide/index.html#self-check">《Anima 起手协议》§3 最终自检</a>为准。
+    </p>
   </section>
 
 </main>
 
 <script src="../assets/gemini.js"></script>
 <script>
-// === SLOT DATA ===
-var SLOTS = {
-  subject: {
-    title: '① Subject · 主体',
-    desc: '定义画面核心对象：1girl / 1boy / 2girls / solo / animal 等。Anima 系列对主体数量敏感，精确指定可获得更好的构图。',
-    tags: ['1girl','1boy','2girls','2boys','solo','no humans','animal','monster girl','elf','cat girl','fox girl','demon girl','angel','robot girl','warrior','mage','princess','schoolgirl','office lady','nun','nurse']
-  },
-  action: {
-    title: '② Action · 动作',
-    desc: '主体在做什么。动词/动名词短语，决定画面的叙事张力。',
-    tags: ['sitting','standing','walking','running','lying down','floating','dancing','fighting','casting spell','holding object','reading','eating','drinking','sleeping','flying','swimming','kneeling','reaching out','looking back','leaning forward']
-  },
-  clothing: {
-    title: '③ Clothing · 服饰',
-    desc: '服装体系，是角色辨识度的核心。层次：内搭→外衣→配饰→鞋袜。',
-    tags: ['school uniform','sailor uniform','kimono','yukata','cheongsam','maid uniform','armor','suit','casual','dress','skirt','hoodie','sweater','bikini','swimsuit','lingerie','pajamas','china dress','military uniform','gothic']
-  },
-  expression: {
-    title: '④ Expression · 表情',
-    desc: '角色的情绪状态，决定画面感染力。建议从眼→嘴→组合→细节四层递进。',
-    tags: ['smile','blush','angry','sad','surprised','embarrassed','seductive smile','sparkling eyes','teary eyes','half-closed eyes','open mouth','tongue out',':3','fang','ahegao','shy','confident','serious','sleepy','pout']
-  },
-  pose: {
-    title: '⑤ Pose · 姿勢',
-    desc: '身体姿态与镜头关系。决定画面的视觉冲击力和构图。',
-    tags: ['dynamic pose','looking at viewer','looking away','from above','from below','close-up','full body','cowboy shot','profile','arms up','arms behind back','hand on hip','kneeling','spread legs','sitting on chair','straddling','pinup','fighting stance','arabesque','crossed legs']
-  },
-  lighting: {
-    title: '⑥ Lighting · 光影',
-    desc: '环境光线决定画面氛围。详见「双子星光影魔典」子站获取50+标签。',
-    tags: ['soft lighting','cinematic lighting','backlighting','rim lighting','sunlight','moonlight','golden hour','neon lights','candlelight','god rays','volumetric lighting','dramatic lighting','dim lighting','studio lighting','bioluminescence']
-  },
-  background: {
-    title: '⑦ Background · 背景',
-    desc: '场景环境。建议从大环境→小场景→前景元素的顺序添加。',
-    tags: ['outdoor','indoor','cityscape','nature','beach','forest','classroom','bedroom','rooftop','underwater','castle','temple','ruins','cherry blossoms','night sky','starry sky','rain','snow','sunset','meadow']
-  },
-  quality: {
-    title: '⑧ Quality · 品质',
-    desc: '画面质量标签。masterpiece 必须放在品质段最后，作为收束锚点。',
-    tags: ['masterpiece','best quality','high quality','absurdres','intricate details','sharp focus','highres','ultra detailed','8k','highly detailed background','finely detailed','beautiful detailed eyes']
-  },
-  style: {
-    title: '⑨ Style · 风格',
-    desc: '出图风格锚定。Anima 2.0 推荐不超过2个风格标签。',
-    tags: ['anime coloring','cel shading','hand-drawn','anime style','semi-realistic','watercolor style','oil painting style','manga style','illustration','ligne claire','digital painting','pastel','vivid colors','monochrome','sepia']
-  }
-};
+(function () {
+  'use strict';
 
-// === BUILD SLOT DETAILS ===
-(function buildDetails(){
-  var container = document.getElementById('slotDetails');
-  var html = '';
-  Object.keys(SLOTS).forEach(function(k){
-    var s = SLOTS[k];
-    html += '<div class="slot-detail" id="sd-'+k+'" style="background:rgba(10,10,24,0.4);border-radius:8px;padding:1rem;margin-top:0.5rem;">';
-    html += '<h4 style="color:#e8a860;font-size:0.9rem;margin-bottom:0.3rem;">'+s.title+'</h4>';
-    html += '<p style="font-size:0.75rem;color:rgba(200,200,224,0.45);margin-bottom:0.6rem;">'+s.desc+'</p>';
-    html += '<div class="slot-tags">';
-    s.tags.forEach(function(t){
-      html += '<span class="chip workbench" data-slot="'+k+'" data-tag="'+t+'">'+t+'</span>';
-    });
-    html += '</div></div>';
-  });
-  container.innerHTML = html;
+  /* === 九段式卡槽数据 ===
+     caution 用「字符串 + 链接对象」的数组表达，渲染时逐段 append，
+     从根上避免把带链接的说明拼进 innerHTML。 */
+  const SLOT_ORDER = ['subject', 'action', 'clothing', 'expression', 'pose', 'lighting', 'background', 'quality', 'style'];
 
-  // Click handlers for workbench chips
-  container.querySelectorAll('.chip.workbench').forEach(function(chip){
-    chip.addEventListener('click', function(){
-      this.classList.toggle('active');
-      updateWorkbench();
-    });
-  });
-})();
+  const ANIMA3_PROTOCOL = { href: '../anima-guide/index.html#role-protocol', text: '《Anima 起手协议》§1 三大绝对禁令' };
 
-// Slot chain click
-var currentSlot = null;
-document.querySelectorAll('#slotChain .slot-node').forEach(function(node){
-  node.addEventListener('click', function(){
-    var slot = this.dataset.slot;
-    var detail = document.getElementById('sd-'+slot);
-    if (!detail) return;
-    var all = document.querySelectorAll('.slot-detail');
-    all.forEach(function(d){ d.classList.remove('show'); });
-    if (currentSlot === slot) {
-      currentSlot = null;
-    } else {
-      detail.classList.add('show');
-      currentSlot = slot;
+  const SLOTS = {
+    subject: {
+      title: '① Subject · 主体',
+      desc: '定义画面核心对象：1girl / 1boy / 2girls / solo / animal 等。Anima 系列对主体数量敏感，精确指定可获得更好的构图。',
+      tags: ['1girl', '1boy', '2girls', '2boys', 'solo', 'no humans', 'animal', 'monster girl', 'elf', 'cat girl', 'fox girl', 'demon girl', 'angel', 'robot girl', 'warrior', 'mage', 'princess', 'schoolgirl', 'office lady', 'nun', 'nurse']
+    },
+    action: {
+      title: '② Action · 动作',
+      desc: '主体在做什么。动词/动名词短语，决定画面的叙事张力。',
+      tags: ['sitting', 'standing', 'walking', 'running', 'lying down', 'floating', 'dancing', 'fighting', 'casting spell', 'holding object', 'reading', 'eating', 'drinking', 'sleeping', 'flying', 'swimming', 'kneeling', 'reaching out', 'looking back', 'leaning forward']
+    },
+    clothing: {
+      title: '③ Clothing · 服饰',
+      desc: '服装体系，是角色辨识度的核心。层次：内搭→外衣→配饰→鞋袜。本页「精奢衣服结构语法」一节还有 38 个可直接点选的细分标签。',
+      tags: ['school uniform', 'sailor uniform', 'kimono', 'yukata', 'cheongsam', 'maid uniform', 'armor', 'suit', 'casual', 'dress', 'skirt', 'hoodie', 'sweater', 'bikini', 'swimsuit', 'lingerie', 'pajamas', 'china dress', 'military uniform', 'gothic']
+    },
+    expression: {
+      title: '④ Expression · 表情',
+      desc: '角色的情绪状态，决定画面感染力。建议从眼→嘴→组合→细节四层递进，本页「表情结构语法」一节即按这四层展开。',
+      tags: ['smile', 'blush', 'angry', 'sad', 'surprised', 'embarrassed', 'seductive smile', 'sparkling eyes', 'teary eyes', 'half-closed eyes', 'open mouth', 'tongue out', ':3', 'fang', 'ahegao', 'shy', 'confident', 'serious', 'sleepy', 'pout']
+    },
+    pose: {
+      title: '⑤ Pose · 姿势',
+      desc: '身体姿态与镜头关系。决定画面的视觉冲击力和构图。',
+      tags: ['dynamic pose', 'looking at viewer', 'looking away', 'from above', 'from below', 'close-up', 'full body', 'cowboy shot', 'profile', 'arms up', 'arms behind back', 'hand on hip', 'kneeling', 'spread legs', 'sitting on chair', 'straddling', 'pinup', 'fighting stance', 'arabesque', 'crossed legs']
+    },
+    lighting: {
+      title: '⑥ Lighting · 光影',
+      desc: '环境光线决定画面氛围。光源方向先定，再补强度与色温，最后加特效光。',
+      link: { href: '../lighting-codex/index.html', text: '打开「双子星光影魔典」查看 80+ 光影标签与冲突提示 →' },
+      caution: [
+        '本槽只适用于 Anima / Nova Anima 2.0。Anima3 的 Lora 已内置高精度光影系统，',
+        ANIMA3_PROTOCOL,
+        ' 把 backlighting / rim light / warm lighting 等词列为绝对禁令，手写会导致过爆与杂光。'
+      ],
+      tags: ['soft lighting', 'cinematic lighting', 'backlighting', 'rim lighting', 'sunlight', 'moonlight', 'golden hour', 'neon lights', 'candlelight', 'god rays', 'volumetric lighting', 'dramatic lighting', 'dim lighting', 'studio lighting', 'bioluminescence']
+    },
+    background: {
+      title: '⑦ Background · 背景',
+      desc: '场景环境。建议从大环境→小场景→前景元素的顺序添加。',
+      tags: ['outdoor', 'indoor', 'cityscape', 'nature', 'beach', 'forest', 'classroom', 'bedroom', 'rooftop', 'underwater', 'castle', 'temple', 'ruins', 'cherry blossoms', 'night sky', 'starry sky', 'rain', 'snow', 'sunset', 'meadow']
+    },
+    quality: {
+      title: '⑧ Quality · 品质',
+      desc: '画面质量标签。masterpiece 必须放在品质段最后，作为收束锚点。',
+      caution: [
+        '本槽只适用于 Anima / Nova Anima 2.0。Anima3 由后端脚本自动拼装质量词，',
+        ANIMA3_PROTOCOL,
+        ' 禁止在 Prompt 中重复写 masterpiece / best quality，否则会污染画面。'
+      ],
+      tags: ['masterpiece', 'best quality', 'high quality', 'absurdres', 'intricate details', 'sharp focus', 'highres', 'ultra detailed', '8k', 'highly detailed background', 'finely detailed', 'beautiful detailed eyes']
+    },
+    style: {
+      title: '⑨ Style · 风格',
+      desc: '出图风格锚定。Anima 2.0 推荐不超过 2 个风格标签。',
+      tags: ['anime coloring', 'cel shading', 'hand-drawn', 'anime style', 'semi-realistic', 'watercolor style', 'oil painting style', 'manga style', 'illustration', 'ligne claire', 'digital painting', 'pastel', 'vivid colors', 'monochrome', 'sepia']
     }
-  });
-});
+  };
 
-// === WORKBENCH LOGIC ===
-var selectedTags = [];
+  const STORE_KEY = 'xq.nova-anima.v1';
+  const DND_PICK = 'application/x-xq-pick';
 
-function updateWorkbench(){
-  selectedTags = [];
-  document.querySelectorAll('.chip.workbench.active').forEach(function(chip){
-    selectedTags.push({ slot: chip.dataset.slot, tag: chip.dataset.tag });
-  });
-  renderPrompt();
-  document.getElementById('wbCount').textContent = '已选标签：' + selectedTags.length + ' 个';
-}
+  const page = document.querySelector('.page');
+  const chain = document.getElementById('slotChain');
+  const detailsBox = document.getElementById('slotDetails');
+  const wbSlots = document.getElementById('wbSlots');
+  const modeSwitch = document.querySelector('.mode-switch');
+  const pickList = document.getElementById('pickList');
+  const pickEmpty = document.getElementById('pickEmpty');
+  const pickHint = document.getElementById('pickHint');
+  const output = document.getElementById('promptOutput');
+  const countLabel = document.getElementById('wbCount');
 
-function renderPrompt(){
-  var slotOrder = ['subject','action','clothing','expression','pose','lighting','background','quality','style'];
-  var lines = [];
-  slotOrder.forEach(function(sk){
-    var tags = selectedTags.filter(function(t){ return t.slot === sk; }).map(function(t){ return t.tag; });
-    if (tags.length) lines.push(tags.join(', '));
-  });
-  document.getElementById('promptOutput').value = lines.join(',\n');
-}
+  /* picks 是唯一数据源；同一标签在详情面板与工作台里各有一个 chip，
+     用 slot+tag 组成的 key 去重，避免旧版「两处都 active 于是被计两次」。 */
+  const state = { picks: [], mode: 'slot', openSlot: null };
+  const validKeys = new Set();
 
-function copyWorkbench(){
-  var text = document.getElementById('promptOutput').value;
-  if (!text.trim()) return gsToast('请先选择标签');
-  gsCopy(text.replace(/\n/g, ', '));
-}
+  function keyOf(slot, tag) {
+    return slot + '\u0001' + tag;
+  }
 
-function clearWorkbench(){
-  document.querySelectorAll('.chip.workbench.active').forEach(function(c){ c.classList.remove('active'); });
-  updateWorkbench();
-}
+  function toast(message, tone) {
+    if (window.XQ && typeof window.XQ.toast === 'function') window.XQ.toast(message, tone);
+    else if (typeof window.gsToast === 'function') window.gsToast(message);
+  }
 
-function reorderWorkbench(){
-  renderPrompt();
-  gsToast('已按卡槽重排');
-}
+  function copyText(text, source) {
+    if (window.XQ && typeof window.XQ.copy === 'function') return window.XQ.copy(text, source);
+    if (typeof window.gsCopy === 'function') return window.gsCopy(text, source);
+    return false;
+  }
 
-// === BUILD WORKBENCH SLOT SELECTOR ===
-(function buildWbSlots(){
-  var container = document.getElementById('wbSlots');
-  var slotOrder = ['subject','action','clothing','expression','pose','lighting','background','quality','style'];
-  var html = '';
-  slotOrder.forEach(function(k){
-    var s = SLOTS[k];
-    html += '<div style="margin-bottom:0.6rem;">';
-    html += '<p style="font-size:0.7rem;color:rgba(200,200,224,0.35);margin-bottom:0.25rem;">'+s.title+'</p>';
-    html += '<div class="slot-tags" style="max-height:80px;overflow-y:auto;">';
-    s.tags.forEach(function(t){
-      html += '<span class="chip workbench active-wb" data-slot="'+k+'" data-tag="'+t+'">'+t+'</span>';
+  /* ------------------------------------------------------------ 构建 DOM */
+  function buildChip(slot, tag) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip workbench';
+    chip.dataset.slot = slot;
+    chip.dataset.tag = tag;
+    chip.setAttribute('aria-pressed', 'false');
+    chip.textContent = tag;
+    return chip;
+  }
+
+  function appendParts(host, parts) {
+    parts.forEach((part) => {
+      if (typeof part === 'string') {
+        host.append(document.createTextNode(part));
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = part.href;
+      link.textContent = part.text;
+      host.append(link);
     });
-    html += '</div></div>';
-  });
-  container.innerHTML = html;
+  }
 
-  // Bind workbench slot chip clicks
-  container.querySelectorAll('.chip.workbench').forEach(function(chip){
-    chip.addEventListener('click', function(){
-      this.classList.toggle('active');
-      // Sync with detail panel
-      var slot = this.dataset.slot;
-      var tag = this.dataset.tag;
-      var detailChip = document.querySelector('#slotDetails .chip.workbench[data-slot="'+slot+'"][data-tag="'+tag+'"]');
-      if (detailChip) detailChip.classList.toggle('active');
-      updateWorkbench();
+  function buildDetails() {
+    const fragment = document.createDocumentFragment();
+
+    SLOT_ORDER.forEach((slot) => {
+      const data = SLOTS[slot];
+      const box = document.createElement('div');
+      box.className = 'slot-detail';
+      box.id = 'sd-' + slot;
+
+      const title = document.createElement('h4');
+      title.textContent = data.title;
+
+      const desc = document.createElement('p');
+      desc.className = 'sd-desc';
+      desc.textContent = data.desc;
+
+      box.append(title, desc);
+
+      if (data.caution) {
+        const caution = document.createElement('p');
+        caution.className = 'sd-caution';
+        caution.append(document.createTextNode('⚠️ '));
+        appendParts(caution, data.caution);
+        box.append(caution);
+      }
+
+      if (data.link) {
+        const link = document.createElement('a');
+        link.className = 'sd-link';
+        link.href = data.link.href;
+        link.textContent = data.link.text;
+        box.append(link);
+      }
+
+      const tags = document.createElement('div');
+      tags.className = 'slot-tags';
+      data.tags.forEach((tag) => tags.append(buildChip(slot, tag)));
+      box.append(tags);
+
+      fragment.append(box);
+    });
+
+    detailsBox.append(fragment);
+  }
+
+  function buildWorkbench() {
+    const fragment = document.createDocumentFragment();
+
+    SLOT_ORDER.forEach((slot) => {
+      const data = SLOTS[slot];
+
+      const group = document.createElement('div');
+      group.className = 'wb-group';
+      group.dataset.slot = slot;
+
+      const head = document.createElement('button');
+      head.type = 'button';
+      head.className = 'wb-head';
+      head.setAttribute('aria-expanded', 'false');
+      head.setAttribute('aria-controls', 'wb-body-' + slot);
+      head.append(document.createTextNode(data.title));
+
+      const badge = document.createElement('span');
+      badge.className = 'wb-badge';
+      badge.dataset.badge = slot;
+      badge.textContent = '0';
+
+      const arrow = document.createElement('span');
+      arrow.className = 'wb-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '▸';
+
+      head.append(badge, arrow);
+
+      const body = document.createElement('div');
+      body.className = 'wb-body';
+      body.id = 'wb-body-' + slot;
+
+      const inner = document.createElement('div');
+      inner.className = 'wb-body-inner';
+
+      const tags = document.createElement('div');
+      tags.className = 'slot-tags';
+      data.tags.forEach((tag) => tags.append(buildChip(slot, tag)));
+
+      inner.append(tags);
+      body.append(inner);
+      group.append(head, body);
+      fragment.append(group);
+    });
+
+    wbSlots.append(fragment);
+  }
+
+  function buildCountBubbles() {
+    chain.querySelectorAll('.slot-node').forEach((node) => {
+      const bubble = document.createElement('span');
+      bubble.className = 'slot-count';
+      bubble.dataset.count = node.dataset.slot;
+      bubble.setAttribute('aria-hidden', 'true');
+      bubble.textContent = '0';
+      node.append(bubble);
+    });
+  }
+
+  function collectValidKeys() {
+    document.querySelectorAll('.chip.workbench').forEach((chip) => {
+      if (chip.dataset.slot && chip.dataset.tag) validKeys.add(keyOf(chip.dataset.slot, chip.dataset.tag));
+    });
+  }
+
+  /* ---------------------------------------------------------------- 状态 */
+  function indexOfPick(slot, tag) {
+    for (let i = 0; i < state.picks.length; i += 1) {
+      if (state.picks[i].slot === slot && state.picks[i].tag === tag) return i;
+    }
+    return -1;
+  }
+
+  function countOf(slot) {
+    return state.picks.filter((pick) => pick.slot === slot).length;
+  }
+
+  function togglePick(slot, tag) {
+    const at = indexOfPick(slot, tag);
+    if (at >= 0) state.picks.splice(at, 1);
+    else state.picks.push({ slot: slot, tag: tag });
+    render();
+  }
+
+  function removePick(slot, tag) {
+    const at = indexOfPick(slot, tag);
+    if (at < 0) return;
+    state.picks.splice(at, 1);
+    render();
+  }
+
+  function reinsert(slot, tag, to) {
+    const from = indexOfPick(slot, tag);
+    if (from < 0) return;
+    const target = Math.max(0, Math.min(to, state.picks.length - 1));
+    if (target === from) return;
+    const moved = state.picks.splice(from, 1)[0];
+    state.picks.splice(target, 0, moved);
+    render();
+  }
+
+  /* 卡槽序永远按 ①→⑨ 输出，自由序保留用户拖出来的顺序 */
+  function orderedPicks() {
+    if (state.mode === 'free') return state.picks.slice();
+    const out = [];
+    SLOT_ORDER.forEach((slot) => {
+      state.picks.forEach((pick) => {
+        if (pick.slot === slot) out.push(pick);
+      });
+    });
+    return out;
+  }
+
+  /* -------------------------------------------------------------- 渲染 */
+  function syncChips() {
+    const active = new Set(state.picks.map((pick) => keyOf(pick.slot, pick.tag)));
+    document.querySelectorAll('.chip.workbench').forEach((chip) => {
+      const on = active.has(keyOf(chip.dataset.slot, chip.dataset.tag));
+      chip.classList.toggle('active', on);
+      chip.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function syncCounts() {
+    SLOT_ORDER.forEach((slot) => {
+      const total = countOf(slot);
+
+      const badge = wbSlots.querySelector('[data-badge="' + slot + '"]');
+      if (badge) {
+        badge.textContent = String(total);
+        badge.classList.toggle('on', total > 0);
+      }
+
+      const bubble = chain.querySelector('[data-count="' + slot + '"]');
+      if (bubble) {
+        bubble.textContent = String(total);
+        bubble.classList.toggle('on', total > 0);
+      }
+    });
+  }
+
+  function actionButton(glyph, act, label, enabled) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = act === 'remove' ? 'pick-act pick-x' : 'pick-act';
+    button.dataset.act = act;
+    button.textContent = glyph;
+    button.setAttribute('aria-label', label);
+    button.disabled = !enabled;
+    return button;
+  }
+
+  function findPickEl(slot, tag) {
+    return Array.from(pickList.querySelectorAll('.pick'))
+      .find((item) => item.dataset.slot === slot && item.dataset.tag === tag) || null;
+  }
+
+  function renderPicks() {
+    const list = orderedPicks();
+    const free = state.mode === 'free';
+    const fragment = document.createDocumentFragment();
+
+    list.forEach((pick, index) => {
+      const item = document.createElement('span');
+      item.className = 'pick';
+      item.setAttribute('role', 'listitem');
+      item.dataset.slot = pick.slot;
+      item.dataset.tag = pick.tag;
+      if (free) item.draggable = true;
+
+      const mark = document.createElement('span');
+      mark.className = 'pick-slot';
+      mark.textContent = SLOTS[pick.slot] ? SLOTS[pick.slot].title.charAt(0) : '·';
+
+      const label = document.createElement('span');
+      label.textContent = pick.tag;
+
+      item.append(mark, label);
+
+      if (free) {
+        item.append(
+          actionButton('◀', 'up', '把 ' + pick.tag + ' 前移一位', index > 0),
+          actionButton('▶', 'down', '把 ' + pick.tag + ' 后移一位', index < list.length - 1)
+        );
+      }
+      item.append(actionButton('✕', 'remove', '从工作台移除 ' + pick.tag, true));
+
+      fragment.append(item);
+    });
+
+    pickList.replaceChildren(fragment);
+    pickList.append(pickEmpty);
+    pickEmpty.hidden = list.length > 0;
+
+    pickHint.textContent = free
+      ? '自由序：拖动标签或用 ◀ ▶ 调整顺序，提示词按这个顺序输出。'
+      : '卡槽序：无论点选先后，都按 ①→⑨ 的卡槽顺序输出，这是 Anima 的隐式加权顺序。';
+  }
+
+  function renderPrompt() {
+    // 旧版先 join('\n') 再把换行替换成 ', '，于是槽与槽之间多出一个逗号；
+    // 这里统一用 ', ' 拼接，输出即最终可复制文本。
+    output.value = orderedPicks().map((pick) => pick.tag).join(', ');
+  }
+
+  function render() {
+    syncChips();
+    syncCounts();
+    renderPicks();
+    renderPrompt();
+    countLabel.textContent = '已选标签：' + state.picks.length + ' 个';
+    save();
+  }
+
+  /* ------------------------------------------------------------ 本地存档 */
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({ mode: state.mode, picks: state.picks }));
+    } catch {
+      // 隐私模式下写入会抛错，退化成仅本次会话有效即可
+    }
+  }
+
+  function load() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    } catch {
+      saved = null;
+    }
+    if (!saved || typeof saved !== 'object') return;
+
+    if (saved.mode === 'free' || saved.mode === 'slot') state.mode = saved.mode;
+    if (!Array.isArray(saved.picks)) return;
+
+    const seen = new Set();
+    state.picks = saved.picks
+      .filter((pick) => pick && typeof pick.slot === 'string' && typeof pick.tag === 'string')
+      .filter((pick) => {
+        const key = keyOf(pick.slot, pick.tag);
+        if (seen.has(key) || !validKeys.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((pick) => ({ slot: pick.slot, tag: pick.tag }));
+  }
+
+  /* ------------------------------------------------------ 卡槽链与折叠区 */
+  function setGroupOpen(slot, open) {
+    const group = wbSlots.querySelector('.wb-group[data-slot="' + slot + '"]');
+    if (!group) return;
+    group.classList.toggle('is-open', open);
+    group.querySelector('.wb-head').setAttribute('aria-expanded', String(open));
+  }
+
+  function openSlot(slot) {
+    state.openSlot = slot;
+
+    chain.querySelectorAll('.slot-node').forEach((node) => {
+      node.setAttribute('aria-pressed', String(node.dataset.slot === slot));
+    });
+    detailsBox.querySelectorAll('.slot-detail').forEach((box) => {
+      box.classList.toggle('show', slot !== null && box.id === 'sd-' + slot);
+    });
+
+    // 顺手把工作台里对应的卡槽展开，点完说明可以直接搭词
+    if (slot) setGroupOpen(slot, true);
+  }
+
+  chain.addEventListener('click', (event) => {
+    const node = event.target.closest('.slot-node');
+    if (!node) return;
+    openSlot(state.openSlot === node.dataset.slot ? null : node.dataset.slot);
+  });
+
+  document.querySelectorAll('.collapsible-header').forEach((header) => {
+    header.addEventListener('click', () => {
+      const body = document.getElementById(header.getAttribute('aria-controls'));
+      const open = header.getAttribute('aria-expanded') !== 'true';
+      header.setAttribute('aria-expanded', String(open));
+      if (body) body.classList.toggle('is-open', open);
     });
   });
+
+  wbSlots.addEventListener('click', (event) => {
+    const head = event.target.closest('.wb-head');
+    if (!head) return;
+    const group = head.closest('.wb-group');
+    setGroupOpen(group.dataset.slot, !group.classList.contains('is-open'));
+  });
+
+  /* ---------------------------------------------------------- 标签与复制 */
+  page.addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip.workbench');
+    if (chip && chip.dataset.slot && chip.dataset.tag) {
+      togglePick(chip.dataset.slot, chip.dataset.tag);
+      return;
+    }
+
+    const copyButton = event.target.closest('[data-copy-template]');
+    if (!copyButton) return;
+    const card = copyButton.closest('.dual-card');
+    const block = card ? card.querySelector('pre') : null;
+    if (block) copyText(block.textContent.trim(), copyButton);
+  });
+
+  /* -------------------------------------------------------- 已选标签排序 */
+  modeSwitch.addEventListener('click', (event) => {
+    const button = event.target.closest('.mode-btn');
+    if (!button || button.dataset.mode === state.mode) return;
+
+    // 切进自由序时先把当前顺序落成卡槽序，用户在这个基线上再拖
+    if (button.dataset.mode === 'free') state.picks = orderedPicks();
+    state.mode = button.dataset.mode;
+
+    syncMode();
+    render();
+    toast(state.mode === 'free' ? '已切换到自由序，可拖动标签排序' : '已按九段式卡槽顺序重排', 'ok');
+  });
+
+  function syncMode() {
+    modeSwitch.querySelectorAll('.mode-btn').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.mode === state.mode));
+    });
+  }
+
+  pickList.addEventListener('click', (event) => {
+    const button = event.target.closest('.pick-act');
+    if (!button) return;
+    const item = button.closest('.pick');
+    if (!item) return;
+
+    const slot = item.dataset.slot;
+    const tag = item.dataset.tag;
+
+    if (button.dataset.act === 'remove') {
+      removePick(slot, tag);
+      return;
+    }
+
+    const at = indexOfPick(slot, tag);
+    reinsert(slot, tag, button.dataset.act === 'up' ? at - 1 : at + 1);
+
+    // 重排后 DOM 全量重建，把焦点还给同一个按钮，键盘连按才不会丢位置
+    const moved = findPickEl(slot, tag);
+    const again = moved ? moved.querySelector('[data-act="' + button.dataset.act + '"]') : null;
+    if (again && !again.disabled) again.focus();
+  });
+
+  pickList.addEventListener('dragstart', (event) => {
+    const item = event.target.closest('.pick');
+    if (!item || state.mode !== 'free') return;
+    item.classList.add('is-dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', item.dataset.tag);
+    event.dataTransfer.setData(DND_PICK, keyOf(item.dataset.slot, item.dataset.tag));
+  });
+
+  pickList.addEventListener('dragend', (event) => {
+    const item = event.target.closest('.pick');
+    if (item) item.classList.remove('is-dragging');
+  });
+
+  pickList.addEventListener('dragover', (event) => {
+    const types = event.dataTransfer ? Array.from(event.dataTransfer.types) : [];
+    if (state.mode !== 'free' || !types.includes(DND_PICK)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    pickList.classList.add('is-dragover');
+  });
+
+  pickList.addEventListener('dragleave', (event) => {
+    if (!pickList.contains(event.relatedTarget)) pickList.classList.remove('is-dragover');
+  });
+
+  /** 落点索引：命中某个 pill 的左半边就插在它前面，否则排到末尾。 */
+  function insertionIndex(x, y) {
+    const items = Array.from(pickList.querySelectorAll('.pick'));
+    for (let i = 0; i < items.length; i += 1) {
+      const rect = items[i].getBoundingClientRect();
+      if (y < rect.bottom && x < rect.left + rect.width / 2) return i;
+    }
+    return items.length;
+  }
+
+  pickList.addEventListener('drop', (event) => {
+    event.preventDefault();
+    pickList.classList.remove('is-dragover');
+    if (state.mode !== 'free') return;
+
+    const raw = event.dataTransfer.getData(DND_PICK);
+    if (!raw) return;
+    const parts = raw.split('\u0001');
+    const from = indexOfPick(parts[0], parts[1]);
+    if (from < 0) return;
+
+    let to = insertionIndex(event.clientX, event.clientY);
+    if (to > from) to -= 1;
+    reinsert(parts[0], parts[1], to);
+  });
+
+  /* ------------------------------------------------------------ 工作台按钮 */
+  document.getElementById('wbCopy').addEventListener('click', (event) => {
+    const text = output.value.trim();
+    if (!text) {
+      toast('请先选择标签');
+      return;
+    }
+
+    copyText(text, event.currentTarget);
+
+    // 复制成功的微反馈：输出框亮一圈金光再散开
+    output.classList.remove('is-copied');
+    void output.offsetWidth;
+    output.classList.add('is-copied');
+    setTimeout(() => output.classList.remove('is-copied'), 720);
+  });
+
+  document.getElementById('wbClear').addEventListener('click', () => {
+    if (!state.picks.length) {
+      toast('工作台已经是空的');
+      return;
+    }
+    state.picks = [];
+    render();
+    toast('已清空全部标签', 'ok');
+  });
+
+  /* ---------------------------------------------------------------- 启动 */
+  buildDetails();
+  buildWorkbench();
+  buildCountBubbles();
+  collectValidKeys();
+  load();
+  syncMode();
+
+  // 上次留下选择的卡槽自动展开，空手进来则只展开 ①Subject
+  const restored = SLOT_ORDER.filter((slot) => countOf(slot) > 0);
+  (restored.length ? restored : ['subject']).forEach((slot) => setGroupOpen(slot, true));
+
+  render();
 })();
-
-// === COLLAPSIBLE INIT ===
-document.querySelectorAll('.collapsible-header').forEach(function(h){
-  h.click(); // collapse all by default
-});
 </script>
 <script src="../assets/gate-guide.js"></script>
+<!-- xq:shared-runtime -->
+<script src="../assets/sanctuary.js" defer></script>
 </body>
 </html>

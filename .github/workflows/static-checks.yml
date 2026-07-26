@@ -25,5 +25,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run zero-dependency checks
+      - name: Validate links, script syntax and JSON
         run: node scripts/check-static-site.mjs
+
+      - name: Validate site conventions
+        run: node scripts/check-site-conventions.mjs
