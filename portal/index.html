@@ -674,6 +674,7 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
         <div class="param-block">
           <label for="ckptName" class="field-title">🧩 底模 Checkpoint</label>
           <p class="mini-help">必须和 ComfyUI 的 models/checkpoints 目录里的文件名完全一致（含后缀）。改过之后会记住，下次打开自动填回。</p>
+          <div class="notice-line" id="syncNote" role="status">底模、LoRA、VAE、放大模型的候选项来自预置列表；连上 ComfyUI 后会自动换成本机真实安装的。</div>
           <div class="param-row">
             <div>
               <input type="text" id="ckptName" list="ckptOptions" placeholder="例如 novaAnimeXL_ilV190.safetensors" autocomplete="off" spellcheck="false">
@@ -831,10 +832,11 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
             <div>
               <label for="upscaleModel">放大模型 <span class="hint">仅“放大模型”方式生效</span></label>
               <input type="text" id="upscaleModel" list="upscaleOptions" placeholder="例如 RealESRGAN_x4plus_anime_6B.pth" autocomplete="off" spellcheck="false">
+              <!-- 子目录用反斜杠：ComfyUI 的 /object_info 就是这么给的，写成正斜杠会找不到模型 -->
               <datalist id="upscaleOptions">
                 <option value="RealESRGAN_x4plus_anime_6B.pth">二次元首选</option>
-                <option value="realistic/4x-ClearRealityV1.pth">写实向</option>
-                <option value="detail/1xSkinContrast-High-SuperUltraCompact.pth">皮肤对比度</option>
+                <option value="realistic\4x-ClearRealityV1.pth">写实向</option>
+                <option value="detail\1xSkinContrast-High-SuperUltraCompact.pth">皮肤对比度</option>
               </datalist>
             </div>
           </div>
@@ -2236,21 +2238,34 @@ async function checkComfy(showToast){
 /* 页面里的模型名与采样器只是「这台机器大概装了什么」的猜测。
    一旦连上 ComfyUI，就用它 /object_info 里的真实列表覆盖，
    换机器、装新模型都不用再改这个页面。 */
+function setSyncNote(text){
+  const note = byId('syncNote');
+  if(note) note.textContent = text;
+}
+
 async function syncComfyOptions(){
   const base = bridgeAvailable ? BRIDGE_URL : (promptText('comfyUrl') || DEFAULT_COMFY_URL);
 
   let info;
   try{
     const resp = await fetch(base + '/object_info', {signal:AbortSignal.timeout(6000)});
-    if(!resp.ok) return;
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
     info = await resp.json();
   }catch(e){
-    return; // 公网访问或 ComfyUI 版本较老时静默跳过，预置列表继续可用
+    // 不加 --enable-cors-header 时 ComfyUI 会 403 掉跨源请求，静默失败会让人
+    // 误以为列表是同步过的，所以这里必须说清楚为什么没同步。
+    setSyncNote('没能读取 ComfyUI 的模型列表，下面用的是预置值。若要自动同步，启动时加上 --enable-cors-header 参数。');
+    return;
   }
 
-  /** 从节点定义里取出某个下拉输入的候选值。 */
+  /** 从节点定义里取出某个下拉输入的候选值。
+      ComfyUI 有两种下拉写法：老节点是 [[...选项]]，迁到 io.Schema 的新节点
+      （如 UpscaleModelLoader）是 ["COMBO", {options:[...]}]，两种都要认。 */
   function optionsOf(nodeName, inputName){
-    const list = info?.[nodeName]?.input?.required?.[inputName]?.[0];
+    const spec = info?.[nodeName]?.input?.required?.[inputName];
+    if(!Array.isArray(spec)) return null;
+
+    const list = Array.isArray(spec[0]) ? spec[0] : spec[1]?.options;
     return Array.isArray(list) ? list.filter(v => typeof v === 'string') : null;
   }
 
@@ -2301,6 +2316,10 @@ async function syncComfyOptions(){
 
     if(dropped && !allowed.has(select.value)) select.value = supported[0];
   }
+
+  const counts = ['ckptOptions','loraOptions','vaeOptions','upscaleOptions']
+    .map(id => byId(id)?.options.length || 0);
+  setSyncNote(`已同步本机 ComfyUI：底模 ${counts[0]} · LoRA ${counts[1]} · VAE ${counts[2]} · 放大模型 ${counts[3]}。`);
 }
 
 function setComfyConnected(ok){

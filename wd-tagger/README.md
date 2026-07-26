@@ -24,6 +24,22 @@ node wd-tagger/serve.js
 
 `wd14_server.py` 与 WD14 ONNX 模型不在本仓库内（模型体积过大）。`serve.js` 顶部的 `PYTHON`、`COMFY_DIR`、`WD_SCRIPT` 三个常量指向本机路径，换机器需要改。
 
+## 星穹绘所连 ComfyUI 需要的启动参数
+
+新版 ComfyUI 默认装的是 `origin_only_middleware`：只要请求来自另一个源，就直接返回
+403。所以从 `127.0.0.1:18446`（本地预览）或 github.io 打开的星穹绘所，默认是连不上
+`127.0.0.1:8188` 的 —— 状态检测、模型列表同步、提交出图会一起失败。
+
+要让页面直连 ComfyUI，启动时加上：
+
+```bash
+python main.py --enable-cors-header
+```
+
+加了之后 ComfyUI 会改用 CORS 中间件并返回 `Access-Control-Allow-Origin`，星穹绘所
+才能读到 `/object_info` 并把底模 / LoRA / VAE / 放大模型的候选项换成本机真实安装的。
+不加也能用，只是那几个下拉停留在页面内置的预置值，页面会明确提示这一点。
+
 ## 跨域
 
 `serve.js` 能启停本机进程并读取仓库文件，因此只对白名单来源开放跨域：站点自身的 github.io 域、`localhost`、`127.0.0.1`、`[::1]`。其它来源直接 403 —— 否则用户浏览的任意网页都能驱动这个本地服务。
