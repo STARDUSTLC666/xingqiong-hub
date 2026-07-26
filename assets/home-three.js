@@ -197,8 +197,83 @@ const PLANET_SURFACES = {
     float cloud = smoothstep(0.52, 0.78, xqFbm(direction * 3.2 + vec3(uTime * 0.02, 0.0, 0.0)));
     surface = mix(surface, vec3(0.97, 0.97, 1.0), cloud * 0.72);
     atmosphere = vec3(0.45, 0.68, 1.0);
+  `,
+  lava: `
+    // 熔岩裂缝：低值区域是冷却的黑色地壳，缝隙里透出熔融的亮橙
+    float crust = xqFbm(direction * 4.2 + vec3(0.0, 0.0, uTime * 0.03));
+    float fissure = smoothstep(0.46, 0.3, crust);
+    vec3 rock = vec3(0.13, 0.09, 0.09);
+    surface = mix(rock, vec3(0.35, 0.12, 0.05), smoothstep(0.3, 0.6, crust));
+    surface += vec3(1.0, 0.42, 0.06) * fissure * 1.6;
+    atmosphere = vec3(1.0, 0.4, 0.14);
+  `,
+  ice: `
+    // 冰巨星：淡青主色，纬向条带比气态巨行星更柔和
+    float swirl = xqFbm(direction * 2.8 + vec3(0.0, 0.0, uTime * 0.025));
+    float bands = sin(direction.y * 11.0 + swirl * 3.0);
+    vec3 pale = vec3(0.66, 0.86, 0.92);
+    vec3 deep = vec3(0.24, 0.46, 0.66);
+    surface = mix(deep, pale, smoothstep(-0.6, 0.6, bands));
+    atmosphere = vec3(0.55, 0.85, 1.0);
+  `,
+  dwarf: `
+    // 冰质矮行星：几乎没有大气，表面是脏冰与岩屑
+    float relief = xqFbm(direction * 5.5);
+    vec3 dirtyIce = vec3(0.62, 0.63, 0.68);
+    vec3 rubble = vec3(0.3, 0.27, 0.26);
+    surface = mix(rubble, dirtyIce, smoothstep(0.35, 0.68, relief));
+    atmosphere = vec3(0.6, 0.66, 0.78);
   `
 };
+
+/** 气态巨行星的环：内外缘渐隐，中间被噪声切出卡西尼缝那样的暗环。 */
+function createPlanetRing(innerRadius, outerRadius, isCompact) {
+  const geometry = new THREE.RingGeometry(innerRadius, outerRadius, isCompact ? 48 : 96);
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uInner: { value: innerRadius },
+      uOuter: { value: outerRadius }
+    },
+    vertexShader: `
+      varying vec3 vLocalPosition;
+
+      void main() {
+        vLocalPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uInner;
+      uniform float uOuter;
+      varying vec3 vLocalPosition;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        float radius = length(vLocalPosition.xy);
+        float span = clamp((radius - uInner) / max(uOuter - uInner, 0.0001), 0.0, 1.0);
+
+        // 细密的同心亮暗环
+        float grain = xqFbm(vec3(span * 26.0, 0.0, 0.0));
+        float gap = smoothstep(0.34, 0.42, span) * (1.0 - smoothstep(0.46, 0.54, span));
+        float alpha = (0.28 + 0.72 * grain) * (1.0 - gap * 0.9);
+
+        // 两端淡出，避免出现生硬的几何边
+        alpha *= smoothstep(0.0, 0.12, span) * (1.0 - smoothstep(0.82, 1.0, span));
+
+        vec3 color = mix(vec3(0.72, 0.6, 0.44), vec3(0.94, 0.88, 0.76), grain);
+        gl_FragColor = vec4(color, alpha * 0.85);
+      }
+    `,
+    side: THREE.DoubleSide,
+    transparent: true,
+    depthWrite: false
+  });
+
+  const ring = new THREE.Mesh(geometry, material);
+  ring.rotation.x = Math.PI / 2 - 0.32;
+  return ring;
+}
 
 /** 创建一颗有昼夜晨昏线与大气边缘的行星。 */
 function createPlanet(kind, radius, isCompact) {
@@ -287,6 +362,9 @@ function createOrbitalTrack(options, isCompact) {
 
   // 行星是实体：不透明并写深度，才能挡住背后的银河
   const orbiter = createPlanet(options.planet, options.planetRadius, isCompact);
+  if (options.ring) {
+    orbiter.add(createPlanetRing(options.planetRadius * 1.5, options.planetRadius * 2.4, isCompact));
+  }
   carrier.add(orbiter);
 
   return {
@@ -1081,9 +1159,14 @@ function createOrbitalSystem(isCompact) {
   const root = new THREE.Group();
   const tracks = [];
   const trackOptions = [
-    { radiusX: 2.65, radiusY: 0.82, depth: 0.2, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.42, phase: 0.2, speed: 0.34, planet: "gas", planetRadius: 0.16 },
-    { radiusX: 2.05, radiusY: 1.22, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.27, planet: "ocean", planetRadius: 0.115 },
-    { radiusX: 1.45, radiusY: 1.72, depth: 0.17, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#ca8198", opacity: 0.27, phase: 4.3, speed: 0.22, planet: "rocky", planetRadius: 0.095 }
+    // 由内向外：越靠近双星转得越快，轨道倾角各不相同才不会挤成一团
+    { radiusX: 1.95, radiusY: 1.62, depth: 0.2, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#d9825f", opacity: 0.3, phase: 4.3, speed: 0.46, planet: "lava", planetRadius: 0.085 },
+    { radiusX: 2.3, radiusY: 1.05, depth: 0.16, tiltX: -0.52, tiltY: 0.22, tiltZ: 0.44, color: "#ca8198", opacity: 0.26, phase: 1.1, speed: 0.38, planet: "rocky", planetRadius: 0.1 },
+    { radiusX: 2.72, radiusY: 1.5, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.31, planet: "ocean", planetRadius: 0.125 },
+    { radiusX: 2.98, radiusY: 0.9, depth: 0.22, tiltX: 0.66, tiltY: -0.24, tiltZ: 0.14, color: "#b98f68", opacity: 0.24, phase: 5.6, speed: 0.27, planet: "rocky", planetRadius: 0.09 },
+    { radiusX: 3.28, radiusY: 1.62, depth: 0.18, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.4, phase: 0.2, speed: 0.22, planet: "gas", planetRadius: 0.2, ring: true },
+    { radiusX: 3.6, radiusY: 1.12, depth: 0.2, tiltX: -0.34, tiltY: 0.52, tiltZ: -0.42, color: "#7fb4c8", opacity: 0.26, phase: 3.3, speed: -0.18, planet: "ice", planetRadius: 0.16 },
+    { radiusX: 3.9, radiusY: 1.82, depth: 0.16, tiltX: 0.42, tiltY: -0.4, tiltZ: 0.62, color: "#9aa4bd", opacity: 0.2, phase: 2.0, speed: 0.15, planet: "dwarf", planetRadius: 0.07 }
   ];
 
   for (const options of trackOptions) {
