@@ -676,7 +676,11 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
           <p class="mini-help">必须和 ComfyUI 的 models/checkpoints 目录里的文件名完全一致（含后缀）。改过之后会记住，下次打开自动填回。</p>
           <div class="param-row">
             <div>
-              <input type="text" id="ckptName" placeholder="例如 novaAnimeXL_ilV190.safetensors" autocomplete="off" spellcheck="false">
+              <input type="text" id="ckptName" list="ckptOptions" placeholder="例如 novaAnimeXL_ilV190.safetensors" autocomplete="off" spellcheck="false">
+              <!-- 预置本机已装的模型；连上 ComfyUI 后会被 /object_info 的真实列表替换 -->
+              <datalist id="ckptOptions">
+                <option value="novaAnimeXL_ilV190.safetensors"></option>
+              </datalist>
             </div>
             <div class="preset-row">
               <button class="btn btn-ghost btn-sm" type="button" data-action="reset-ckpt">↺ 恢复默认底模</button>
@@ -707,17 +711,35 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
             <div>
               <label for="sampler">采样器 <span class="hint">▼ 怎么选</span></label>
               <select id="sampler">
-                <option value="dpmpp_2m" selected>dpmpp_2m · 稳定干净</option>
-                <option value="euler_ancestral">Euler A / Ancestral · 随机纹理感</option>
-                <option value="dpmpp_sde">dpmpp_sde · 细节多/可能噪</option>
+                <optgroup label="常用">
+                  <option value="dpmpp_2m" selected>dpmpp_2m · 稳定干净（推荐）</option>
+                  <option value="euler_ancestral">euler_ancestral · 随机纹理感</option>
+                  <option value="euler">euler · 最快最省，出图偏平</option>
+                  <option value="dpmpp_sde">dpmpp_sde · 细节多/可能噪</option>
+                </optgroup>
+                <optgroup label="进阶">
+                  <option value="dpmpp_2m_sde">dpmpp_2m_sde · 比 2m 更多细节</option>
+                  <option value="dpmpp_3m_sde">dpmpp_3m_sde · 细节最猛，步数要够</option>
+                  <option value="dpmpp_2s_ancestral">dpmpp_2s_ancestral · 二次元线条干净</option>
+                  <option value="ddim">ddim · 老牌稳定，可复现性好</option>
+                  <option value="uni_pc">uni_pc · 低步数也能收敛</option>
+                  <option value="res_multistep">res_multistep · 新算法，构图稳</option>
+                  <option value="lcm">lcm · 仅配 LCM 模型/LoRA 用</option>
+                </optgroup>
               </select>
             </div>
             <div>
               <label for="scheduler">调度器 <span class="hint">▼ 怎么选</span></label>
               <select id="scheduler">
-                <option value="karras" selected>Karras · 最自然</option>
-                <option value="normal">Normal · 线性标准</option>
-                <option value="exponential">Exponential · 锐利细节</option>
+                <option value="karras" selected>karras · 最自然（推荐）</option>
+                <option value="normal">normal · 线性标准</option>
+                <option value="exponential">exponential · 锐利细节</option>
+                <option value="simple">simple · 朴素均分</option>
+                <option value="sgm_uniform">sgm_uniform · 低步数更稳</option>
+                <option value="ddim_uniform">ddim_uniform · 配 ddim 用</option>
+                <option value="beta">beta · 两头慢中间快</option>
+                <option value="linear_quadratic">linear_quadratic · 视频模型常用</option>
+                <option value="kl_optimal">kl_optimal · 少步数下画质更好</option>
               </select>
             </div>
           </div>
@@ -757,7 +779,12 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
             </div>
             <div>
               <label for="loraName">LoRA 文件名（可选） <span class="hint">留空=不加载 LoRA</span></label>
-              <input type="text" id="loraName" placeholder="例如 xxx.safetensors" autocomplete="off" spellcheck="false">
+              <input type="text" id="loraName" list="loraOptions" placeholder="例如 add-detail-xl.safetensors" autocomplete="off" spellcheck="false">
+              <datalist id="loraOptions">
+                <option value="add-detail-xl.safetensors">加细节</option>
+                <option value="anime-cel-shaded_comfyui.safetensors">赛璐璐上色</option>
+                <option value="kanzarin_v2_epoch22.safetensors">画风</option>
+              </datalist>
               <label for="loraWeight" class="mt-1">LoRA 强度 <span class="hint">0.35-0.55 常用 / 太高易崩</span></label>
               <div class="slider-group">
                 <input type="range" id="loraWeight" min="0" max="1" step="0.05" value="0.4" aria-describedby="loraVal">
@@ -793,7 +820,35 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
               <input type="number" id="hiresDenoise" value="0.32" min="0.15" max="0.55" step="0.01">
             </div>
           </div>
+          <div class="param-row">
+            <div>
+              <label for="hiresMode">放大方式 <span class="hint">▼ 两条路线</span></label>
+              <select id="hiresMode">
+                <option value="latent" selected>潜空间放大 · 快，风格统一</option>
+                <option value="model">放大模型 · 慢，纹理更实</option>
+              </select>
+            </div>
+            <div>
+              <label for="upscaleModel">放大模型 <span class="hint">仅“放大模型”方式生效</span></label>
+              <input type="text" id="upscaleModel" list="upscaleOptions" placeholder="例如 RealESRGAN_x4plus_anime_6B.pth" autocomplete="off" spellcheck="false">
+              <datalist id="upscaleOptions">
+                <option value="RealESRGAN_x4plus_anime_6B.pth">二次元首选</option>
+                <option value="realistic/4x-ClearRealityV1.pth">写实向</option>
+                <option value="detail/1xSkinContrast-High-SuperUltraCompact.pth">皮肤对比度</option>
+              </datalist>
+            </div>
+          </div>
           <div class="notice-line" id="hiresHint" role="status">高清精修未启用。</div>
+        </div>
+
+        <div class="param-block">
+          <label for="vaeName" class="field-title">🎨 VAE（可选）</label>
+          <p class="mini-help">留空就用底模自带的 VAE。只有出现发灰、发紫、色块或高光溢出时才需要单独指定。</p>
+          <input type="text" id="vaeName" list="vaeOptions" placeholder="留空 = 用底模自带的 VAE" autocomplete="off" spellcheck="false">
+          <datalist id="vaeOptions">
+            <option value="sdxl_vae-fp16fix.safetensors">SDXL 通用，修 fp16 发灰</option>
+            <option value="qwen_image_vae.safetensors">Qwen-Image 专用</option>
+          </datalist>
         </div>
 
         <div class="tune-card">
@@ -1264,7 +1319,8 @@ const DEFAULT_NEGATIVE = [
 // 刷新后要一并复原的表单控件
 const PERSIST_FIELDS = [
   'imgSize','sampler','scheduler','steps','cfg','seed','autoFixSeed','loraName','loraWeight',
-  'hiresEnabled','hiresScale','hiresSteps','hiresDenoise','comfyUrl','ckptName',
+  'hiresEnabled','hiresScale','hiresSteps','hiresDenoise','hiresMode','upscaleModel',
+  'comfyUrl','ckptName','vaeName',
   'manualPosPrompt','manualNegPrompt'
 ];
 
@@ -2000,15 +2056,37 @@ function buildComfyWorkflow(pos, neg, w, h, seed){
   workflow["7"] = {inputs:{text:neg,clip:clipRef},class_type:"CLIPTextEncode"};
   workflow["3"] = {inputs:{seed,steps,cfg,sampler_name:sampler,scheduler,denoise:1,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["5",0]},class_type:"KSampler"};
 
+  // 留空时沿用底模自带的 VAE（CheckpointLoaderSimple 的第 3 个输出）
+  let vaeRef = ["4",2];
+  const vaeName = promptText('vaeName');
+  if(vaeName){
+    workflow["11"] = {inputs:{vae_name:vaeName},class_type:"VAELoader"};
+    vaeRef = ["11",0];
+  }
+
   if(isChecked('hiresEnabled')){
     const [tw,th] = getHiresTargetSize(w,h);
     const hiresSteps = Math.round(numberField('hiresSteps', 15));
     const hiresDenoise = numberField('hiresDenoise', 0.32);
-    workflow["20"] = {inputs:{samples:["3",0],upscale_method:"nearest-exact",width:tw,height:th,crop:"disabled"},class_type:"LatentUpscale"};
-    workflow["21"] = {inputs:{seed,steps:hiresSteps,cfg,sampler_name:sampler,scheduler,denoise:hiresDenoise,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["20",0]},class_type:"KSampler"};
-    workflow["8"] = {inputs:{samples:["21",0],vae:["4",2]},class_type:"VAEDecode"};
+    const upscaleModel = promptText('upscaleModel');
+    const useModelUpscale = byId('hiresMode')?.value === 'model' && upscaleModel;
+
+    if(useModelUpscale){
+      // 放大模型走像素空间：先解码 → 放大 → 缩到目标尺寸 → 编码回潜空间再二次采样
+      workflow["18"] = {inputs:{samples:["3",0],vae:vaeRef},class_type:"VAEDecode"};
+      workflow["19"] = {inputs:{model_name:upscaleModel},class_type:"UpscaleModelLoader"};
+      workflow["20"] = {inputs:{upscale_model:["19",0],image:["18",0]},class_type:"ImageUpscaleWithModel"};
+      workflow["22"] = {inputs:{image:["20",0],upscale_method:"lanczos",width:tw,height:th,crop:"disabled"},class_type:"ImageScale"};
+      workflow["23"] = {inputs:{pixels:["22",0],vae:vaeRef},class_type:"VAEEncode"};
+      workflow["21"] = {inputs:{seed,steps:hiresSteps,cfg,sampler_name:sampler,scheduler,denoise:hiresDenoise,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["23",0]},class_type:"KSampler"};
+    }else{
+      // bislerp 比 nearest-exact 少很多锯齿，潜空间放大的默认就该用它
+      workflow["20"] = {inputs:{samples:["3",0],upscale_method:"bislerp",width:tw,height:th,crop:"disabled"},class_type:"LatentUpscale"};
+      workflow["21"] = {inputs:{seed,steps:hiresSteps,cfg,sampler_name:sampler,scheduler,denoise:hiresDenoise,model:modelRef,positive:["6",0],negative:["7",0],latent_image:["20",0]},class_type:"KSampler"};
+    }
+    workflow["8"] = {inputs:{samples:["21",0],vae:vaeRef},class_type:"VAEDecode"};
   }else{
-    workflow["8"] = {inputs:{samples:["3",0],vae:["4",2]},class_type:"VAEDecode"};
+    workflow["8"] = {inputs:{samples:["3",0],vae:vaeRef},class_type:"VAEDecode"};
   }
   workflow["9"] = {inputs:{filename_prefix:"star-lab",images:["8",0]},class_type:"SaveImage"};
   return workflow;
@@ -2145,6 +2223,7 @@ async function checkComfy(showToast){
     const resp = await fetch(url + '/system_stats', {signal:AbortSignal.timeout(3000)});
     if(resp.ok){
       setComfyConnected(true);
+      syncComfyOptions();
       if(showToast) toast('ComfyUI 已连接', 'ok');
       return;
     }
@@ -2152,6 +2231,76 @@ async function checkComfy(showToast){
 
   setComfyConnected(false);
   if(showToast) toast('没有检测到 ComfyUI，请先启动', 'error');
+}
+
+/* 页面里的模型名与采样器只是「这台机器大概装了什么」的猜测。
+   一旦连上 ComfyUI，就用它 /object_info 里的真实列表覆盖，
+   换机器、装新模型都不用再改这个页面。 */
+async function syncComfyOptions(){
+  const base = bridgeAvailable ? BRIDGE_URL : (promptText('comfyUrl') || DEFAULT_COMFY_URL);
+
+  let info;
+  try{
+    const resp = await fetch(base + '/object_info', {signal:AbortSignal.timeout(6000)});
+    if(!resp.ok) return;
+    info = await resp.json();
+  }catch(e){
+    return; // 公网访问或 ComfyUI 版本较老时静默跳过，预置列表继续可用
+  }
+
+  /** 从节点定义里取出某个下拉输入的候选值。 */
+  function optionsOf(nodeName, inputName){
+    const list = info?.[nodeName]?.input?.required?.[inputName]?.[0];
+    return Array.isArray(list) ? list.filter(v => typeof v === 'string') : null;
+  }
+
+  function fillDatalist(listId, values){
+    const list = byId(listId);
+    if(!list || !values || !values.length) return;
+    list.replaceChildren();
+    for(const value of values){
+      const option = document.createElement('option');
+      option.value = value;
+      list.appendChild(option);
+    }
+  }
+
+  fillDatalist('ckptOptions', optionsOf('CheckpointLoaderSimple', 'ckpt_name'));
+  fillDatalist('loraOptions', optionsOf('LoraLoader', 'lora_name'));
+  fillDatalist('vaeOptions', optionsOf('VAELoader', 'vae_name'));
+  fillDatalist('upscaleOptions', optionsOf('UpscaleModelLoader', 'model_name'));
+
+  // 采样器/调度器：只保留这台机器真实支持的项，避免提交后报未知采样器
+  for(const [selectId, inputName] of [['sampler','sampler_name'], ['scheduler','scheduler']]){
+    const supported = optionsOf('KSampler', inputName);
+    const select = byId(selectId);
+    if(!supported || !select) continue;
+
+    const allowed = new Set(supported);
+    let dropped = 0;
+    for(const option of [...select.options]){
+      if(allowed.has(option.value)) continue;
+      option.remove();
+      dropped += 1;
+    }
+
+    // 本机支持但页面没列出来的，补到末尾，名字直接用原始值
+    const listed = new Set([...select.options].map(o => o.value));
+    const extras = supported.filter(v => !listed.has(v));
+    if(extras.length){
+      const group = document.createElement('optgroup');
+      group.label = '本机其它可用项';
+      for(const value of extras){
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        group.appendChild(option);
+      }
+      select.appendChild(group);
+    }
+
+    if(dropped && !allowed.has(select.value)) select.value = supported[0];
+  }
 }
 
 function setComfyConnected(ok){
