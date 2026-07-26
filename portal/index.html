@@ -302,6 +302,11 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
 .remote-card[hidden]{display:none}
 .remote-card strong{display:block;margin-bottom:0.3rem;color:var(--xq-cyan);font-size:0.82rem}
 .remote-card p{margin-bottom:0.45rem}
+/* 说清楚检测到底做了什么，按钮才不是一个来路不明的动作 */
+.remote-card__note{color:var(--xq-text-faint);font-size:0.74rem;line-height:1.7}
+.remote-card__probe{display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin:0.55rem 0 0.35rem}
+.remote-card__probe label{flex:0 0 auto;color:var(--xq-text-muted);font-size:0.74rem}
+.remote-card__probe input{flex:1 1 200px;min-width:0;width:auto;font-family:var(--xq-font-mono);font-size:0.74rem;padding:0.42rem 0.6rem}
 .comfy-status-row{display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;margin-bottom:0.6rem}
 .comfy-status-row .prep-spacer{min-width:1rem}
 .comfy-line{margin-bottom:0.4rem;color:var(--xq-text-faint);font-size:0.68rem;line-height:1.6}
@@ -459,9 +464,15 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
 
     <div class="remote-card" id="remoteNotice" hidden>
       <strong>🌐 出图功能需要本机 ComfyUI 桥接</strong>
-      <p>你正在通过公网访问这份档案，浏览器没办法连到本机的 ComfyUI（127.0.0.1）与桥接服务，所以启停按钮已经隐藏。</p>
+      <p>你正在通过公网访问这份档案，页面默认不会去连你电脑上的服务，所以启停按钮先隐藏了。</p>
       <p>向导、标签库、参数与 Prompt 生成全部可以正常使用——在第 7 步复制生成好的 Prompt，粘进自己电脑上的 ComfyUI / SD / NovelAI 就行。</p>
-      <button type="button" class="btn btn-ghost btn-sm" data-action="force-local">这台机器就在本机跑 · 仍要尝试连接</button>
+      <p class="remote-card__note">如果这台电脑上正好跑着 ComfyUI，可以让页面检测一次。检测只会访问你自己的 127.0.0.1，不会把任何信息发给别人。</p>
+      <div class="remote-card__probe">
+        <label for="remoteComfyUrl">ComfyUI 地址</label>
+        <input type="text" id="remoteComfyUrl" value="http://127.0.0.1:8188" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:8188">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="force-local">检测本机 ComfyUI</button>
+      </div>
+      <p class="remote-card__note">端口不是默认的 8188 就改成你自己的，再点检测。</p>
     </div>
   </section>
 
@@ -1299,6 +1310,7 @@ const DEFAULT_COMFY_URL = 'http://127.0.0.1:8188';
 const DEFAULT_CHECKPOINT = 'novaAnimeXL_ilV190.safetensors';
 const TOTAL_STEPS = 7;
 const STORE_KEY = 'xq-portal-wizard-v1';
+const LOCAL_HINT_KEY = 'xq-portal-local-backend';
 
 const TAG_ORDER = ['step1','step2a','step2b','step2c','step3a','step3b','step3c','step4','step5a','step5b','step5c','step6a','step6b','step6c'];
 const GROUP_LABELS = {
@@ -1424,6 +1436,29 @@ async function probeLocalServices(){
   return results.some(item => item.status === 'fulfilled' && item.value === true);
 }
 
+/* 值不值得自动探测。
+
+   探测打的是访客自己的 127.0.0.1，数据不外流，但这终究是在扫别人的本地端口——
+   对只是路过看看的访客静默做这件事并不合适，浏览器厂商收紧私有网络访问正是
+   针对这类用法。所以只在有信号说明「这台机器可能真的装了后端」时才自动探：
+   要么以前探到过，要么这个浏览器里存着用过本工具的记录。
+   其余访客保持一次手动点击，点了才探。 */
+function shouldAutoProbe(){
+  try{
+    if(localStorage.getItem(LOCAL_HINT_KEY) === '1') return true;
+    return localStorage.getItem(STORE_KEY) !== null;
+  }catch(e){
+    return false;
+  }
+}
+
+function rememberLocalHint(found){
+  try{
+    if(found) localStorage.setItem(LOCAL_HINT_KEY, '1');
+    else localStorage.removeItem(LOCAL_HINT_KEY);
+  }catch(e){}
+}
+
 /** 只在公网访问时跑一次；失败就安静地留在公网模式。 */
 async function autoDetectLocal(){
   if(localMode || autoProbeDone) return;
@@ -1437,6 +1472,7 @@ async function autoDetectLocal(){
   }
 
   const reachable = await probeLocalServices();
+  rememberLocalHint(reachable);
 
   if(reachable){
     forceLocal = true;
@@ -2197,6 +2233,13 @@ function renderBridgeControls(){
 }
 
 function enableForceLocal(){
+  // 访客的 ComfyUI 未必在默认端口，先采用卡片里填的地址
+  const typed = byId('remoteComfyUrl');
+  const target = byId('comfyUrl');
+  if(typed && target && typed.value.trim()){
+    target.value = typed.value.trim();
+    scheduleSave();
+  }
   // 重新走一次真实探测，而不是无条件强开
   autoProbeDone = false;
   autoDetectLocal();
@@ -2757,6 +2800,10 @@ function showPollTimeout(){
     if(saved.advanced) toggleAdvanced(true);
   }
 
+  const remoteInput = byId('remoteComfyUrl');
+  const savedUrl = byId('comfyUrl');
+  if(remoteInput && savedUrl && savedUrl.value.trim()) remoteInput.value = savedUrl.value.trim();
+
   applyEnvironment();
   bindEvents();
 
@@ -2770,8 +2817,8 @@ function showPollTimeout(){
 
   // 自动探测桥接与 ComfyUI
   setTimeout(()=>checkAll(), 800);
-  // 公网访问时也先探一次本机：能连上就直接解锁，省掉一次手动点击
-  setTimeout(()=>autoDetectLocal(), 900);
+  // 只对「像是本人机器」的浏览器自动探测，陌生访客点了才探
+  if(shouldAutoProbe()) setTimeout(()=>autoDetectLocal(), 900);
 })();
 </script>
 <script src="../assets/gate-guide.js"></script>
