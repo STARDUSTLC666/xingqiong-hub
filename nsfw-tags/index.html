@@ -495,22 +495,25 @@ mark.hl {
   gap: 8px;
   padding-right: 46px;
 }
+/* 收起时连同 visibility 一起关掉，键盘 Tab 才不会走进看不见的控件 */
 .tray__body {
   overflow: hidden;
   max-height: 0;
   opacity: 0;
-  transition: max-height var(--xq-dur-slow) var(--xq-ease-out), opacity var(--xq-dur) var(--xq-ease);
+  transition: max-height var(--xq-dur-slow) var(--xq-ease-out), opacity var(--xq-dur) var(--xq-ease),
+    visibility var(--xq-dur) var(--xq-ease);
+  visibility: hidden;
 }
 .tray.is-open .tray__body {
   overflow-y: auto;
   max-height: min(62vh, 540px);
   opacity: 1;
+  visibility: visible;
 }
 .tray__grid {
   display: grid;
-  padding-bottom: 16px;
+  padding: 14px 0 16px;
   border-top: 1px solid var(--xq-line-soft);
-  padding-top: 14px;
   gap: 14px;
   grid-template-columns: 1fr;
 }
@@ -688,6 +691,7 @@ mark.hl {
   border-radius: 50%;
   background: var(--xq-accent);
   pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 /* ------------------------------------------------------- 滚动进场 */
@@ -1315,7 +1319,7 @@ mark.hl {
             return pill;
         }
 
-        function buildEmptyState(list) {
+        function buildEmptyState() {
             const box = document.createElement("div");
             box.className = "no-results";
 
@@ -1398,7 +1402,7 @@ mark.hl {
                 revealIndex += 1;
             });
 
-            if (!found && state.search) container.append(buildEmptyState(list));
+            if (!found && state.search) container.append(buildEmptyState());
 
             dom.resultCount.textContent = state.search
                 ? (found ? `搜索「${state.search}」→ 命中 ${found} 个标签` : `搜索「${state.search}」→ 无匹配`)
@@ -1446,9 +1450,10 @@ mark.hl {
 
         function renderTray() {
             const count = state.selected.length;
+            const changed = dom.selectedCount.textContent !== String(count);
             dom.selectedCount.textContent = String(count);
             dom.trayCount.textContent = String(count);
-            bump(dom.selectedCount);
+            if (changed) bump(dom.selectedCount);
 
             dom.builderList.textContent = "";
             if (!count) {

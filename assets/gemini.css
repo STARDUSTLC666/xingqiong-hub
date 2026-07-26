@@ -16,6 +16,11 @@
   margin: 0;
 }
 
+/* 通配 margin:0 会盖掉浏览器给模态 dialog 的 margin:auto，弹窗会贴到左上角 */
+dialog {
+  margin: auto;
+}
+
 html {
   font-size: 16px;
   background-color: var(--xq-void);

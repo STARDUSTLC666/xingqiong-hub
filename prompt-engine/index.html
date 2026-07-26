@@ -498,12 +498,17 @@
   backdrop-filter: blur(18px) saturate(1.25);
   box-shadow: var(--xq-shadow-lg), var(--xq-inner-top);
   gap: 0.6rem;
-  transition: opacity var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring);
+  transition: opacity var(--xq-dur) var(--xq-ease), transform var(--xq-dur) var(--xq-spring),
+    visibility 0s;
+  visibility: visible;
 }
+/* visibility 而不是只有 opacity：否则收起的悬浮条仍能被 Tab 键走进去 */
 .dock.is-idle {
   opacity: 0;
   pointer-events: none;
   transform: translateY(calc(100% + 24px));
+  transition-delay: 0s, 0s, var(--xq-dur);
+  visibility: hidden;
 }
 .dock__count {
   display: inline-flex;
@@ -1353,11 +1358,39 @@ function bind() {
 }
 
 /* ----------------------------------------------------- 滚动进场与导航高亮 */
+// 自带 observer，而不是等共享运行时来接管：这些节点是脚本现造的，
+// 一旦漏观察就会永远停在 opacity:0 上
+let revealObserver = null;
+let revealFired = false;
+const revealed = [];
+
 function markReveal(nodes, step) {
   if (still.matches || !('IntersectionObserver' in window)) return;
+
+  if (!revealObserver) {
+    revealObserver = new IntersectionObserver((entries) => {
+      revealFired = true;
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        revealObserver.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.04 });
+
+    // 保险丝：observer 若一声不吭（某些嵌入式/后台渲染环境），
+    // 宁可不要进场动画，也不能把内容永远留在 opacity:0
+    window.setTimeout(() => {
+      if (revealFired) return;
+      revealObserver.disconnect();
+      revealed.forEach((node) => node.removeAttribute('data-xq-reveal'));
+    }, 1200);
+  }
+
   nodes.forEach((node, index) => {
     node.setAttribute('data-xq-reveal', '');
     node.style.setProperty('--xq-reveal-delay', Math.min(index, 7) * step + 'ms');
+    revealed.push(node);
+    revealObserver.observe(node);
   });
 }
 

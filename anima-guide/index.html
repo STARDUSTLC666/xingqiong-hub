@@ -849,6 +849,8 @@
       gap: 10px;
     }
 
+    .tags-grid > * { min-width: 0; }
+
     .tags-empty {
       padding: 40px 0;
       color: var(--xq-text-faint);
@@ -856,11 +858,16 @@
       text-align: center;
     }
 
-    .tag-cell { position: relative; }
+    /* min-width:0 让 nowrap 的 tag 名可以被压缩成省略号，而不是撑爆网格轨道 */
+    .tag-cell {
+      position: relative;
+      min-width: 0;
+    }
 
     .tag-badge {
       display: flex;
       width: 100%;
+      min-width: 0;
       flex-direction: column;
       padding: 10px 38px 10px 14px;
       border: 1px solid var(--xq-line-soft);
@@ -1153,9 +1160,9 @@
 
       .basket { padding: 12px 14px 14px; }
 
-      .themes-grid { grid-template-columns: 1fr; }
+      .themes-grid { grid-template-columns: minmax(0, 1fr); }
 
-      .tags-grid { grid-template-columns: 1fr; }
+      .tags-grid { grid-template-columns: minmax(0, 1fr); }
 
       .slot-flow .slot-arrow { display: none; }
 
@@ -1867,10 +1874,8 @@
       if (event.target.closest('.menu-item') && drawerQuery.matches) setDrawer(false);
     });
 
-    // 回到宽屏时侧栏本就常驻，残留的锁滚动状态必须解除
-    drawerQuery.addEventListener('change', (event) => {
-      if (!event.matches) setDrawer(false);
-    });
+    // 回到宽屏时侧栏本就常驻，锁滚动与 inert 都必须跟着断点重算
+    drawerQuery.addEventListener('change', () => setDrawer(false));
 
     /* -------------------------------------- 章节高亮：IntersectionObserver */
     const itemById = new Map(menuItems.map((item) => [item.getAttribute('href').slice(1), item]));
@@ -1917,7 +1922,12 @@
     }
 
     setActive(sections.length ? sections[0].id : '');
-    window.addEventListener('resize', () => moveIndicator(itemById.get(activeId)), { passive: true });
+
+    window.addEventListener('resize', () => {
+      moveIndicator(itemById.get(activeId));
+      // 断点事件在部分环境里不可靠，宽屏下必须保证侧栏可聚焦
+      if (!drawerQuery.matches && aside.inert) setDrawer(false);
+    }, { passive: true });
 
     /* ------------------------------------------------------ 标签库数据源 */
     const tagData = [
