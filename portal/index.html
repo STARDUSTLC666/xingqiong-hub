@@ -304,6 +304,25 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
 .remote-card p{margin-bottom:0.45rem}
 /* 说清楚检测到底做了什么，按钮才不是一个来路不明的动作 */
 .remote-card__note{color:var(--xq-text-faint);font-size:0.74rem;line-height:1.7}
+
+/* 真实示例 */
+.example-grid{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:1.4rem;align-items:start}
+.example-figure img{width:100%;height:auto;border-radius:var(--xq-r-md);border:1px solid var(--xq-line);box-shadow:var(--xq-shadow-md)}
+.example-caption{margin-top:0.5rem;color:var(--xq-text-faint);font-size:0.7rem;text-align:center}
+.example-detail h3{margin:0 0 0.5rem;color:var(--xq-gold);font-size:0.84rem;letter-spacing:0.03em}
+.example-detail h3+.example-note{margin-top:-0.25rem}
+.example-detail>*+h3{margin-top:1.15rem}
+.example-note{color:var(--xq-text-faint);font-size:0.72rem;line-height:1.75;margin:0.35rem 0}
+.example-picks{display:grid;gap:1px;background:var(--xq-line-soft);border:1px solid var(--xq-line-soft);border-radius:var(--xq-r-sm);overflow:hidden}
+.example-picks>div{display:grid;grid-template-columns:minmax(88px,26%) minmax(0,1fr);gap:0.7rem;padding:0.42rem 0.65rem;background:var(--xq-ink-soft)}
+.example-picks dt{color:var(--xq-text-muted);font-size:0.73rem}
+.example-picks dd{margin:0;color:var(--xq-text);font-family:var(--xq-font-mono);font-size:0.73rem;overflow-wrap:anywhere}
+.example-prompt{margin:0.45rem 0 0;font-size:0.71rem;line-height:1.85}
+@media(max-width:760px){
+  .example-grid{grid-template-columns:1fr}
+  .example-figure img{max-width:300px;margin:0 auto}
+  .example-picks>div{grid-template-columns:1fr;gap:0.1rem}
+}
 .remote-card__probe{display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin:0.55rem 0 0.35rem}
 .remote-card__probe label{flex:0 0 auto;color:var(--xq-text-muted);font-size:0.74rem}
 .remote-card__probe input{flex:1 1 200px;min-width:0;width:auto;font-family:var(--xq-font-mono);font-size:0.74rem;padding:0.42rem 0.6rem}
@@ -473,6 +492,50 @@ label .hint{color:var(--xq-text-faint);font-size:0.65rem;font-weight:normal}
         <button type="button" class="btn btn-ghost btn-sm" data-action="force-local">检测本机 ComfyUI</button>
       </div>
       <p class="remote-card__note">端口不是默认的 8188 就改成你自己的，再点检测。</p>
+    </div>
+  </section>
+
+  <!-- 真实示例：下面这张图就是按左边那些选择、用本页默认参数跑出来的 -->
+  <section class="panel example-card">
+    <div class="panel-title">🖼 先看一个真实例子</div>
+    <p class="text-muted mb-1">这张图不是配图，是把下面这些选项点一遍、参数全用默认值，在本机 ComfyUI 上真跑出来的。你照着走一遍会得到同类结果。</p>
+
+    <div class="example-grid">
+      <div class="example-figure">
+        <img src="example-output.webp" width="728" height="1064" loading="lazy" decoding="async"
+             alt="示例出图：银发长发少女身穿浅色和服，站在神社前，背景是夕阳与山峦，画面为七分身构图并带景深虚化。">
+        <p class="example-caption">832×1216 · 单人立绘 · 用时约 40 秒（RTX 4060 Laptop）</p>
+      </div>
+
+      <div class="example-detail">
+        <h3>① 每一步选了什么</h3>
+        <dl class="example-picks">
+          <div><dt>角色</dt><dd>1girl</dd></div>
+          <div><dt>发型 / 发色</dt><dd>long_hair · silver_hair</dd></div>
+          <div><dt>服装</dt><dd>kimono</dd></div>
+          <div><dt>场景与时间</dt><dd>shrine · sunset</dd></div>
+          <div><dt>表情</dt><dd>smile · looking_at_viewer</dd></div>
+          <div><dt>姿势</dt><dd>standing</dd></div>
+          <div><dt>构图与镜头</dt><dd>cowboy_shot · depth_of_field</dd></div>
+          <div><dt>光照</dt><dd>golden_hour · rim_lighting</dd></div>
+          <div><dt>风格 / 画质</dt><dd>anime_coloring · detailed_background · intricate_details</dd></div>
+        </dl>
+
+        <h3>② 页面拼出的 Prompt</h3>
+        <p class="example-note">开头四个质量词是自动补的，不用自己选；其余就是你点过的标签按固定顺序排好。</p>
+        <pre class="example-prompt">masterpiece, best_quality, high_quality, high_resolution, 1girl, long_hair, silver_hair, kimono, shrine, sunset, smile, looking_at_viewer, standing, cowboy_shot, depth_of_field, golden_hour, rim_lighting, anime_coloring, detailed_background, intricate_details</pre>
+        <p class="example-note">负向词整套由页面自动带上（崩手、多指、水印、3D 感等 39 项），不需要手写。</p>
+
+        <h3>③ 出图参数</h3>
+        <dl class="example-picks">
+          <div><dt>尺寸</dt><dd>832×1216</dd></div>
+          <div><dt>采样器</dt><dd>dpmpp_2m · karras</dd></div>
+          <div><dt>步数 / CFG</dt><dd>30 · 5</dd></div>
+          <div><dt>种子</dt><dd>777001（固定种子可复现同一张）</dd></div>
+          <div><dt>底模</dt><dd>novaAnimeXL_ilV190</dd></div>
+        </dl>
+        <p class="example-note">以上全部是本页默认值，只有种子被固定下来以便复现。换个种子就是同一套设定的另一张。</p>
+      </div>
     </div>
   </section>
 
