@@ -518,6 +518,130 @@ function createSolarCore(isCompact) {
   };
 }
 
+/** 创建黑洞：不透明视界 + 吸积盘 + 光子环 + 被透镜抬起的远端盘面。 */
+function createBlackHoleCore(isCompact) {
+  const group = new THREE.Group();
+
+  // 视界用实心黑球而不是着色器里的黑色：加法混合画不出黑，
+  // 只有写深度的不透明几何体才能把背后的星星真正挡住。
+  const horizonGeometry = new THREE.SphereGeometry(0.34, 48, 32);
+  const horizonMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const core = new THREE.Mesh(horizonGeometry, horizonMaterial);
+  core.renderOrder = 0;
+  group.add(core);
+
+  const DISC_HALF_SIZE = 2.6;
+  const discGeometry = new THREE.PlaneGeometry(DISC_HALF_SIZE * 2, DISC_HALF_SIZE * 2);
+  const discMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uHorizon: { value: 0.34 / DISC_HALF_SIZE }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uHorizon;
+      varying vec2 vUv;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        vec2 p = (vUv - 0.5) * 2.0;
+        float r = length(p);
+        if (r > 1.0 || r < uHorizon) discard;
+
+        // 盘面几乎侧对镜头，压扁纵轴把圆盘投影成椭圆
+        float tilt = 0.26;
+        vec2 discSpace = vec2(p.x, p.y / tilt);
+        float discRadius = length(discSpace);
+        float angle = atan(discSpace.y, discSpace.x);
+
+        // 内外径都取椭圆坐标下的值。外径必须落在公告板范围内，
+        // 否则衰减项永远不生效，整块面板会被均匀填满。
+        float inner = 0.42;
+        float outer = 1.15;
+        float band = smoothstep(inner, inner * 1.4, discRadius)
+          * (1.0 - smoothstep(outer * 0.55, outer, discRadius));
+
+        // 沿半径方向拖出的湍流条纹，随时间向内旋落
+        float turbulence = xqFbm(vec3(cos(angle), sin(angle), 0.0) * 3.4
+          + vec3(0.0, 0.0, discRadius * 1.6 - uTime * 0.55));
+
+        // 多普勒增亮：转向镜头的一侧又亮又偏白，另一侧压暗偏红。
+        // 这是黑洞吸积盘最容易辨认的特征，左右不对称正是它该有的样子。
+        float doppler = 0.34 + 0.66 * smoothstep(-0.9, 0.9, -p.x);
+        doppler = pow(doppler, 1.35);
+
+        float shaped = pow(smoothstep(0.2, 0.85, turbulence), 1.25);
+        vec3 hot = mix(vec3(1.0, 0.22, 0.02), vec3(1.0, 0.95, 0.85), shaped);
+        float discAlpha = band * (0.18 + 0.82 * shaped) * doppler * 1.35;
+
+        // 光子环：紧贴视界的一圈极细亮环
+        float photon = exp(-pow((r - uHorizon * 1.16) / 0.016, 2.0));
+
+        // 引力透镜：远端盘面被抬到视界上方与下方，形成竖直的拱
+        float lensArc = exp(-pow((r - uHorizon * 1.62) / 0.055, 2.0));
+        float lensMask = smoothstep(0.04, 0.34, abs(p.y));
+        float lens = lensArc * lensMask * (0.5 + 0.5 * turbulence) * 1.9;
+
+        vec3 color = hot * discAlpha
+          + vec3(1.0, 0.88, 0.68) * photon * 1.5
+          + vec3(1.0, 0.72, 0.4) * lens;
+
+        gl_FragColor = vec4(color, clamp(discAlpha + photon + lens * 0.8, 0.0, 1.0));
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  const disc = new THREE.Mesh(discGeometry, discMaterial);
+  disc.renderOrder = 3;
+  group.add(disc);
+
+  // 远处的一圈弱光晕，交代黑洞把周围照亮的程度
+  const glowTexture = createCoreGlowTexture();
+  let glow = null;
+
+  if (glowTexture) {
+    const glowMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: "#b0651f",
+      transparent: true,
+      opacity: 0.26,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending
+    });
+    glow = new THREE.Sprite(glowMaterial);
+    glow.scale.set(6.2, 6.2, 1);
+    glow.renderOrder = -4;
+    group.add(glow);
+  }
+
+  return {
+    group,
+    core,
+    corona: disc,
+    glow,
+    outerGlow: null,
+    atmosphere: null,
+    facetShell: null,
+    glassShell: null,
+    coordinateGlobe: null,
+    structuralFrame: null,
+    energyRings: [],
+    detailLayer: new THREE.Group()
+  };
+}
+
 /** 创建多层“星穹档案核心”，组合柔光、晶体、经纬壳与结构线。 */
 function createArchiveCore() {
   const group = new THREE.Group();
@@ -764,7 +888,10 @@ function createOrbitalSystem(isCompact) {
     root.add(track.carrier);
   }
 
-  const heroCore = heroVariant() === "sun" ? createSolarCore(isCompact) : createArchiveCore();
+  const variant = heroVariant();
+  const heroCore = variant === "sun" ? createSolarCore(isCompact)
+    : variant === "blackhole" ? createBlackHoleCore(isCompact)
+    : createArchiveCore();
   root.add(heroCore.group);
 
   return { root, tracks, ...heroCore };
@@ -773,7 +900,8 @@ function createOrbitalSystem(isCompact) {
 /** 主视觉形态：archive 是默认的档案晶核，sun 是写实恒星。 */
 function heroVariant() {
   try {
-    return localStorage.getItem("xingqiong-hero") === "sun" ? "sun" : "archive";
+    const stored = localStorage.getItem("xingqiong-hero");
+    return stored === "sun" || stored === "blackhole" ? stored : "archive";
   } catch {
     return "archive";
   }
@@ -997,7 +1125,7 @@ function initializeHeroScene(targetCanvas) {
     orbitalSystem.core.scale.setScalar(pulse);
     orbitalSystem.core.rotation.x += deltaSeconds * 0.11;
     orbitalSystem.core.rotation.y += deltaSeconds * 0.19;
-    orbitalSystem.core.material.uniforms.uTime.value = time;
+    if (orbitalSystem.core.material.uniforms?.uTime) orbitalSystem.core.material.uniforms.uTime.value = time;
     orbitalSystem.atmosphere?.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
     if (orbitalSystem.corona) {
       orbitalSystem.corona.material.uniforms.uTime.value = time;

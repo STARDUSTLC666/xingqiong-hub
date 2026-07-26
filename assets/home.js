@@ -963,30 +963,43 @@ function initializeHeroVariantToggle() {
 
   const STORAGE_KEY = "xingqiong-hero";
 
-  function currentVariant() {
+  // 按钮上显示的是「下一个」形态，点一次换一种，循环回到起点。
+  const VARIANTS = [
+    { id: "archive", icon: "✦", name: "档案晶核", hint: "星穹档案晶核：晶体外壳与经纬结构" },
+    { id: "sun", icon: "☀", name: "写实恒星", hint: "写实恒星：湍流光球、临边昏暗与日冕" },
+    { id: "blackhole", icon: "◍", name: "黑洞", hint: "黑洞：吸积盘、光子环与引力透镜" }
+  ];
+
+  function currentIndex() {
+    let stored = "archive";
     try {
-      return localStorage.getItem(STORAGE_KEY) === "sun" ? "sun" : "archive";
+      stored = localStorage.getItem(STORAGE_KEY) || "archive";
     } catch {
-      return "archive";
+      stored = "archive";
     }
+    const index = VARIANTS.findIndex((item) => item.id === stored);
+    return index < 0 ? 0 : index;
   }
 
   const button = document.createElement("button");
   button.type = "button";
   button.className = "header-link header-link--palette";
-  button.innerHTML = '<span aria-hidden="true">☀</span><span></span>';
+  button.innerHTML = '<span aria-hidden="true"></span><span></span>';
+  const icon = button.firstElementChild;
   const label = button.lastElementChild;
 
   function sync() {
-    const isSun = currentVariant() === "sun";
-    label.textContent = isSun ? "档案晶核" : "写实恒星";
-    button.setAttribute("aria-label", isSun ? "切换回档案晶核主视觉" : "切换为写实恒星主视觉");
-    button.title = isSun ? "换回星穹档案晶核" : "换成写实恒星（湍流光球与日冕）";
+    const next = VARIANTS[(currentIndex() + 1) % VARIANTS.length];
+    icon.textContent = next.icon;
+    label.textContent = next.name;
+    button.setAttribute("aria-label", `切换主视觉为${next.name}`);
+    button.title = next.hint;
   }
 
   button.addEventListener("click", () => {
+    const next = VARIANTS[(currentIndex() + 1) % VARIANTS.length];
     try {
-      localStorage.setItem(STORAGE_KEY, currentVariant() === "sun" ? "archive" : "sun");
+      localStorage.setItem(STORAGE_KEY, next.id);
     } catch {
       // 存不下就没法保留选择，直接放弃切换而不是给出假的反馈。
       return;
