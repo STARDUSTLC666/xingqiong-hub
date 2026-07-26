@@ -1333,6 +1333,7 @@ let currentStep = 1;
 let comfyConnected = false;
 let bridgeAvailable = false;
 let localMode = true;    // 浏览器是否有可能连上本机 127.0.0.1
+let autoProbeDone = false; // 公网自动探测只跑一次
 let forceLocal = false;  // 访客手动坚持"我就在本机"
 let pollTimer = null;
 let saveTimer = null;
@@ -1398,6 +1399,58 @@ function detectLocalEnvironment(){
   if(/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
   if(/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
   return false;
+}
+
+/* 公网访问时主动探一次本机服务，能连上就自动解锁，不必让访客先点按钮。
+
+   浏览器允许这件事：Chrome 把 127.0.0.1 视为可信来源，HTTPS 页面请求它
+   不会被混合内容拦截。但请求要真正「可用」还需要两个条件——本机服务回了
+   CORS 头（ComfyUI 需带 --enable-cors-header 启动），以及私有网络访问预检
+   拿到 Access-Control-Allow-Private-Network。所以这里必须发真实的 CORS 请求：
+   用 mode:'no-cors' 虽然总会拿到一个不透明响应「看起来成功」，却无法区分
+   服务是不是真的能调，反而会把用户导向一个点了没反应的界面。 */
+async function probeLocalServices(){
+  const targets = [
+    BRIDGE_URL + '/ping',
+    (byId('comfyUrl') && byId('comfyUrl').value.trim() || DEFAULT_COMFY_URL) + '/system_stats'
+  ];
+
+  const attempts = targets.map(url => fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(2200)
+  }).then(r => r.ok));
+
+  const results = await Promise.allSettled(attempts);
+  return results.some(item => item.status === 'fulfilled' && item.value === true);
+}
+
+/** 只在公网访问时跑一次；失败就安静地留在公网模式。 */
+async function autoDetectLocal(){
+  if(localMode || autoProbeDone) return;
+  autoProbeDone = true;
+
+  const notice = byId('remoteNotice');
+  const button = notice && notice.querySelector('[data-action="force-local"]');
+  if(button){
+    button.disabled = true;
+    button.textContent = '正在检测本机服务…';
+  }
+
+  const reachable = await probeLocalServices();
+
+  if(reachable){
+    forceLocal = true;
+    applyEnvironment();
+    scheduleSave();
+    toast('已自动检测到本机服务，出图控制已解锁');
+    checkAll();
+    return;
+  }
+
+  if(button){
+    button.disabled = false;
+    button.textContent = '没检测到本机服务 · 重新检测';
+  }
 }
 
 function applyEnvironment(){
@@ -2144,11 +2197,9 @@ function renderBridgeControls(){
 }
 
 function enableForceLocal(){
-  forceLocal = true;
-  applyEnvironment();
-  scheduleSave();
-  toast('已打开本机控制按钮，正在重新探测桥接…');
-  checkAll();
+  // 重新走一次真实探测，而不是无条件强开
+  autoProbeDone = false;
+  autoDetectLocal();
 }
 
 function setStat(dotId, textId, statId, ok, text){
@@ -2719,6 +2770,8 @@ function showPollTimeout(){
 
   // 自动探测桥接与 ComfyUI
   setTimeout(()=>checkAll(), 800);
+  // 公网访问时也先探一次本机：能连上就直接解锁，省掉一次手动点击
+  setTimeout(()=>autoDetectLocal(), 900);
 })();
 </script>
 <script src="../assets/gate-guide.js"></script>
