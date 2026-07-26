@@ -163,8 +163,102 @@ function createParticleField(isCompact) {
   return particles;
 }
 
-/** 创建单条倾斜轨道及沿轨道运行的光点。 */
-function createOrbitalTrack(options, sharedOrbiterGeometry) {
+/** 三种地表配方。分开编译成三个着色器，比在片元里按类型分支更省。 */
+const PLANET_SURFACES = {
+  rocky: `
+    float relief = xqFbm(direction * 3.1);
+    float grain = xqFbm(direction * 9.0);
+    vec3 lowland = vec3(0.34, 0.17, 0.11);
+    vec3 highland = vec3(0.79, 0.53, 0.33);
+    surface = mix(lowland, highland, smoothstep(0.28, 0.72, relief));
+    surface *= 0.82 + grain * 0.36;
+    // 极冠：高纬度覆冰
+    surface = mix(surface, vec3(0.93, 0.92, 0.9), smoothstep(0.82, 0.97, abs(direction.y)));
+    atmosphere = vec3(0.85, 0.5, 0.32);
+  `,
+  gas: `
+    // 纬向条带被湍流揉皱，是气态巨行星最直观的特征
+    float swirl = xqFbm(direction * 2.4 + vec3(0.0, 0.0, uTime * 0.04));
+    float bands = sin(direction.y * 16.0 + swirl * 4.2);
+    vec3 pale = vec3(0.86, 0.72, 0.5);
+    vec3 deep = vec3(0.5, 0.31, 0.2);
+    surface = mix(deep, pale, smoothstep(-0.5, 0.5, bands));
+    // 一处长寿风暴
+    float storm = smoothstep(0.16, 0.0, length(direction - normalize(vec3(0.55, -0.3, 0.7))));
+    surface = mix(surface, vec3(0.78, 0.33, 0.22), storm * 0.85);
+    atmosphere = vec3(0.9, 0.7, 0.45);
+  `,
+  ocean: `
+    float land = xqFbm(direction * 2.5);
+    vec3 sea = vec3(0.07, 0.22, 0.45);
+    vec3 ground = vec3(0.22, 0.4, 0.24);
+    surface = mix(sea, ground, smoothstep(0.5, 0.6, land));
+    // 云层独立于地表缓慢移动
+    float cloud = smoothstep(0.52, 0.78, xqFbm(direction * 3.2 + vec3(uTime * 0.02, 0.0, 0.0)));
+    surface = mix(surface, vec3(0.97, 0.97, 1.0), cloud * 0.72);
+    atmosphere = vec3(0.45, 0.68, 1.0);
+  `
+};
+
+/** 创建一颗有昼夜晨昏线与大气边缘的行星。 */
+function createPlanet(kind, radius, isCompact) {
+  const geometry = new THREE.SphereGeometry(radius, isCompact ? 24 : 40, isCompact ? 16 : 28);
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uLightPosition: { value: new THREE.Vector3(0, 0, 0) }
+    },
+    vertexShader: `
+      varying vec3 vObjectPosition;
+      varying vec3 vNormalWorld;
+      varying vec3 vWorldPosition;
+
+      void main() {
+        vObjectPosition = position;
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorldPosition = worldPosition.xyz;
+        vNormalWorld = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform vec3 uLightPosition;
+      varying vec3 vObjectPosition;
+      varying vec3 vNormalWorld;
+      varying vec3 vWorldPosition;
+
+      ${noiseGlsl(isCompact)}
+
+      void main() {
+        vec3 normal = normalize(vNormalWorld);
+        vec3 direction = normalize(vObjectPosition);
+        vec3 toLight = normalize(uLightPosition - vWorldPosition);
+        vec3 toCamera = normalize(cameraPosition - vWorldPosition);
+
+        vec3 surface;
+        vec3 atmosphere;
+        ${PLANET_SURFACES[kind]}
+
+        // 晨昏线：日夜交界要有一段过渡，硬切会让球看起来像贴纸
+        float lambert = dot(normal, toLight);
+        float daylight = smoothstep(-0.22, 0.32, lambert);
+        vec3 color = surface * (0.05 + daylight * 1.15);
+
+        // 大气在边缘散射，背光侧留一圈冷光
+        float rim = pow(1.0 - clamp(dot(normal, toCamera), 0.0, 1.0), 3.0);
+        color += atmosphere * rim * (0.18 + daylight * 0.75);
+
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
+  });
+
+  return new THREE.Mesh(geometry, material);
+}
+
+/** 创建单条倾斜轨道及沿轨道运行的行星。 */
+function createOrbitalTrack(options, isCompact) {
   const points = [];
   const segmentCount = 180;
 
@@ -191,14 +285,8 @@ function createOrbitalTrack(options, sharedOrbiterGeometry) {
   const line = new THREE.LineLoop(lineGeometry, lineMaterial);
   carrier.add(line);
 
-  const orbiterMaterial = new THREE.MeshBasicMaterial({
-    color: options.color,
-    transparent: true,
-    opacity: 0.92,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending
-  });
-  const orbiter = new THREE.Mesh(sharedOrbiterGeometry, orbiterMaterial);
+  // 行星是实体：不透明并写深度，才能挡住背后的银河
+  const orbiter = createPlanet(options.planet, options.planetRadius, isCompact);
   carrier.add(orbiter);
 
   return {
@@ -476,13 +564,13 @@ function createSolarCore(isCompact) {
       map: glowTexture,
       color: "#d4802f",
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.55,
       depthWrite: false,
       depthTest: false,
       blending: THREE.AdditiveBlending
     });
     outerGlow = new THREE.Sprite(outerMaterial);
-    outerGlow.scale.set(7.4, 7.4, 1);
+    outerGlow.scale.set(9.2, 9.2, 1);
     outerGlow.renderOrder = -4;
     group.add(outerGlow);
 
@@ -872,36 +960,152 @@ function createArchiveCore() {
 }
 
 /** 生成档案核心、三维轨道和轨道光点的完整主视觉装置。 */
+/** 从伴星被撕出、螺旋落向黑洞的物质流。位置每帧在 CPU 上重算。 */
+function createAccretionStream(isCompact) {
+  const count = isCompact ? 220 : 620;
+  const positions = new Float32Array(count * 3);
+  const seeds = new Float32Array(count);
+  const random = createSeededRandom(0x2f19b3d1);
+
+  for (let index = 0; index < count; index += 1) {
+    seeds[index] = random();
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: { uScale: { value: isCompact ? 46 : 64 } },
+    vertexShader: `
+      attribute float aSeed;
+      uniform float uScale;
+      varying float vSeed;
+
+      void main() {
+        vSeed = aSeed;
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = (0.7 + aSeed * 1.1) * uScale / max(-viewPosition.z, 0.001);
+        gl_Position = projectionMatrix * viewPosition;
+      }
+    `,
+    fragmentShader: `
+      varying float vSeed;
+
+      void main() {
+        vec2 offset = gl_PointCoord - vec2(0.5);
+        float distance = length(offset);
+        if (distance > 0.5) discard;
+
+        float core = smoothstep(0.5, 0.0, distance);
+        // 越靠流末端越白热，用 seed 制造一点颜色离散
+        vec3 tint = mix(vec3(1.0, 0.42, 0.1), vec3(1.0, 0.9, 0.72), vSeed);
+        gl_FragColor = vec4(tint * (0.6 + core), core * core * 0.85);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  return { points: new THREE.Points(geometry, material), seeds, count };
+}
+
+/** 让物质流沿一条弯向黑洞的路径流动，落点越近速度越快。 */
+function updateAccretionStream(orbitalSystem, time) {
+  const stream = orbitalSystem.stream;
+  if (!stream) return;
+
+  const source = orbitalSystem.bodies[0].parts.group.position;
+  const sink = orbitalSystem.bodies[1].parts.group.position;
+  const array = stream.points.geometry.attributes.position.array;
+
+  for (let index = 0; index < stream.count; index += 1) {
+    const seed = stream.seeds[index];
+    // 每颗粒子按自己的相位循环推进，整条流看起来是连续供料的
+    const progress = (seed + time * 0.19) % 1;
+    // 平方缓动：靠近黑洞时明显加速，符合被引力拉扯的观感
+    const eased = progress * progress;
+
+    // 二次贝塞尔，控制点偏到连线一侧，流就是弯的而不是一条直线
+    const midX = (source.x + sink.x) * 0.5 + (sink.y - source.y) * 0.2;
+    const midY = (source.y + sink.y) * 0.5 - (sink.x - source.x) * 0.2;
+    const midZ = (source.z + sink.z) * 0.5;
+
+    const inverse = 1 - eased;
+    const baseX = inverse * inverse * source.x + 2 * inverse * eased * midX + eased * eased * sink.x;
+    const baseY = inverse * inverse * source.y + 2 * inverse * eased * midY + eased * eased * sink.y;
+    const baseZ = inverse * inverse * source.z + 2 * inverse * eased * midZ + eased * eased * sink.z;
+
+    // 绕流轴的螺旋，半径随接近黑洞而收紧
+    const coil = seed * Math.PI * 2 + progress * 5.5;
+    const jitter = ((seed * 9301 + 49297) % 233280) / 233280;
+    const spread = ((1 - eased) * 0.3 + 0.04) * (0.35 + jitter * 1.3);
+
+    const offset = index * 3;
+    array[offset] = baseX + Math.cos(coil) * spread;
+    array[offset + 1] = baseY + Math.sin(coil) * spread * 0.5;
+    array[offset + 2] = baseZ + Math.sin(coil) * spread;
+  }
+
+  stream.points.geometry.attributes.position.needsUpdate = true;
+}
+
+/** 双星：太阳与黑洞绕共同质心反相公转，中间连着一道吸积流。 */
+function createBinarySystem(isCompact) {
+  const group = new THREE.Group();
+  const solar = createSolarCore(isCompact);
+  const hole = createBlackHoleCore(isCompact);
+
+  // 两个天体都要缩小，否则并排放进首屏会互相挤爆
+  solar.group.scale.setScalar(0.62);
+  hole.group.scale.setScalar(0.52);
+  group.add(solar.group, hole.group);
+
+  const stream = createAccretionStream(isCompact);
+  group.add(stream.points);
+
+  return {
+    group,
+    stream,
+    detailLayer: new THREE.Group(),
+    // 质量越大离质心越近，所以黑洞的轨道半径明显小于太阳
+    bodies: [
+      { parts: solar, radius: 1.42, speed: 0.24, phase: 0, spinX: 0.04, spinY: 0.1 },
+      { parts: hole, radius: 0.82, speed: 0.24, phase: Math.PI, spinX: 0, spinY: 0 }
+    ]
+  };
+}
+
 function createOrbitalSystem(isCompact) {
   const root = new THREE.Group();
   const tracks = [];
-  const orbiterGeometry = new THREE.SphereGeometry(0.055, 10, 10);
   const trackOptions = [
-    { radiusX: 2.65, radiusY: 0.82, depth: 0.2, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.42, phase: 0.2, speed: 0.34 },
-    { radiusX: 2.05, radiusY: 1.22, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.27 },
-    { radiusX: 1.45, radiusY: 1.72, depth: 0.17, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#ca8198", opacity: 0.27, phase: 4.3, speed: 0.22 }
+    { radiusX: 2.65, radiusY: 0.82, depth: 0.2, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.42, phase: 0.2, speed: 0.34, planet: "gas", planetRadius: 0.16 },
+    { radiusX: 2.05, radiusY: 1.22, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.27, planet: "ocean", planetRadius: 0.115 },
+    { radiusX: 1.45, radiusY: 1.72, depth: 0.17, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#ca8198", opacity: 0.27, phase: 4.3, speed: 0.22, planet: "rocky", planetRadius: 0.095 }
   ];
 
   for (const options of trackOptions) {
-    const track = createOrbitalTrack(options, orbiterGeometry);
+    const track = createOrbitalTrack(options, isCompact);
     tracks.push(track);
     root.add(track.carrier);
   }
 
-  const variant = heroVariant();
-  const heroCore = variant === "sun" ? createSolarCore(isCompact)
-    : variant === "blackhole" ? createBlackHoleCore(isCompact)
-    : createArchiveCore();
+  const heroCore = heroVariant() === "archive" ? createArchiveCore() : createBinarySystem(isCompact);
   root.add(heroCore.group);
 
-  return { root, tracks, ...heroCore };
+  // 单体形态也包成 bodies，更新循环就只有一条路径，不必到处判空
+  const bodies = heroCore.bodies || [{ parts: heroCore, radius: 0, speed: 0, phase: 0, spinX: 0.11, spinY: 0.19 }];
+
+  return { root, tracks, bodies, stream: heroCore.stream || null, detailLayer: heroCore.detailLayer };
 }
 
 /** 主视觉形态：archive 是默认的档案晶核，sun 是写实恒星。 */
 function heroVariant() {
   try {
     const stored = localStorage.getItem("xingqiong-hero");
-    return stored === "sun" || stored === "blackhole" ? stored : "archive";
+    return stored === "archive" ? "archive" : "binary";
   } catch {
     return "archive";
   }
@@ -1006,6 +1210,7 @@ function initializeHeroScene(targetCanvas) {
   const orbitalSystem = createOrbitalSystem(mobileQuery.matches);
   // 每帧复用，避免在动画循环里反复分配
   const billboardQuaternion = new THREE.Quaternion();
+  const starWorldPosition = new THREE.Vector3();
   let particles = createParticleField(mobileQuery.matches);
   scene.add(particles, orbitalSystem.root);
 
@@ -1076,8 +1281,8 @@ function initializeHeroScene(targetCanvas) {
     camera.position.z = isCompact ? 9.7 : 8.8;
     camera.updateProjectionMatrix();
 
-    orbitalSystem.root.position.set(isCompact ? 1.08 : 2.35, isCompact ? 2.05 : 0.06, -0.36);
-    orbitalSystem.root.scale.setScalar(isCompact ? 0.72 : 1.12);
+    orbitalSystem.root.position.set(isCompact ? 1.0 : 2.15, isCompact ? 1.9 : -0.05, -0.36);
+    orbitalSystem.root.scale.setScalar(isCompact ? 1.05 : 1.95);
     orbitalSystem.detailLayer.visible = !isCompact;
     renderCurrentFrame();
   }
@@ -1102,8 +1307,8 @@ function initializeHeroScene(targetCanvas) {
       0,
       1
     );
-    const baseScale = state.compact ? 0.72 : 1.12;
-    orbitalSystem.root.position.y = (state.compact ? 2.05 : 0.06) + scrollProgress * 0.16;
+    const baseScale = state.compact ? 1.05 : 1.95;
+    orbitalSystem.root.position.y = (state.compact ? 1.9 : -0.05) + scrollProgress * 0.16;
     orbitalSystem.root.position.z = -0.36 - scrollProgress * 0.9;
     orbitalSystem.root.scale.setScalar(baseScale * (1 - scrollProgress * 0.1));
     orbitalSystem.root.rotation.x = -0.05 + state.pointerCurrent.y * 0.075;
@@ -1112,6 +1317,10 @@ function initializeHeroScene(targetCanvas) {
     particles.rotation.y = time * 0.006 + state.pointerCurrent.x * 0.018;
     particles.rotation.x = -0.08 + state.pointerCurrent.y * 0.012;
 
+    // 恒星在双星里一直在动，行星的晨昏线必须跟着它转，
+    // 用世界坐标传进着色器，才不受各级 group 旋转的影响。
+    orbitalSystem.bodies[0].parts.group.getWorldPosition(starWorldPosition);
+
     for (const track of orbitalSystem.tracks) {
       const angle = time * track.speed + track.phase;
       track.orbiter.position.set(
@@ -1119,45 +1328,68 @@ function initializeHeroScene(targetCanvas) {
         Math.sin(angle) * track.radiusY,
         Math.sin(angle * 2 + track.phase) * track.depth
       );
+      track.orbiter.rotation.y += deltaSeconds * 0.16;
+      track.orbiter.material.uniforms.uTime.value = time;
+      track.orbiter.material.uniforms.uLightPosition.value.copy(starWorldPosition);
     }
 
     const pulse = 1 + Math.sin(time * 1.35) * 0.055;
-    orbitalSystem.core.scale.setScalar(pulse);
-    orbitalSystem.core.rotation.x += deltaSeconds * 0.11;
-    orbitalSystem.core.rotation.y += deltaSeconds * 0.19;
-    if (orbitalSystem.core.material.uniforms?.uTime) orbitalSystem.core.material.uniforms.uTime.value = time;
-    orbitalSystem.atmosphere?.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
-    if (orbitalSystem.corona) {
-      orbitalSystem.corona.material.uniforms.uTime.value = time;
-      // 抵消父级的世界旋转，让公告板的世界朝向恒等于相机朝向
-      orbitalSystem.corona.parent.getWorldQuaternion(billboardQuaternion);
-      orbitalSystem.corona.quaternion.copy(billboardQuaternion.invert()).multiply(camera.quaternion);
-    }
     particles.material.uniforms.uTime.value = time;
-    // 写实恒星版没有晶体外壳与经纬网，这些成员为空时整段跳过。
-    if (orbitalSystem.facetShell) {
-      orbitalSystem.facetShell.rotation.x -= deltaSeconds * 0.08;
-      orbitalSystem.facetShell.rotation.y += deltaSeconds * 0.13;
+
+    for (const body of orbitalSystem.bodies) {
+      const parts = body.parts;
+
+      // 双星绕共同质心公转：同角速度、反相，半径由质量比决定。
+      // 单体形态半径为 0，这段自然退化成原地不动。
+      if (body.radius > 0) {
+        const orbitAngle = time * body.speed + body.phase;
+        parts.group.position.set(
+          Math.cos(orbitAngle) * body.radius,
+          Math.sin(orbitAngle) * body.radius * 0.24,
+          Math.sin(orbitAngle) * body.radius * 0.45
+        );
+      }
+
+      parts.core.scale.setScalar(pulse);
+      parts.core.rotation.x += deltaSeconds * body.spinX;
+      parts.core.rotation.y += deltaSeconds * body.spinY;
+      if (parts.core.material.uniforms?.uTime) parts.core.material.uniforms.uTime.value = time;
+      parts.atmosphere?.scale.setScalar(1 + Math.sin(time * 1.35 + 0.6) * 0.03);
+
+      if (parts.corona) {
+        parts.corona.material.uniforms.uTime.value = time;
+        // 抵消父级的世界旋转，让公告板的世界朝向恒等于相机朝向
+        parts.corona.parent.getWorldQuaternion(billboardQuaternion);
+        parts.corona.quaternion.copy(billboardQuaternion.invert()).multiply(camera.quaternion);
+      }
+
+      // 档案晶核独有的外壳与经纬网，其余形态为空时整段跳过。
+      if (parts.facetShell) {
+        parts.facetShell.rotation.x -= deltaSeconds * 0.08;
+        parts.facetShell.rotation.y += deltaSeconds * 0.13;
+      }
+
+      if (parts.glassShell) {
+        parts.glassShell.rotation.x += deltaSeconds * 0.035;
+        parts.glassShell.rotation.y -= deltaSeconds * 0.055;
+      }
+
+      if (parts.coordinateGlobe) {
+        parts.coordinateGlobe.rotation.y += deltaSeconds * 0.045;
+        parts.coordinateGlobe.rotation.z -= deltaSeconds * 0.025;
+      }
+
+      if (parts.structuralFrame) {
+        parts.structuralFrame.rotation.y += deltaSeconds * 0.035;
+      }
+
+      for (let index = 0; index < parts.energyRings.length; index += 1) {
+        const direction = index % 2 === 0 ? 1 : -1;
+        parts.energyRings[index].rotation.z += deltaSeconds * (0.045 + index * 0.018) * direction;
+      }
     }
 
-    if (orbitalSystem.glassShell) {
-      orbitalSystem.glassShell.rotation.x += deltaSeconds * 0.035;
-      orbitalSystem.glassShell.rotation.y -= deltaSeconds * 0.055;
-    }
-
-    if (orbitalSystem.coordinateGlobe) {
-      orbitalSystem.coordinateGlobe.rotation.y += deltaSeconds * 0.045;
-      orbitalSystem.coordinateGlobe.rotation.z -= deltaSeconds * 0.025;
-    }
-
-    if (orbitalSystem.structuralFrame) {
-      orbitalSystem.structuralFrame.rotation.y += deltaSeconds * 0.035;
-    }
-
-    for (let index = 0; index < orbitalSystem.energyRings.length; index += 1) {
-      const direction = index % 2 === 0 ? 1 : -1;
-      orbitalSystem.energyRings[index].rotation.z += deltaSeconds * (0.045 + index * 0.018) * direction;
-    }
+    updateAccretionStream(orbitalSystem, time);
 
     if (orbitalSystem.glow) {
       orbitalSystem.glow.material.opacity = 0.45 + Math.sin(time * 1.1) * 0.055;

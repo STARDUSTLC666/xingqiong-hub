@@ -965,15 +965,14 @@ function initializeHeroVariantToggle() {
 
   // 按钮上显示的是「下一个」形态，点一次换一种，循环回到起点。
   const VARIANTS = [
-    { id: "archive", icon: "✦", name: "档案晶核", hint: "星穹档案晶核：晶体外壳与经纬结构" },
-    { id: "sun", icon: "☀", name: "写实恒星", hint: "写实恒星：湍流光球、临边昏暗与日冕" },
-    { id: "blackhole", icon: "◍", name: "黑洞", hint: "黑洞：吸积盘、光子环与引力透镜" }
+    { id: "binary", icon: "◍", name: "双星系统", hint: "太阳与黑洞并存：绕共同质心公转，黑洞从伴星拉出吸积流" },
+    { id: "archive", icon: "✦", name: "档案晶核", hint: "星穹档案晶核：晶体外壳与经纬结构" }
   ];
 
   function currentIndex() {
     let stored = "archive";
     try {
-      stored = localStorage.getItem(STORAGE_KEY) || "archive";
+      stored = localStorage.getItem(STORAGE_KEY) || "binary";
     } catch {
       stored = "archive";
     }
