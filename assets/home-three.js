@@ -31,7 +31,7 @@ function createSeededRandom(seed) {
 
 /** 按设备性能档位生成带冷暖变化和独立闪烁相位的三维星尘。 */
 function createParticleField(isCompact) {
-  const particleCount = isCompact ? 1400 : 5000;
+  const particleCount = isCompact ? 6000 : 20000;
   const random = createSeededRandom(0x51a7c0de);
   const positions = new Float32Array(particleCount * 3);
   const colors = new Float32Array(particleCount * 3);
@@ -64,12 +64,12 @@ function createParticleField(isCompact) {
       positions[offset + 2] = Math.sin(azimuth) * ring * shell;
 
       color.copy(coolColor).lerp(warmColor, random() * 0.65);
-      const fieldBrightness = 0.32 + random() * 0.5;
+      const fieldBrightness = 0.26 + random() * 0.44;
       colors[offset] = color.r * fieldBrightness;
       colors[offset + 1] = color.g * fieldBrightness;
       colors[offset + 2] = color.b * fieldBrightness;
 
-      sizes[index] = random() > 0.95 ? 2.6 + random() * 2.0 : 0.7 + random() * 1.1;
+      sizes[index] = random() > 0.975 ? 2.4 + random() * 1.8 : 0.5 + random() * 0.8;
       phases[index] = random() * Math.PI * 2;
       continue;
     }
@@ -97,13 +97,13 @@ function createParticleField(isCompact) {
     const youth = Math.min(1, radius / (DISC_RADIUS * 0.55));
     color.copy(warmColor).lerp(coolColor, youth * 0.85);
     if (random() > 0.97) color.setRGB(1.0, 0.62, 0.48); // 零星红巨星
-    const brightness = (0.5 + random() * 0.72) * (0.78 + bulge * 0.35);
+    const brightness = (0.4 + random() * 0.6) * (0.78 + bulge * 0.35);
     colors[offset] = color.r * brightness;
     colors[offset + 1] = color.g * brightness;
     colors[offset + 2] = color.b * brightness;
 
     // 少量“亮星”撑起层次，其余保持细小，避免整片糊成一团。
-    sizes[index] = random() > 0.93 ? 3.0 + random() * 2.4 : 0.8 + random() * 1.3;
+    sizes[index] = random() > 0.965 ? 2.8 + random() * 2.0 : 0.55 + random() * 0.9;
     phases[index] = random() * Math.PI * 2;
   }
 
@@ -163,71 +163,73 @@ function createParticleField(isCompact) {
   return particles;
 }
 
-/** 三种地表配方。分开编译成三个着色器，比在片元里按类型分支更省。 */
+/** 太阳系八大行星的地表配方，各自编译成独立着色器。 */
 const PLANET_SURFACES = {
-  rocky: `
-    float relief = xqFbm(direction * 3.1);
-    float grain = xqFbm(direction * 9.0);
-    vec3 lowland = vec3(0.34, 0.17, 0.11);
-    vec3 highland = vec3(0.79, 0.53, 0.33);
-    surface = mix(lowland, highland, smoothstep(0.28, 0.72, relief));
-    surface *= 0.82 + grain * 0.36;
-    // 极冠：高纬度覆冰
-    surface = mix(surface, vec3(0.93, 0.92, 0.9), smoothstep(0.82, 0.97, abs(direction.y)));
-    atmosphere = vec3(0.85, 0.5, 0.32);
+  mercury: `
+    // 无大气、密布撞击坑的灰色岩体
+    float relief = xqFbm(direction * 5.8);
+    float craters = xqFbm(direction * 13.0);
+    surface = mix(vec3(0.24, 0.23, 0.22), vec3(0.63, 0.61, 0.58), smoothstep(0.34, 0.7, relief));
+    surface *= 0.82 + craters * 0.34;
+    atmosphere = vec3(0.42, 0.42, 0.44);
   `,
-  gas: `
-    // 纬向条带被湍流揉皱，是气态巨行星最直观的特征
-    float swirl = xqFbm(direction * 2.4 + vec3(0.0, 0.0, uTime * 0.04));
-    float bands = sin(direction.y * 16.0 + swirl * 4.2);
-    vec3 pale = vec3(0.86, 0.72, 0.5);
-    vec3 deep = vec3(0.5, 0.31, 0.2);
-    surface = mix(deep, pale, smoothstep(-0.5, 0.5, bands));
-    // 一处长寿风暴
-    float storm = smoothstep(0.16, 0.0, length(direction - normalize(vec3(0.55, -0.3, 0.7))));
-    surface = mix(surface, vec3(0.78, 0.33, 0.22), storm * 0.85);
-    atmosphere = vec3(0.9, 0.7, 0.45);
+  venus: `
+    // 硫酸云把地表整个盖住，所以看不到任何地貌，只有均匀的昏黄
+    float swirl = xqFbm(direction * 2.1 + vec3(0.0, 0.0, uTime * 0.02));
+    surface = mix(vec3(0.74, 0.6, 0.36), vec3(0.96, 0.88, 0.68), smoothstep(0.32, 0.72, swirl));
+    atmosphere = vec3(1.0, 0.9, 0.6);
   `,
-  ocean: `
+  earth: `
     float land = xqFbm(direction * 2.5);
-    vec3 sea = vec3(0.07, 0.22, 0.45);
-    vec3 ground = vec3(0.22, 0.4, 0.24);
-    surface = mix(sea, ground, smoothstep(0.5, 0.6, land));
-    // 云层独立于地表缓慢移动
+    surface = mix(vec3(0.06, 0.21, 0.44), vec3(0.21, 0.4, 0.23), smoothstep(0.5, 0.6, land));
+    // 云层独立于地表漂移
     float cloud = smoothstep(0.52, 0.78, xqFbm(direction * 3.2 + vec3(uTime * 0.02, 0.0, 0.0)));
     surface = mix(surface, vec3(0.97, 0.97, 1.0), cloud * 0.72);
-    atmosphere = vec3(0.45, 0.68, 1.0);
+    surface = mix(surface, vec3(0.95, 0.96, 0.98), smoothstep(0.88, 0.99, abs(direction.y)));
+    atmosphere = vec3(0.42, 0.66, 1.0);
   `,
-  lava: `
-    // 熔岩裂缝：低值区域是冷却的黑色地壳，缝隙里透出熔融的亮橙
-    float crust = xqFbm(direction * 4.2 + vec3(0.0, 0.0, uTime * 0.03));
-    float fissure = smoothstep(0.46, 0.3, crust);
-    vec3 rock = vec3(0.13, 0.09, 0.09);
-    surface = mix(rock, vec3(0.35, 0.12, 0.05), smoothstep(0.3, 0.6, crust));
-    surface += vec3(1.0, 0.42, 0.06) * fissure * 1.6;
-    atmosphere = vec3(1.0, 0.4, 0.14);
+  mars: `
+    float relief = xqFbm(direction * 3.3);
+    surface = mix(vec3(0.4, 0.17, 0.1), vec3(0.79, 0.45, 0.26), smoothstep(0.3, 0.7, relief));
+    // 两极干冰冠
+    surface = mix(surface, vec3(0.93, 0.92, 0.9), smoothstep(0.83, 0.96, abs(direction.y)));
+    atmosphere = vec3(0.85, 0.48, 0.32);
   `,
-  ice: `
-    // 冰巨星：淡青主色，纬向条带比气态巨行星更柔和
-    float swirl = xqFbm(direction * 2.8 + vec3(0.0, 0.0, uTime * 0.025));
-    float bands = sin(direction.y * 11.0 + swirl * 3.0);
-    vec3 pale = vec3(0.66, 0.86, 0.92);
-    vec3 deep = vec3(0.24, 0.46, 0.66);
-    surface = mix(deep, pale, smoothstep(-0.6, 0.6, bands));
-    atmosphere = vec3(0.55, 0.85, 1.0);
+  jupiter: `
+    // 强烈的纬向条带加大红斑
+    float swirl = xqFbm(direction * 2.4 + vec3(0.0, 0.0, uTime * 0.04));
+    float bands = sin(direction.y * 17.0 + swirl * 4.4);
+    surface = mix(vec3(0.48, 0.29, 0.18), vec3(0.89, 0.76, 0.56), smoothstep(-0.5, 0.5, bands));
+    float spot = smoothstep(0.17, 0.0, length(direction - normalize(vec3(0.6, -0.28, 0.68))));
+    surface = mix(surface, vec3(0.78, 0.31, 0.2), spot * 0.88);
+    atmosphere = vec3(0.92, 0.74, 0.48);
   `,
-  dwarf: `
-    // 冰质矮行星：几乎没有大气，表面是脏冰与岩屑
-    float relief = xqFbm(direction * 5.5);
-    vec3 dirtyIce = vec3(0.62, 0.63, 0.68);
-    vec3 rubble = vec3(0.3, 0.27, 0.26);
-    surface = mix(rubble, dirtyIce, smoothstep(0.35, 0.68, relief));
-    atmosphere = vec3(0.6, 0.66, 0.78);
+  saturn: `
+    // 条带比木星淡得多，整体偏奶金色
+    float swirl = xqFbm(direction * 2.0 + vec3(0.0, 0.0, uTime * 0.03));
+    float bands = sin(direction.y * 12.0 + swirl * 2.8);
+    surface = mix(vec3(0.7, 0.58, 0.4), vec3(0.95, 0.87, 0.68), smoothstep(-0.55, 0.55, bands));
+    atmosphere = vec3(0.96, 0.86, 0.62);
+  `,
+  uranus: `
+    // 几乎没有可见结构的淡青色冰巨星
+    float faint = xqFbm(direction * 1.9) * 0.14;
+    surface = vec3(0.52, 0.8, 0.83) + faint;
+    atmosphere = vec3(0.58, 0.9, 0.95);
+  `,
+  neptune: `
+    float swirl = xqFbm(direction * 2.6 + vec3(0.0, 0.0, uTime * 0.03));
+    float bands = sin(direction.y * 9.0 + swirl * 2.4);
+    surface = mix(vec3(0.13, 0.25, 0.62), vec3(0.38, 0.54, 0.88), smoothstep(-0.6, 0.6, bands));
+    // 大暗斑
+    float spot = smoothstep(0.15, 0.0, length(direction - normalize(vec3(-0.52, -0.22, 0.7))));
+    surface = mix(surface, vec3(0.08, 0.14, 0.38), spot * 0.82);
+    atmosphere = vec3(0.45, 0.62, 1.0);
   `
 };
 
 /** 气态巨行星的环：内外缘渐隐，中间被噪声切出卡西尼缝那样的暗环。 */
-function createPlanetRing(innerRadius, outerRadius, isCompact) {
+function createPlanetRing(innerRadius, outerRadius, isCompact, tilt) {
   const geometry = new THREE.RingGeometry(innerRadius, outerRadius, isCompact ? 48 : 96);
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -271,7 +273,7 @@ function createPlanetRing(innerRadius, outerRadius, isCompact) {
   });
 
   const ring = new THREE.Mesh(geometry, material);
-  ring.rotation.x = Math.PI / 2 - 0.32;
+  ring.rotation.x = Math.PI / 2 - (tilt === undefined ? 0.32 : tilt);
   return ring;
 }
 
@@ -427,7 +429,7 @@ function createOrbitalTrack(options, isCompact) {
   // 行星是实体：不透明并写深度，才能挡住背后的银河
   const orbiter = createPlanet(options.planet, options.planetRadius, isCompact);
   if (options.ring) {
-    orbiter.add(createPlanetRing(options.planetRadius * 1.5, options.planetRadius * 2.4, isCompact));
+    orbiter.add(createPlanetRing(options.planetRadius * 1.5, options.planetRadius * 2.4, isCompact, options.ringTilt));
   }
   carrier.add(orbiter);
 
@@ -1223,14 +1225,15 @@ function createOrbitalSystem(isCompact) {
   const root = new THREE.Group();
   const tracks = [];
   const trackOptions = [
-    // 由内向外：越靠近双星转得越快，轨道倾角各不相同才不会挤成一团
-    { radiusX: 1.95, radiusY: 1.62, depth: 0.2, tiltX: 0.24, tiltY: -0.62, tiltZ: -0.34, color: "#d9825f", opacity: 0.3, phase: 4.3, speed: 0.46, planet: "lava", planetRadius: 0.085 },
-    { radiusX: 2.3, radiusY: 1.05, depth: 0.16, tiltX: -0.52, tiltY: 0.22, tiltZ: 0.44, color: "#ca8198", opacity: 0.26, phase: 1.1, speed: 0.38, planet: "rocky", planetRadius: 0.1 },
-    { radiusX: 2.72, radiusY: 1.5, depth: 0.14, tiltX: -0.44, tiltY: 0.35, tiltZ: 0.56, color: "#70b8c5", opacity: 0.34, phase: 2.4, speed: -0.31, planet: "ocean", planetRadius: 0.125 },
-    { radiusX: 2.98, radiusY: 0.9, depth: 0.22, tiltX: 0.66, tiltY: -0.24, tiltZ: 0.14, color: "#b98f68", opacity: 0.24, phase: 5.6, speed: 0.27, planet: "rocky", planetRadius: 0.09 },
-    { radiusX: 3.28, radiusY: 1.62, depth: 0.18, tiltX: 0.72, tiltY: 0.18, tiltZ: 0.08, color: "#e3b76e", opacity: 0.4, phase: 0.2, speed: 0.22, planet: "gas", planetRadius: 0.2, ring: true },
-    { radiusX: 3.6, radiusY: 1.12, depth: 0.2, tiltX: -0.34, tiltY: 0.52, tiltZ: -0.42, color: "#7fb4c8", opacity: 0.26, phase: 3.3, speed: -0.18, planet: "ice", planetRadius: 0.16 },
-    { radiusX: 3.9, radiusY: 1.82, depth: 0.16, tiltX: 0.42, tiltY: -0.4, tiltZ: 0.62, color: "#9aa4bd", opacity: 0.2, phase: 2.0, speed: 0.15, planet: "dwarf", planetRadius: 0.07 }
+    // 由内向外即水金地火木土天海，越靠内公转越快；轨道倾角各异以免叠成一条带
+    { radiusX: 1.82, radiusY: 1.5, depth: 0.18, tiltX: 0.26, tiltY: -0.6, tiltZ: -0.3, color: "#9c9791", opacity: 0.22, phase: 4.3, speed: 0.52, planet: "mercury", planetRadius: 0.06 },
+    { radiusX: 2.14, radiusY: 1.02, depth: 0.16, tiltX: -0.5, tiltY: 0.2, tiltZ: 0.42, color: "#e0c489", opacity: 0.26, phase: 1.1, speed: 0.42, planet: "venus", planetRadius: 0.088 },
+    { radiusX: 2.5, radiusY: 1.42, depth: 0.14, tiltX: -0.42, tiltY: 0.34, tiltZ: 0.54, color: "#70b8c5", opacity: 0.3, phase: 2.4, speed: -0.35, planet: "earth", planetRadius: 0.095 },
+    { radiusX: 2.86, radiusY: 0.9, depth: 0.2, tiltX: 0.64, tiltY: -0.22, tiltZ: 0.12, color: "#c9764f", opacity: 0.26, phase: 5.6, speed: 0.3, planet: "mars", planetRadius: 0.072 },
+    { radiusX: 3.3, radiusY: 1.66, depth: 0.18, tiltX: 0.7, tiltY: 0.16, tiltZ: 0.06, color: "#e3b76e", opacity: 0.36, phase: 0.2, speed: 0.23, planet: "jupiter", planetRadius: 0.215 },
+    { radiusX: 3.72, radiusY: 1.16, depth: 0.2, tiltX: -0.32, tiltY: 0.5, tiltZ: -0.4, color: "#e8cf9a", opacity: 0.3, phase: 3.3, speed: 0.18, planet: "saturn", planetRadius: 0.185, ring: true, ringTilt: 0.3 },
+    { radiusX: 4.08, radiusY: 1.9, depth: 0.16, tiltX: 0.4, tiltY: -0.38, tiltZ: 0.58, color: "#8fd0d8", opacity: 0.22, phase: 2.0, speed: 0.14, planet: "uranus", planetRadius: 0.13, ring: true, ringTilt: 1.45 },
+    { radiusX: 4.4, radiusY: 1.34, depth: 0.18, tiltX: -0.6, tiltY: 0.28, tiltZ: 0.24, color: "#7f9ce0", opacity: 0.2, phase: 5.0, speed: 0.11, planet: "neptune", planetRadius: 0.125 }
   ];
 
   for (const options of trackOptions) {
@@ -1432,7 +1435,7 @@ function initializeHeroScene(targetCanvas) {
     camera.position.z = isCompact ? 9.7 : 8.8;
     camera.updateProjectionMatrix();
 
-    orbitalSystem.root.position.set(isCompact ? 1.0 : 2.15, isCompact ? 1.9 : -0.05, -0.36);
+    orbitalSystem.root.position.set(isCompact ? 1.0 : 3.15, isCompact ? 1.9 : -0.05, -0.36);
     orbitalSystem.root.scale.setScalar(isCompact ? 1.05 : 1.95);
     orbitalSystem.detailLayer.visible = !isCompact;
 
