@@ -64,6 +64,8 @@ function createParticleField(isCompact) {
       positions[offset + 2] = Math.sin(azimuth) * ring * shell;
 
       color.copy(coolColor).lerp(warmColor, random() * 0.65);
+      // 极少数暖金星，给均匀的球壳星群添一点色相
+      if (random() > 0.985) color.setRGB(0.94, 0.78, 0.47);
       const fieldBrightness = 0.26 + random() * 0.44;
       colors[offset] = color.r * fieldBrightness;
       colors[offset + 1] = color.g * fieldBrightness;
@@ -97,6 +99,7 @@ function createParticleField(isCompact) {
     const youth = Math.min(1, radius / (DISC_RADIUS * 0.55));
     color.copy(warmColor).lerp(coolColor, youth * 0.85);
     if (random() > 0.97) color.setRGB(1.0, 0.62, 0.48); // 零星红巨星
+    if (random() > 0.988) color.setRGB(0.65, 0.6, 0.79); // 稀疏的紫罗兰星
     const brightness = (0.4 + random() * 0.6) * (0.78 + bulge * 0.35);
     colors[offset] = color.r * brightness;
     colors[offset + 1] = color.g * brightness;
@@ -398,6 +401,101 @@ function createNebula(isCompact) {
   return nebula;
 }
 
+/** 行星大气色映射：与 PLANET_SURFACES 中每颗行星的 atmosphere 保持一致，用于外发光。 */
+const PLANET_GLOW_COLORS = {
+  mercury: "#8a8a92",
+  venus: "#ffd98a",
+  earth: "#6fa8ff",
+  mars: "#ff8a5e",
+  jupiter: "#ffc37e",
+  saturn: "#ffe3a0",
+  uranus: "#9fe8f2",
+  neptune: "#7d9dff"
+};
+
+/** 共享径向柔光纹理：所有行星外发光复用同一张，避免重复 canvas。 */
+let sharedGlowTexture = null;
+
+function getSharedGlowTexture() {
+  if (!sharedGlowTexture) {
+    sharedGlowTexture = createCoreGlowTexture();
+  }
+  return sharedGlowTexture;
+}
+
+/** 沿轨道流动的微光粒子：一条轨道上分布的星点，以行星同速公转，让轨道有流体感。 */
+function createOrbitalStream(options, isCompact) {
+  const count = isCompact ? 36 : 72;
+  const angles = new Float32Array(count);
+  for (let index = 0; index < count; index += 1) {
+    angles[index] = (index / count) * Math.PI * 2;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+  geometry.setAttribute("aAngle", new THREE.BufferAttribute(angles, 1));
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uRadiusX: { value: options.radiusX },
+      uRadiusY: { value: options.radiusY },
+      uDepth: { value: options.depth },
+      uPhase: { value: options.phase },
+      uSpeed: { value: options.speed },
+      uSize: { value: isCompact ? 34 : 46 },
+      uColor: { value: new THREE.Color(options.color) },
+      uScale: { value: isCompact ? 0.8 : 1 }
+    },
+    vertexShader: `
+      attribute float aAngle;
+      uniform float uTime;
+      uniform float uRadiusX;
+      uniform float uRadiusY;
+      uniform float uDepth;
+      uniform float uPhase;
+      uniform float uSpeed;
+      uniform float uSize;
+      varying float vFlow;
+
+      void main() {
+        float angle = aAngle + uTime * uSpeed + uPhase;
+        vec3 flowPosition = vec3(
+          cos(angle) * uRadiusX,
+          sin(angle) * uRadiusY,
+          sin(angle * 2.0 + uPhase) * uDepth
+        );
+        vFlow = fract(aAngle / 6.2831 + uTime * 0.05);
+        vec4 viewPosition = modelViewMatrix * vec4(flowPosition, 1.0);
+        gl_PointSize = uSize / max(-viewPosition.z, 0.01);
+        gl_Position = projectionMatrix * viewPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uScale;
+      varying float vFlow;
+
+      void main() {
+        vec2 offset = gl_PointCoord - vec2(0.5);
+        float distance = length(offset);
+        if (distance > 0.5) discard;
+        float core = smoothstep(0.5, 0.0, distance);
+        // 每三颗亮一颗，制造断续的星点串，而不是一条实心珠子
+        float twinkle = step(0.34, fract(vFlow * 3.0 + 0.16));
+        gl_FragColor = vec4(uColor, core * core * uScale * twinkle * 0.75);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const stream = new THREE.Points(geometry, material);
+  stream.frustumCulled = false;
+  return stream;
+}
+
 /** 创建单条倾斜轨道及沿轨道运行的行星。 */
 function createOrbitalTrack(options, isCompact) {
   const points = [];
@@ -426,16 +524,39 @@ function createOrbitalTrack(options, isCompact) {
   const line = new THREE.LineLoop(lineGeometry, lineMaterial);
   carrier.add(line);
 
+  // 轨道星点流：和行星同角速度，沿同一椭圆流动
+  const stream = createOrbitalStream(options, isCompact);
+  carrier.add(stream);
+
   // 行星是实体：不透明并写深度，才能挡住背后的银河
   const orbiter = createPlanet(options.planet, options.planetRadius, isCompact);
   if (options.ring) {
     orbiter.add(createPlanetRing(options.planetRadius * 1.5, options.planetRadius * 2.4, isCompact, options.ringTilt));
   }
+
+  // 大气外发光：暖色行星带暖辉，冰巨星带冷辉
+  const glowTexture = getSharedGlowTexture();
+  if (glowTexture) {
+    const glowMaterial = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: new THREE.Color(PLANET_GLOW_COLORS[options.planet] || options.color),
+      transparent: true,
+      opacity: isCompact ? 0.4 : 0.55,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const glow = new THREE.Sprite(glowMaterial);
+    glow.scale.setScalar(options.planetRadius * (isCompact ? 4.2 : 4.6));
+    orbiter.add(glow);
+  }
+
   carrier.add(orbiter);
 
   return {
     carrier,
     orbiter,
+    stream,
+    streamMaterial: stream.material,
     radiusX: options.radiusX,
     radiusY: options.radiusY,
     depth: options.depth,
@@ -1490,6 +1611,8 @@ function initializeHeroScene(targetCanvas) {
       track.orbiter.rotation.y += deltaSeconds * 0.16;
       track.orbiter.material.uniforms.uTime.value = time;
       track.orbiter.material.uniforms.uLightPosition.value.copy(starWorldPosition);
+      // 轨道星点流与行星同相流动
+      track.streamMaterial.uniforms.uTime.value = time;
     }
 
     const pulse = 1 + Math.sin(time * 1.35) * 0.055;
@@ -1554,6 +1677,12 @@ function initializeHeroScene(targetCanvas) {
     if (orbitalSystem.glow) {
       orbitalSystem.glow.material.opacity = 0.45 + Math.sin(time * 1.1) * 0.055;
     }
+
+    // 镜头呼吸：极慢的推近拉远，让整片星海像在太空中漂浮
+    const baseZoom = state.compact ? 9.7 : 8.8;
+    camera.position.z = baseZoom * (1 + Math.sin(time * 0.3) * 0.011);
+    camera.position.x = state.pointerCurrent.x * 0.34;
+    camera.position.y = state.pointerCurrent.y * 0.2;
   }
 
   /** 执行单帧动画，并将长时间暂停后的时间步限制在稳定范围内。 */

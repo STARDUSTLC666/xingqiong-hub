@@ -68,12 +68,20 @@
     <section class="hero" aria-labelledby="hero-title">
       <canvas class="hero__scene" id="heroScene" aria-hidden="true"></canvas>
       <div class="hero__veil" aria-hidden="true"></div>
+      <div class="hero__noise" aria-hidden="true"></div>
+      <div class="hero__hud" aria-hidden="true">
+        <span class="hero__hud-coord hero__hud-coord--tl">RA 12<sup>h</sup> 34<sup>m</sup> 56<sup>s</sup> · DEC +45° 00′</span>
+        <span class="hero__hud-coord hero__hud-coord--tr">XQ-HUB / OBS-01</span>
+        <span class="hero__hud-coord hero__hud-coord--bl">SECTOR 2026 · PUBLIC FEED</span>
+        <span class="hero__hud-coord hero__hud-coord--br">SIG 14.0 · TRK ∞</span>
+      </div>
+      <span class="hero__crosshair" aria-hidden="true"></span>
 
       <div class="hero__inner page-width">
         <div class="hero__copy">
-          <p class="hero__eyebrow"><span>PERSONAL CREATIVE ARCHIVE</span><span>EST. 2026</span></p>
+          <p class="hero__eyebrow"><span class="hero__eyebrow-line"></span><span>PERSONAL CREATIVE ARCHIVE</span><span>EST. 2026</span></p>
           <h1 id="hero-title">星穹枢庭</h1>
-          <p class="hero__lead">记录提示词、视觉实验与生成式创作方法。这里收录我持续维护的工具、手册与作品。</p>
+          <p class="hero__lead">记录提示词、视觉实验与生成式创作方法。<br class="hero__lead-break">这里收录我持续维护的工具、手册与作品。</p>
           <div class="hero__actions">
             <a class="button button--primary" href="#workflow">
               <span>探索创作路径</span>
@@ -85,8 +93,8 @@
             </a>
           </div>
           <dl class="hero__facts" aria-label="站点概览">
-            <div><dt>14</dt><dd>公开档案</dd></div>
-            <div><dt>5</dt><dd>新手路线</dd></div>
+            <div><dt data-count="14">14</dt><dd>公开档案</dd></div>
+            <div><dt data-count="5">5</dt><dd>新手路线</dd></div>
             <div><dt>∞</dt><dd>持续更新</dd></div>
           </dl>
         </div>
@@ -94,6 +102,11 @@
         <div class="hero__edition" aria-hidden="true">
           <span>PUBLIC EDITION</span>
           <span>01 / 14</span>
+        </div>
+
+        <div class="hero__orbit-hint" aria-hidden="true">
+          <span class="hero__orbit-hint-ring"></span>
+          <span class="hero__orbit-hint-dot"></span>
         </div>
       </div>
 
@@ -123,7 +136,7 @@
       <div class="page-width">
         <div class="section-heading section-heading--workflow">
           <div>
-            <p class="section-kicker">BEGINNER ROUTES</p>
+            <p class="section-kicker"><span class="section-kicker__index">01</span>BEGINNER ROUTES</p>
             <h2 id="workflow-title">第一次来，从这里开始</h2>
           </div>
           <p>不用先看懂全部工具。选择你现在手里有什么，再按顺序完成每一步。</p>
@@ -218,7 +231,7 @@
       <div class="page-width">
         <div class="section-heading section-heading--featured">
           <div>
-            <p class="section-kicker">SELECTED WORK</p>
+            <p class="section-kicker"><span class="section-kicker__index">02</span>SELECTED WORK</p>
             <h2 id="featured-title">精选档案</h2>
           </div>
           <p>先看真实页面，再决定从哪一份内容开始。</p>
@@ -231,7 +244,7 @@
       <div class="page-width">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">GATE MAP</p>
+            <p class="section-kicker"><span class="section-kicker__index">03</span>GATE MAP</p>
             <h2 id="constellation-title">星门星图</h2>
           </div>
           <p>每个星门都会把你指向下一个。这张图把这些指向汇总起来，看得出哪些是枢纽、哪些是终点。</p>
@@ -239,6 +252,7 @@
 
         <div class="constellation-stage">
           <canvas id="constellationCanvas" aria-hidden="true"></canvas>
+          <div class="constellation-gates" aria-hidden="true"></div>
           <p class="constellation-hint">悬停查看一个星门的联动，点击直接前往</p>
         </div>
 
@@ -276,7 +290,7 @@
       <div class="page-width">
         <div class="section-heading section-heading--archive">
           <div>
-            <p class="section-kicker">PUBLIC ARCHIVE</p>
+            <p class="section-kicker"><span class="section-kicker__index">04</span>PUBLIC ARCHIVE</p>
             <h2 id="archive-title">公开档案</h2>
           </div>
           <p id="archiveModeNote">当前显示常规创作内容。</p>
@@ -313,7 +327,7 @@
 
     <section class="about" id="about" aria-labelledby="about-title">
       <div class="page-width about__layout">
-        <p class="section-kicker">ABOUT THE ARCHIVE</p>
+        <p class="section-kicker"><span class="section-kicker__index">05</span>ABOUT THE ARCHIVE</p>
         <div>
           <h2 id="about-title">把每次试验，留成下一次创作的起点。</h2>
           <p>星穹枢庭是一座持续生长的个人创作档案馆，公开整理生成式视觉实践中的提示词、方法、工具与过程记录。</p>
