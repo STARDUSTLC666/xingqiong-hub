@@ -534,6 +534,23 @@ function createOrbitalTrack(options, isCompact) {
     orbiter.add(createPlanetRing(options.planetRadius * 1.5, options.planetRadius * 2.4, isCompact, options.ringTilt));
   }
 
+  const meta = options.meta || null;
+  orbiter.userData.gateMeta = meta;
+
+  // 隐形命中球：行星在首屏很小，直接点球面很难点中，扩大可点击范围
+  const hitMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    depthTest: false
+  });
+  const hitSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(Math.max(0.34, options.planetRadius * 3.2), 12, 8),
+    hitMaterial
+  );
+  hitSphere.userData.gateMeta = meta;
+  orbiter.add(hitSphere);
+
   // 大气外发光：暖色行星带暖辉，冰巨星带冷辉
   const glowTexture = getSharedGlowTexture();
   if (glowTexture) {
@@ -557,6 +574,9 @@ function createOrbitalTrack(options, isCompact) {
     orbiter,
     stream,
     streamMaterial: stream.material,
+    line,
+    lineMaterial,
+    meta,
     radiusX: options.radiusX,
     radiusY: options.radiusY,
     depth: options.depth,
@@ -1342,6 +1362,50 @@ function createBinarySystem(isCompact) {
   };
 }
 
+const PLANET_GATES = [
+  { planet: "mercury", slug: "prompt-reader", name: "Prompt Reader", role: "读取图片提示词与工作流", href: "prompt-reader/index.html", accent: "#79aebc", group: "工具" },
+  { planet: "venus", slug: "krea2", name: "Krea2 提示词工匠", role: "八卡槽提示词整理与扩写", href: "krea2/index.html", accent: "#e7ad61", group: "提示词" },
+  { planet: "earth", slug: "lighting-codex", name: "双子星光影魔典", role: "光影、氛围与镜头质感", href: "lighting-codex/index.html", accent: "#e7ad61", group: "提示词" },
+  { planet: "mars", slug: "portal", name: "星穹绘所", role: "连接 ComfyUI 的出图工作台", href: "portal/index.html", accent: "#76bba5", group: "出图" },
+  { planet: "jupiter", slug: "wd-tagger", name: "WD 标签反推器", role: "从参考图反推 Danbooru 标签", href: "wd-tagger/index.html", accent: "#76bba5", group: "出图" },
+  { planet: "saturn", slug: "drag-resolver", name: "Drag Resolver", role: "ComfyUI 拖拽导入排障", href: "drag-resolver/index.html", accent: "#79aebc", group: "工具" },
+  { planet: "uranus", slug: "moon-scroll", name: "月卷协议", role: "跨模型上下文约定", href: "moon-scroll/index.html", accent: "#9d91c5", group: "协议" },
+  { planet: "neptune", slug: "decoder-terminal", name: "解码终端", role: "还原约定格式与编码消息", href: "decoder-terminal/index.html", accent: "#79aebc", group: "协议" }
+];
+
+const PLANET_GATE_BY_PLANET = new Map(PLANET_GATES.map((gate) => [gate.planet, gate]));
+
+function readVisitedGates() {
+  try {
+    const raw = localStorage.getItem("xingqiong-visited-gates");
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveVisitedGate(slug) {
+  try {
+    const key = "xingqiong-visited-gates";
+    const raw = localStorage.getItem(key);
+    const list = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(list) && !list.includes(slug)) {
+      list.push(slug);
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+  } catch {
+    // 存储不可用时静默忽略。
+  }
+}
+
+function getTodayGate() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const day = Math.floor((now - start) / 86400000);
+  return PLANET_GATES[day % PLANET_GATES.length];
+}
+
 function createOrbitalSystem(isCompact) {
   const root = new THREE.Group();
   const tracks = [];
@@ -1358,7 +1422,8 @@ function createOrbitalSystem(isCompact) {
   ];
 
   for (const options of trackOptions) {
-    const track = createOrbitalTrack(options, isCompact);
+    const meta = PLANET_GATE_BY_PLANET.get(options.planet) || null;
+    const track = createOrbitalTrack({ ...options, meta }, isCompact);
     tracks.push(track);
     root.add(track.carrier);
   }
@@ -1488,6 +1553,135 @@ function initializeHeroScene(targetCanvas) {
   nebula.position.set(0, 0, -30);
   camera.add(nebula);
   scene.add(camera, particles, orbitalSystem.root);
+
+  /* ── 星轨即导航：行星悬停/点击 + 访客点亮 ── */
+  const raycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+  const visitedGates = readVisitedGates();
+  const gateTip = document.createElement("div");
+  gateTip.className = "hero__gate-tip";
+  gateTip.setAttribute("role", "tooltip");
+  gateTip.hidden = true;
+  host.appendChild(gateTip);
+
+  const gateProgress = document.createElement("div");
+  gateProgress.className = "hero__gate-progress";
+  gateProgress.setAttribute("role", "status");
+  gateProgress.setAttribute("aria-live", "polite");
+  host.appendChild(gateProgress);
+
+  const gateHitMeshes = orbitalSystem.tracks
+    .map((track) => track.orbiter)
+    .filter(Boolean);
+
+  let hoveredGate = null;
+
+  function planetMetaFromObject(object) {
+    let node = object;
+    while (node) {
+      if (node.userData && node.userData.gateMeta) return node.userData.gateMeta;
+      node = node.parent;
+    }
+    return null;
+  }
+
+  function updateVisitedHighlight() {
+    for (const track of orbitalSystem.tracks) {
+      if (!track.meta) continue;
+      const visited = visitedGates.has(track.meta.slug);
+      if (track.lineMaterial) {
+        if (visited) {
+          track.lineMaterial.color.set(track.meta.accent);
+          track.lineMaterial.opacity = Math.min(0.78, track.lineMaterial.opacity + 0.34);
+        }
+      }
+    }
+  }
+
+  function updateGateProgress() {
+    const total = PLANET_GATES.length;
+    const lit = PLANET_GATES.filter((gate) => visitedGates.has(gate.slug)).length;
+    const today = getTodayGate();
+    gateProgress.innerHTML =
+      '<span class="hero__gate-progress__hint">点击行星</span>' +
+      '<span class="hero__gate-progress__label">星轨点亮</span>' +
+      '<strong>' + lit + ' / ' + total + '</strong>' +
+      '<a class="hero__gate-progress__today" href="' + today.href + '">今日星门 · ' + today.name + '</a>';
+  }
+
+  function showGateTip(meta, clientX, clientY) {
+    const rect = host.getBoundingClientRect();
+    const left = Math.max(12, Math.min(rect.width - 240, clientX - rect.left + 14));
+    const top = Math.max(12, Math.min(rect.height - 90, clientY - rect.top + 14));
+    const visited = visitedGates.has(meta.slug);
+    gateTip.innerHTML =
+      '<span class="hero__gate-tip__group">' + meta.group + '</span>' +
+      '<strong>' + meta.name + '</strong>' +
+      '<span class="hero__gate-tip__role">' + meta.role + '</span>' +
+      '<small class="' + (visited ? 'is-visited' : '') + '">' + (visited ? '已点亮 · ' : '') + '点击前往档案</small>';
+    gateTip.style.left = left + 'px';
+    gateTip.style.top = top + 'px';
+    gateTip.hidden = false;
+  }
+
+  function hideGateTip() {
+    gateTip.hidden = true;
+  }
+
+  function findGateAt(clientX, clientY) {
+    const rect = host.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNdc, camera);
+    const hits = raycaster.intersectObjects(gateHitMeshes, true);
+    for (const hit of hits) {
+      const meta = planetMetaFromObject(hit.object);
+      if (meta) return meta;
+    }
+    return null;
+  }
+
+  function handleGatePointerMove(event) {
+    if (event.target.closest && event.target.closest('a, button')) {
+      hoveredGate = null;
+      hideGateTip();
+      return;
+    }
+    const meta = findGateAt(event.clientX, event.clientY);
+    hoveredGate = meta;
+    if (meta) {
+      showGateTip(meta, event.clientX, event.clientY);
+    } else {
+      hideGateTip();
+    }
+  }
+
+  function handleGatePointerLeave() {
+    hoveredGate = null;
+    hideGateTip();
+  }
+
+  function handleGateClick(event) {
+    if (event.target.closest && event.target.closest('a, button')) return;
+    const meta = findGateAt(event.clientX, event.clientY);
+    if (!meta) return;
+    if (!visitedGates.has(meta.slug)) {
+      visitedGates.add(meta.slug);
+      saveVisitedGate(meta.slug);
+      updateVisitedHighlight();
+      updateGateProgress();
+    }
+    window.location.href = meta.href;
+  }
+
+  updateVisitedHighlight();
+  updateGateProgress();
+
+  host.addEventListener('pointermove', handleGatePointerMove, { passive: true });
+  host.addEventListener('pointerleave', handleGatePointerLeave, { passive: true });
+  host.addEventListener('click', handleGateClick, { passive: false });
+
 
   const state = {
     compact: mobileQuery.matches,
@@ -1868,6 +2062,9 @@ function initializeHeroScene(targetCanvas) {
     window.removeEventListener("pageshow", handlePageShow);
     host.removeEventListener("pointermove", handlePointerMove);
     host.removeEventListener("pointerleave", handlePointerLeave);
+    host.removeEventListener("pointermove", handleGatePointerMove);
+    host.removeEventListener("pointerleave", handleGatePointerLeave);
+    host.removeEventListener("click", handleGateClick);
     targetCanvas.removeEventListener("webglcontextlost", handleContextLost);
     motionQuery.removeEventListener?.("change", handleMotionPreferenceChange);
     window.removeEventListener("xq:motionchange", handleMotionPreferenceChange);

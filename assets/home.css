@@ -2835,3 +2835,129 @@ body[data-mode="adult"] .mode-switch__button.is-active {
     margin-left: 0;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   星轨即导航 · 行星工具提示与访客点亮
+   ═══════════════════════════════════════════════════════════════ */
+
+.hero__gate-tip {
+  position: absolute;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 210px;
+  max-width: 250px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-gold);
+  border-radius: 10px;
+  color: var(--text-soft);
+  background: rgba(10, 14, 34, 0.88);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.hero__gate-tip__group {
+  color: var(--amber-bright);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.hero__gate-tip strong {
+  color: #f4ead4;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.hero__gate-tip__role {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hero__gate-tip small {
+  margin-top: 5px;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.hero__gate-tip small.is-visited {
+  color: var(--mint);
+}
+
+.hero__gate-progress {
+  position: absolute;
+  z-index: 6;
+  left: 28px;
+  bottom: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(10, 14, 34, 0.52);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.hero__gate-progress__hint {
+  color: var(--amber-bright);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  border-right: 1px solid var(--line);
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.hero__gate-progress__label {
+  color: var(--faint);
+}
+
+.hero__gate-progress strong {
+  color: var(--amber-bright);
+  font-size: 13px;
+}
+
+.hero__gate-progress__today {
+  color: var(--mint);
+  text-decoration: none;
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+  transition: color 200ms ease;
+}
+
+.hero__gate-progress__today:hover {
+  color: var(--amber-bright);
+}
+
+@media (max-width: 767px) {
+  .hero__gate-progress {
+    left: 16px;
+    right: auto;
+    bottom: 52px;
+    max-width: calc(100% - 32px);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .hero__gate-tip {
+    max-width: 200px;
+  }
+
+  .hero__gate-progress__hint {
+    display: none;
+  }
+}

@@ -109,6 +109,21 @@
   const slug = currentSlug();
   const here = DESTINATIONS.find((item) => item.slug === slug) || DESTINATIONS[0];
 
+  /* 访客星轨：每次打开某个星门都记录到本地，供首页 3D 行星点亮使用。 */
+  if (slug) {
+    try {
+      const key = "xingqiong-visited-gates";
+      const raw = localStorage.getItem(key);
+      const list = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(list) && !list.includes(slug)) {
+        list.push(slug);
+        localStorage.setItem(key, JSON.stringify(list));
+      }
+    } catch {
+      // 隐私模式或存储不可用时静默忽略。
+    }
+  }
+
   function hrefFor(target) {
     return target.slug ? `${ROOT}${target.slug}/index.html` : `${ROOT}index.html`;
   }
