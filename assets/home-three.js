@@ -1691,12 +1691,6 @@ function initializeHeroScene(targetCanvas) {
   }
 
   updateVisitedHighlight();
-      updateGateProgress();
-    }
-    window.location.href = meta.href;
-  }
-
-  updateVisitedHighlight();
   updateGateProgress();
 
   host.addEventListener('pointermove', handleGatePointerMove, { passive: true });
