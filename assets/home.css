@@ -2853,9 +2853,8 @@ body[data-mode="adult"] .mode-switch__button.is-active {
   border: 1px solid var(--line-gold);
   border-radius: 10px;
   color: var(--text-soft);
-  background: rgba(10, 14, 34, 0.88);
+  background: rgba(10, 14, 34, 0.96);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(14px);
   pointer-events: none;
   font-size: 12px;
   line-height: 1.45;
@@ -2905,8 +2904,7 @@ body[data-mode="adult"] .mode-switch__button.is-active {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
-  background: rgba(10, 14, 34, 0.52);
-  backdrop-filter: blur(10px);
+  background: rgba(10, 14, 34, 0.78);
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
