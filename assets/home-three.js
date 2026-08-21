@@ -545,7 +545,7 @@ function createOrbitalTrack(options, isCompact) {
     depthTest: false
   });
   const hitSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(Math.max(0.34, options.planetRadius * 3.2), 12, 8),
+    new THREE.SphereGeometry(Math.max(0.26, options.planetRadius * 2.6), 12, 8),
     hitMaterial
   );
   hitSphere.userData.gateMeta = meta;
@@ -1575,6 +1575,8 @@ function initializeHeroScene(targetCanvas) {
     .filter(Boolean);
 
   let hoveredGate = null;
+  let lastPointer = null;
+  let pointerOverInteractive = false;
 
   function planetMetaFromObject(object) {
     let node = object;
@@ -1642,22 +1644,35 @@ function initializeHeroScene(targetCanvas) {
     return null;
   }
 
-  function handleGatePointerMove(event) {
-    if (event.target.closest && event.target.closest('a, button')) {
+  function refreshGateHover() {
+    if (!lastPointer) {
       hoveredGate = null;
       hideGateTip();
       return;
     }
-    const meta = findGateAt(event.clientX, event.clientY);
+    if (pointerOverInteractive) {
+      hoveredGate = null;
+      hideGateTip();
+      return;
+    }
+    const meta = findGateAt(lastPointer.x, lastPointer.y);
     hoveredGate = meta;
     if (meta) {
-      showGateTip(meta, event.clientX, event.clientY);
+      showGateTip(meta, lastPointer.x, lastPointer.y);
     } else {
       hideGateTip();
     }
   }
 
+  function handleGatePointerMove(event) {
+    lastPointer = { x: event.clientX, y: event.clientY };
+    pointerOverInteractive = Boolean(event.target.closest && event.target.closest('a, button'));
+    refreshGateHover();
+  }
+
   function handleGatePointerLeave() {
+    lastPointer = null;
+    pointerOverInteractive = false;
     hoveredGate = null;
     hideGateTip();
   }
@@ -1670,6 +1685,12 @@ function initializeHeroScene(targetCanvas) {
       visitedGates.add(meta.slug);
       saveVisitedGate(meta.slug);
       updateVisitedHighlight();
+      updateGateProgress();
+    }
+    window.location.href = meta.href;
+  }
+
+  updateVisitedHighlight();
       updateGateProgress();
     }
     window.location.href = meta.href;
@@ -1871,6 +1892,9 @@ function initializeHeroScene(targetCanvas) {
     if (orbitalSystem.glow) {
       orbitalSystem.glow.material.opacity = 0.45 + Math.sin(time * 1.1) * 0.055;
     }
+
+    // 每帧根据行星当前位置刷新悬停状态，行星移开时提示卡会自动消失
+    refreshGateHover();
 
     // 镜头呼吸：极慢的推近拉远，让整片星海像在太空中漂浮
     const baseZoom = state.compact ? 9.7 : 8.8;
