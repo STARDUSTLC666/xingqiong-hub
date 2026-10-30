@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * 站点约定检查：确保每个页面都接入共享设计系统，且站点保持完全自包含。
+ * 站点约定检查：确保每个页面都接入共享设计系统，且页面资源保持自托管。
+ * 共享运行时可在正式站点异步加载 Cloudflare Web Analytics；页面功能不依赖统计。
  * 与 check-static-site.mjs 分开，前者管链接与语法，这里管约定。
  */
 
@@ -128,6 +129,6 @@ if (issues.length > 0) {
 }
 
 console.log('站点约定检查通过：');
-console.log(`- 自包含：${htmlFiles.length} 个页面无外部资源加载`);
+console.log(`- 自托管：${htmlFiles.length} 个页面无外部资源标签（正式站点可异步加载访问统计）`);
 console.log(`- 共享外壳：全部页面已接入 sanctuary.css / sanctuary.js`);
 console.log(`- 命名与内容：${textFiles.length} 个文本文件通过品牌与标签检查`);

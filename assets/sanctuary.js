@@ -10,6 +10,29 @@
 (function () {
   "use strict";
 
+  /* ------------------------------------------------------------ 访问统计 */
+  /* Cloudflare 的公开站点标识，不是 API 密钥。仅在正式站点异步加载；
+     本地预览、下载副本及其他 GitHub Pages 项目不发送统计。 */
+  const CLOUDFLARE_ANALYTICS_TOKEN = "8b940c962435404babc890378adf7cd2";
+
+  (function loadAnalytics() {
+    if (location.hostname !== "stardustlc666.github.io"
+      || !location.pathname.startsWith("/xingqiong-hub/")
+      || !/^[a-f0-9]{32}$/i.test(CLOUDFLARE_ANALYTICS_TOKEN)
+      || document.getElementById("xq-web-analytics")) return;
+
+    const script = document.createElement("script");
+    script.id = "xq-web-analytics";
+    script.type = "module";
+    script.async = true;
+    script.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    script.setAttribute("data-cf-beacon", JSON.stringify({
+      token: CLOUDFLARE_ANALYTICS_TOKEN,
+      spa: false
+    }));
+    document.head.appendChild(script);
+  })();
+
   /* ------------------------------------------------------------ 站点索引 */
   /** 全站可跳转目的地。命令面板、顶栏与页脚都从这里取数据。 */
   const DESTINATIONS = [

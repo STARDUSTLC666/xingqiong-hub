@@ -40,7 +40,10 @@ https://stardustlc666.github.io/xingqiong-hub/
 首页保留自己的外壳，用 `<html data-xq-shell="off">` 只取命令面板与微交互。
 按 `Ctrl/Cmd + K`（或 `/`）可在任意页面唤出星门检索，直达全部 17 个页面。
 
-所有资源均自托管，站点不请求任何外部 CDN、字体或统计服务。
+页面、字体、图片和交互所需资源均自托管。访问统计通过共享运行时异步接入
+[Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/)，
+仅在正式站点启用；统计服务不可用时不影响页面功能。本地预览不会发送统计。
+统计的范围、查看方式与维护步骤见 [ANALYTICS.md](ANALYTICS.md)。
 
 ## 公网发布
 
